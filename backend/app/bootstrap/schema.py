@@ -169,6 +169,17 @@ async def ensure_schema_compatibility(engine: AsyncEngine) -> None:
                 created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'utc')
             );
         """))
+        await conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS audit_logs (
+                id SERIAL PRIMARY KEY,
+                created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+                actor_employee_id INTEGER REFERENCES employees(id),
+                event_type VARCHAR(64) NOT NULL,
+                entity_type VARCHAR(64) NOT NULL,
+                entity_id INTEGER,
+                payload_json JSONB NOT NULL DEFAULT '{}'::jsonb
+            );
+        """))
 
     try:
         async with engine.connect() as conn:

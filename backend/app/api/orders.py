@@ -19,13 +19,14 @@ from app.models import (
 )
 from pydantic import BaseModel
 
-from app.schemas.order import OrderCreate, OrderResponse, OrderDetailResponse
+from app.schemas.order import OrderCreate, OrderResponse, OrderDetailResponse, PlateOrderResponse
 from app.schemas.payment import PayOrderResponse
 from app.services.errors import ServiceError
 from app.services.order_access import apply_orders_scope, ensure_can_access_order, ensure_can_access_plate_workflow
 from app.services.order_service import (
     accept_order_payment,
     build_plate_list,
+    build_plate_order_detail,
     create_order,
     get_order_or_error,
     get_order_payments_summary,
@@ -47,7 +48,7 @@ async def post_order(
     user: UserInfo = Depends(RequireFormAccess),
 ):
     try:
-        order = await create_order(db, data, user.id)
+        order = await create_order(db, data, user)
     except ServiceError as exc:
         _raise_service_error(exc)
     logger.info("Создан заказ id=%s public_id=%s", order.id, order.public_id)
@@ -90,6 +91,21 @@ async def list_orders_for_plate(
     return await build_plate_list(db)
 
 
+@router.get("/plate/{order_id}", response_model=PlateOrderResponse)
+async def get_plate_order(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: UserInfo = Depends(RequirePlateAccess),
+):
+    try:
+        order = await get_order_or_error(db, order_id)
+        ensure_can_access_plate_workflow(user, order)
+        payload = await build_plate_order_detail(db, order)
+    except ServiceError as exc:
+        _raise_service_error(exc)
+    return PlateOrderResponse(**payload)
+
+
 @router.get("", response_model=list[OrderResponse])
 async def list_orders(
     status: Optional[OrderStatus] = None,
@@ -100,6 +116,8 @@ async def list_orders(
     user: UserInfo = Depends(RequireOrdersListAccess),
 ):
     """Список заказов. pavilion=1 — заявки павильона 1 (форма), pavilion=2 — только с номерами (need_plate)."""
+    if user.role == "ROLE_PLATE_OPERATOR":
+        raise HTTPException(status_code=403, detail="Для работы с номерами используйте plate-only контур")
     if pavilion is not None:
         if pavilion not in (1, 2):
             raise HTTPException(status_code=400, detail="Павильон должен быть 1 или 2")
@@ -145,6 +163,8 @@ async def get_order(
     db: AsyncSession = Depends(get_db),
     user: UserInfo = Depends(RequireOrdersListAccess),
 ):
+    if user.role == "ROLE_PLATE_OPERATOR":
+        raise HTTPException(status_code=403, detail="Полная карточка заказа недоступна оператору номеров")
     try:
         order = await get_order_or_error(db, order_id)
         ensure_can_access_order(user, order)
@@ -210,6 +230,8 @@ async def get_order_payments(
     user: UserInfo = Depends(RequireOrdersListAccess),
 ):
     """Список платежей по заказу (для расчёта total_paid и долга)."""
+    if user.role == "ROLE_PLATE_OPERATOR":
+        raise HTTPException(status_code=403, detail="Общий платёжный контур недоступен оператору номеров")
     try:
         order = await get_order_or_error(db, order_id)
         ensure_can_access_order(user, order)
@@ -247,6 +269,6 @@ async def update_order_status(
     try:
         order = await get_order_or_error(db, order_id)
         ensure_can_access_plate_workflow(_user, order)
-        return await update_order_status_service(db, order, new_status)
+        return await update_order_status_service(db, order, new_status, _user)
     except ServiceError as exc:
         _raise_service_error(exc)

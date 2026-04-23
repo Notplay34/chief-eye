@@ -4,6 +4,8 @@ import re
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
+from app.services.order_validation import validate_dkp_date
+
 
 class DocumentItem(BaseModel):
     """Элемент прейскуранта: документ для печати и его цена."""
@@ -104,6 +106,83 @@ class OrderCreate(BaseModel):
             raise ValueError("Телефон должен быть в формате +7XXXXXXXXXX")
         return "+" + digits
 
+    @field_validator("vin")
+    @classmethod
+    def _validate_vin(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        vin = value.upper()
+        if len(vin) != 17 or any(ch in vin for ch in "IOQ"):
+            raise ValueError("VIN должен содержать 17 символов без I, O и Q")
+        return vin
+
+    @field_validator("client_inn")
+    @classmethod
+    def _validate_inn(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        digits = re.sub(r"\D", "", value)
+        if len(digits) not in (10, 12):
+            raise ValueError("ИНН должен содержать 10 или 12 цифр")
+        return digits
+
+    @field_validator("client_ogrn")
+    @classmethod
+    def _validate_ogrn(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        digits = re.sub(r"\D", "", value)
+        if len(digits) != 13:
+            raise ValueError("ОГРН должен содержать 13 цифр")
+        return digits
+
+    @field_validator("year")
+    @classmethod
+    def _validate_year(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        if not re.fullmatch(r"\d{4}", value):
+            raise ValueError("Год выпуска должен содержать 4 цифры")
+        year = int(value)
+        if year < 1900 or year > 2100:
+            raise ValueError("Год выпуска вне допустимого диапазона")
+        return value
+
+    @field_validator("plate_number")
+    @classmethod
+    def _validate_plate_number(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        normalized = re.sub(r"\s+", "", value.upper())
+        if len(normalized) < 6 or len(normalized) > 10:
+            raise ValueError("Госномер должен содержать от 6 до 10 символов")
+        return normalized
+
+    @field_validator("client_passport", "seller_passport", "trustee_passport")
+    @classmethod
+    def _validate_passport(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        digits = re.sub(r"\D", "", value)
+        if len(digits) != 10:
+            raise ValueError("Паспорт должен содержать 10 цифр")
+        return f"{digits[:4]} {digits[4:]}"
+
+    @field_validator("srts", "pts")
+    @classmethod
+    def _validate_vehicle_docs(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        normalized = re.sub(r"\s+", "", value.upper())
+        if len(normalized) < 6 or len(normalized) > 12:
+            raise ValueError("Номер документа должен содержать от 6 до 12 символов")
+        return normalized
+
+    @field_validator("dkp_date")
+    @classmethod
+    def _validate_dkp_date(cls, value: Optional[str]) -> Optional[str]:
+        return validate_dkp_date(value)
+
 
 class OrderResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -124,3 +203,15 @@ class OrderDetailResponse(OrderResponse):
     """Заказ с деталями для админки: form_data и кто оформил."""
     form_data: Optional[dict] = None
     created_by_name: Optional[str] = None
+
+
+class PlateOrderResponse(BaseModel):
+    id: int
+    public_id: str
+    status: str
+    client: Optional[str] = None
+    brand_model: Optional[str] = None
+    plate_amount: Decimal
+    debt: Decimal
+    plate_document: str = "zaiavlenie_na_nomera.docx"
+    created_at: str

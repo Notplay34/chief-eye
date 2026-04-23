@@ -1,63 +1,53 @@
-# Версионирование изменений схемы БД
+# Миграции БД
 
-Все изменения схемы базы данных фиксируются здесь. При добавлении новых таблиц или колонок добавляйте новый пункт с датой и описанием. В будущем можно перейти на Alembic и генерировать миграции автоматически.
+Source of truth для схемы БД теперь `Alembic`.
 
----
+## Что используется сейчас
 
-## Уже выполненные шаги (в порядке применения)
+- Конфиг: [alembic.ini](/Users/NotPlay/Documents/dev/pavilion/alembic.ini)
+- Среда миграций: [alembic/env.py](/Users/NotPlay/Documents/dev/pavilion/alembic/env.py)
+- Ревизии: [alembic/versions](/Users/NotPlay/Documents/dev/pavilion/alembic/versions)
+- Baseline-ревизия: [alembic/versions/20260423_01_baseline_internal_safe.py](/Users/NotPlay/Documents/dev/pavilion/alembic/versions/20260423_01_baseline_internal_safe.py)
 
-### Старт (create_all)
+## Текущий контракт
 
-- Создание таблиц по моделям SQLAlchemy: `employees`, `orders`, `payments`, `document_prices`, `plates` и др. (см. `app.models`). Выполняется при каждом старте приложения: `Base.metadata.create_all`.
+1. Новые изменения схемы добавляются только через новую ревизию Alembic.
+2. `backend/app/bootstrap/schema.py` остаётся только как переходный слой совместимости для уже развернутых инсталляций.
+3. Новые таблицы, индексы и constraints в `ensure_schema_compatibility(...)` больше не добавляются.
 
-### ensure_schema_compatibility (при старте)
+## Базовые команды
 
-1. **employees:** колонки `login` (VARCHAR 64 UNIQUE), `password_hash` (VARCHAR 255) — если отсутствуют.
-2. **orders:** колонка `public_id` (VARCHAR 36 NOT NULL UNIQUE), заполнение uuid при отсутствии.
-3. **cash_shifts:** создание таблицы (id, pavilion, opened_by_id, opened_at, closed_at, closed_by_id, opening_balance, closing_balance, status).
-4. **payments:** колонка `shift_id` (FK на cash_shifts) — если отсутствует.
-5. **cash_rows:** создание таблицы (id, created_at, client_name, application, state_duty, dkp, insurance, plates, total); при необходимости добавление created_at.
-6. **plate_cash_rows:** создание таблицы (id, created_at, client_name, amount); при необходимости добавление created_at.
-7. **plate_stock:** создание таблицы (id, quantity, updated_at).
-8. **plate_reservations:** создание таблицы (id, order_id, quantity, created_at).
-9. **plate_defects:** создание таблицы (id, quantity, created_at).
-10. **form_history:** создание таблицы (id, order_id, form_data, created_at).
-11. **Enum employeerole:** добавление значения `ROLE_MANAGER` — если ещё нет.
+Проверить текущую ревизию:
 
-### Сидирование при старте
-
-- `backend/app/bootstrap/seed.py`:
-  - создание суперпользователя по `SUPERUSER_*`, если логин ещё не существует;
-  - заполнение `document_prices` дефолтным прейскурантом, если таблица пуста.
-
-### Последовательность при деплое
-
-На чистой БД при старте приложения выполняется:
-
-1. `Base.metadata.create_all`
-2. `ensure_schema_compatibility(...)`
-3. `ensure_superuser(...)`
-4. `seed_document_prices(...)`
-
-Оркестрация запуска вынесена в `backend/app/bootstrap/startup.py`.
-Новые инсталляции не требуют ручного запуска миграций.
-
----
-
-## Правила для новых изменений схемы
-
-1. Добавьте описание в этот файл (дата, что сделано, в каком файле/функции).
-2. Реализуйте шаг идемпотентно (IF NOT EXISTS / проверка наличия колонки), чтобы повторный запуск не падал.
-3. При переименовании моделей или таблиц учитывайте, что схема совместимости теперь живёт в `backend/app/bootstrap/schema.py`.
-
----
-
-## Пример записи для будущей миграции
-
-```markdown
-### 2026-03-XX: таблица X
-
-- Файл: `backend/app/bootstrap/schema.py`, функция `ensure_schema_compatibility` (или новый скрипт `deploy/migrate_XX.sql`).
-- Описание: CREATE TABLE x (id SERIAL PRIMARY KEY, ...).
-- Идемпотентность: CREATE TABLE IF NOT EXISTS x ...
+```bash
+cd /Users/NotPlay/Documents/dev/pavilion
+alembic current
 ```
+
+Применить все миграции:
+
+```bash
+cd /Users/NotPlay/Documents/dev/pavilion
+alembic upgrade head
+```
+
+Создать новую ревизию:
+
+```bash
+cd /Users/NotPlay/Documents/dev/pavilion
+alembic revision -m "short description"
+```
+
+Автогенерацию использовать только как черновик, потом вручную проверять SQL и совместимость.
+
+## Как выкатывать изменения
+
+1. Подтянуть код.
+2. Активировать backend-окружение.
+3. Выполнить `alembic upgrade head`.
+4. Перезапустить сервис приложения.
+5. Прогнать [docs/SMOKE_TEST.md](/Users/NotPlay/Documents/dev/pavilion/docs/SMOKE_TEST.md) и `bash deploy/check_stack.sh`.
+
+## Переходный период
+
+На старых установках приложение всё ещё может стартовать через `create_all + ensure_schema_compatibility`, но это fallback, а не основной путь. Для нового деплоя и всех следующих изменений ориентир только один: Alembic-ревизии в репозитории.

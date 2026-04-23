@@ -104,3 +104,22 @@ def test_analytics_dashboard_supports_docs_and_plates_scopes(client: TestClient,
     assert as_float(plates["docs_income"]) == 0.0
     assert as_float(plates["state_duty_total"]) == 0.0
     assert plates["numbers_orders_count"] == 1
+
+
+def test_analytics_export_returns_csv(client: TestClient, auth_headers: dict[str, str]):
+    order = create_paid_order(client, auth_headers, need_plate=True)
+    client.post(
+        f"/orders/{order['id']}/pay-extra",
+        json={"amount": "300"},
+        headers=auth_headers,
+    )
+
+    response = client.get("/analytics/export?format=csv&period=month&kind=all", headers=auth_headers)
+
+    assert response.status_code == 200, response.text
+    assert response.headers["content-type"].startswith("text/csv")
+    body = response.text
+    assert "section,key,value" in body
+    assert "overview,orders_count,1" in body
+    assert "employee_stats" in body
+    assert "monthly_trend" in body

@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.auth import UserInfo
 from app.models import CashRow, CashShift, Payment, PlateCashRow, PlatePayout, ShiftStatus
 from app.models.employee import EmployeeRole
+from app.services.audit_service import write_audit_log
 from app.services.errors import ServiceError
 
 
@@ -180,4 +181,16 @@ async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
         db.add(payout)
 
     await db.flush()
+    await write_audit_log(
+        db,
+        user=user,
+        event_type="plate_payouts_paid",
+        entity_type="plate_payout_batch",
+        entity_id=None,
+        payload={
+            "count": len(payouts),
+            "total": float(total),
+            "order_ids": [payout.order_id for payout in payouts],
+        },
+    )
     return {"count": len(payouts), "total": float(total)}

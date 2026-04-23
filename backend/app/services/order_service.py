@@ -8,9 +8,11 @@ from app.data.price_list import get_label_by_template
 from app.models import CashRow, DocumentPrice, FormHistory, Order, OrderStatus, Payment, PaymentType, PlatePayout
 from app.schemas.order import OrderCreate
 from app.schemas.payment import PayOrderResponse
+from app.services.audit_service import write_audit_log
 from app.services.cash_service import ensure_workday_shift
 from app.services.errors import ServiceError
 from app.services.order_status import can_transition
+from app.services.order_validation import validate_create_order_data
 from app.services.template_registry import is_sellable_template, supported_sellable_templates
 from app.services.warehouse_service import (
     finalize_stock_for_completed_order,
@@ -112,9 +114,10 @@ def _validate_order_business_rules(data: OrderCreate, canonical_documents: list[
         raise ServiceError("Пустой заказ создавать нельзя", status_code=400)
 
 
-async def create_order(db: AsyncSession, data: OrderCreate, employee_id: int) -> Order:
+async def create_order(db: AsyncSession, data: OrderCreate, user: UserInfo) -> Order:
     canonical_documents = await _load_canonical_documents(db, data.documents or [])
     _validate_order_business_rules(data, canonical_documents)
+    validate_create_order_data(data, [document["template"] for document in canonical_documents])
 
     state_duty = data.state_duty
     income_p1 = sum((Decimal(str(document["price"])) for document in canonical_documents), Decimal("0"))
@@ -132,11 +135,24 @@ async def create_order(db: AsyncSession, data: OrderCreate, employee_id: int) ->
         need_plate=need_plate,
         service_type=service_type,
         form_data=_form_data_from_create(data, canonical_documents),
-        employee_id=employee_id,
+        employee_id=user.id,
     )
     db.add(order)
     await db.flush()
     await db.refresh(order)
+    await write_audit_log(
+        db,
+        user=user,
+        event_type="order_created",
+        entity_type="order",
+        entity_id=order.id,
+        payload={
+            "public_id": order.public_id,
+            "templates": [document["template"] for document in canonical_documents],
+            "need_plate": order.need_plate,
+            "total_amount": float(order.total_amount),
+        },
+    )
     return order
 
 
@@ -250,6 +266,23 @@ async def accept_order_payment(db: AsyncSession, order: Order, user: UserInfo) -
     )
     db.add(FormHistory(order_id=order.id, form_data=order.form_data))
     await db.flush()
+    await write_audit_log(
+        db,
+        user=user,
+        event_type="order_paid",
+        entity_type="order",
+        entity_id=order.id,
+        payload={
+            "public_id": order.public_id,
+            "status": order.status.value,
+            "total_amount": float(order.total_amount),
+            "payment_types": [
+                PaymentType.STATE_DUTY.value if order.state_duty_amount > 0 else None,
+                PaymentType.INCOME_PAVILION1.value if order.income_pavilion1 > 0 else None,
+                PaymentType.INCOME_PAVILION2.value if order.income_pavilion2 > 0 else None,
+            ],
+        },
+    )
     return PayOrderResponse(order_id=order.id, public_id=order.public_id, status=OrderStatus.PAID.value)
 
 
@@ -301,6 +334,18 @@ async def record_plate_extra_payment(db: AsyncSession, order: Order, amount: Dec
         )
     )
     await db.flush()
+    await write_audit_log(
+        db,
+        user=user,
+        event_type="plate_extra_payment_recorded",
+        entity_type="order",
+        entity_id=order.id,
+        payload={
+            "public_id": order.public_id,
+            "amount": float(amount),
+            "payment_type": PaymentType.INCOME_PAVILION2.value,
+        },
+    )
     return {"order_id": order.id, "amount": float(amount), "type": "INCOME_PAVILION2"}
 
 
@@ -351,7 +396,25 @@ async def build_plate_list(db: AsyncSession, limit: int = 100) -> list[dict]:
     return output
 
 
-async def _ensure_plate_payout_for_completed_order(db: AsyncSession, order: Order) -> None:
+async def build_plate_order_detail(db: AsyncSession, order: Order) -> dict:
+    payments = await get_order_payments_summary(db, order)
+    form_data = order.form_data or {}
+    plate_total = plate_amount_from_order(order)
+    client = (form_data.get("client_fio") or form_data.get("client_legal_name") or "").strip() or "—"
+    return {
+        "id": order.id,
+        "public_id": order.public_id,
+        "status": order.status.value,
+        "client": client,
+        "brand_model": form_data.get("brand_model") or "",
+        "plate_amount": plate_total,
+        "debt": Decimal(str(payments["debt"])),
+        "plate_document": "zaiavlenie_na_nomera.docx",
+        "created_at": order.created_at.isoformat() if order.created_at else "",
+    }
+
+
+async def _ensure_plate_payout_for_completed_order(db: AsyncSession, order: Order, user: UserInfo) -> None:
     existing = await db.execute(select(PlatePayout).where(PlatePayout.order_id == order.id))
     if existing.scalar_one_or_none() is not None:
         return
@@ -373,9 +436,18 @@ async def _ensure_plate_payout_for_completed_order(db: AsyncSession, order: Orde
     client_name = (form_data.get("client_fio") or form_data.get("client_legal_name") or "").strip() or "—"
     db.add(PlatePayout(order_id=order.id, client_name=client_name, amount=plate_amount))
     await db.flush()
+    await write_audit_log(
+        db,
+        user=user,
+        event_type="plate_payout_created",
+        entity_type="order",
+        entity_id=order.id,
+        payload={"public_id": order.public_id, "amount": float(plate_amount)},
+    )
 
 
-async def update_order_status(db: AsyncSession, order: Order, new_status: OrderStatus) -> dict:
+async def update_order_status(db: AsyncSession, order: Order, new_status: OrderStatus, user: UserInfo) -> dict:
+    previous_status = order.status
     if not can_transition(order.status, new_status):
         raise ServiceError(
             f"Переход из {order.status.value} в {new_status.value} невозможен",
@@ -394,9 +466,21 @@ async def update_order_status(db: AsyncSession, order: Order, new_status: OrderS
         await release_reservation_for_order(db, order.id)
 
     if new_status == OrderStatus.COMPLETED and order.need_plate:
-        await _ensure_plate_payout_for_completed_order(db, order)
+        await _ensure_plate_payout_for_completed_order(db, order, user)
 
     order.status = new_status
     db.add(order)
     await db.flush()
+    await write_audit_log(
+        db,
+        user=user,
+        event_type="order_status_changed",
+        entity_type="order",
+        entity_id=order.id,
+        payload={
+            "public_id": order.public_id,
+            "from_status": previous_status.value,
+            "to_status": new_status.value,
+        },
+    )
     return {"order_id": order.id, "public_id": order.public_id, "status": new_status.value}

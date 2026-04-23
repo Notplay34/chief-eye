@@ -18,6 +18,7 @@ from app.services.auth_service import (
     decode_token,
     verify_password,
 )
+from app.services.audit_service import write_audit_log
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer(auto_error=False)
@@ -195,4 +196,12 @@ async def change_password(
     emp.password_hash = hash_password(body.new_password)
     db.add(emp)
     await db.flush()
+    await write_audit_log(
+        db,
+        user=current_user,
+        event_type="password_changed",
+        entity_type="employee",
+        entity_id=emp.id,
+        payload={"login": emp.login},
+    )
     return {"ok": True}

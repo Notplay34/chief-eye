@@ -11,6 +11,7 @@ from app.models import Employee
 from app.models.employee import EmployeeRole
 from app.schemas.employee import EmployeeCreate, EmployeeResponse, EmployeeUpdate
 from app.services.auth_service import hash_password
+from app.services.audit_service import write_audit_log
 
 router = APIRouter(prefix="/employees", tags=["employees"])
 
@@ -64,6 +65,14 @@ async def create_employee(
     db.add(emp)
     await db.flush()
     await db.refresh(emp)
+    await write_audit_log(
+        db,
+        user=_user,
+        event_type="employee_created",
+        entity_type="employee",
+        entity_id=emp.id,
+        payload={"role": emp.role.value, "login": emp.login, "is_active": emp.is_active},
+    )
     return _emp_to_response(emp)
 
 
@@ -100,6 +109,26 @@ async def update_employee(
         emp.password_hash = hash_password(data.password)
     if data.is_active is not None:
         emp.is_active = data.is_active
+    changed_fields = {
+        key: value
+        for key, value in {
+            "name": data.name,
+            "role": data.role.value if data.role else None,
+            "login": normalize_login(data.login) if data.login is not None else None,
+            "telegram_id": data.telegram_id,
+            "is_active": data.is_active,
+            "password_changed": bool(data.password and data.password.strip()),
+        }.items()
+        if value is not None
+    }
+    await write_audit_log(
+        db,
+        user=_user,
+        event_type="employee_updated",
+        entity_type="employee",
+        entity_id=emp.id,
+        payload=changed_fields,
+    )
     await db.commit()
     await db.refresh(emp)
     return _emp_to_response(emp)
@@ -119,6 +148,14 @@ async def deactivate_employee(
     if not emp:
         raise HTTPException(status_code=404, detail="Сотрудник не найден")
     emp.is_active = False
+    await write_audit_log(
+        db,
+        user=current_user,
+        event_type="employee_deactivated",
+        entity_type="employee",
+        entity_id=emp.id,
+        payload={"login": emp.login, "role": emp.role.value},
+    )
     await db.commit()
     await db.refresh(emp)
     return _emp_to_response(emp)

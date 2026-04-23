@@ -9,6 +9,7 @@ from app.models import Order
 from app.services.docx_service import TEMPLATES_DIR, render_docx
 from app.services.errors import ServiceError
 from app.services.order_access import ensure_can_print_template
+from app.services.order_validation import validate_order_for_print
 from app.services.template_registry import is_printable_template
 
 router = APIRouter(prefix="/orders", tags=["documents"])
@@ -55,6 +56,7 @@ async def get_order_document(
         raise HTTPException(status_code=404, detail="Заказ не найден")
     try:
         ensure_can_print_template(_user, order, template_name)
+        validate_order_for_print(order.form_data, template_name)
     except ServiceError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
     try:

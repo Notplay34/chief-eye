@@ -90,12 +90,33 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
     app = main_module.app
     app.dependency_overrides[get_db] = override_get_db
+    app.state.test_session_maker = session_maker
 
     with TestClient(app) as test_client:
         yield test_client
 
     app.dependency_overrides.clear()
+    if hasattr(app.state, "test_session_maker"):
+        delattr(app.state, "test_session_maker")
     _run(engine.dispose())
+
+
+@pytest.fixture
+def db_session(client: TestClient):
+    """Прямая async-сессия к той же тестовой БД, что использует клиент."""
+    app = client.app
+    session_maker = getattr(app.state, "test_session_maker", None)
+    if session_maker is None:
+        raise RuntimeError("test_session_maker не настроен")
+
+    async def _open():
+        return session_maker()
+
+    session = _run(_open())
+    try:
+        yield session
+    finally:
+        _run(session.close())
 
 
 @pytest.fixture

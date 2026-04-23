@@ -15,6 +15,7 @@ from app.api.cash import router as cash_router
 from app.api.price_list import router as price_list_router
 from app.api.warehouse import router as warehouse_router
 from app.api.form_history import router as form_history_router
+from app.api.audit import router as audit_router
 from app.config import settings
 
 setup_logging()
@@ -65,6 +66,7 @@ app.include_router(auth_router)
 app.include_router(employees_router)
 app.include_router(warehouse_router)
 app.include_router(form_history_router)
+app.include_router(audit_router)
 
 
 @app.get("/health")
