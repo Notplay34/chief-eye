@@ -188,7 +188,6 @@
     page.renderDocumentsList();
     page.updateSummary();
     page.updatePreview();
-    page.updateDocList();
   };
 
   page.setupTogglableSections = function () {

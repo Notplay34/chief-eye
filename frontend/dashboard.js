@@ -115,6 +115,7 @@
     if (btnQuick) btnQuick.style.display = (canForm && window.getCurrentPavilion() === 1) ? 'inline-block' : 'none';
 
     var inner = document.getElementById('menuDropdownInner');
+    if (!inner) return;
     inner.innerHTML = '';
 
     function getGroupKey(item) {
