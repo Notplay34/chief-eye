@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class ShiftOpen(BaseModel):
@@ -18,6 +18,8 @@ class ShiftClose(BaseModel):
 
 
 class ShiftResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     pavilion: int
     opened_by_id: int
@@ -27,10 +29,6 @@ class ShiftResponse(BaseModel):
     opening_balance: Decimal
     closing_balance: Optional[Decimal] = None
     status: str
-
-    class Config:
-        from_attributes = True
-
 
 class ShiftCurrentResponse(BaseModel):
     """Текущая открытая смена + сумма по ней."""
@@ -61,6 +59,8 @@ class CashRowUpdate(BaseModel):
 
 
 class CashRowResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     client_name: str
     application: Decimal
@@ -69,6 +69,3 @@ class CashRowResponse(BaseModel):
     insurance: Decimal
     plates: Decimal
     total: Decimal
-
-    class Config:
-        from_attributes = True

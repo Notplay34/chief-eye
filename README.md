@@ -1,144 +1,112 @@
-# Павильоны МРЭО — система учёта и контроля
+# Павильоны МРЭО
 
-**Версия 1.0** — система управления двумя павильонами автоуслуг: оформление документов, изготовление номеров, учёт платежей и внутренняя операционная работа.
+Внутренняя система для двух павильонов автоуслуг возле МРЭО:
 
-**Быстрый старт:**
-- **Установка:** см. **INSTALL.md** — пошаговая инструкция для владельца.
-- **Использование:** см. **USER_GUIDE.md** — как работать операторам и владельцу.
+- павильон 1: оформление документов, приём оплаты, печать `.docx`;
+- павильон 2: номера, доплаты, склад заготовок, статусы изготовления;
+- директор: аналитика, админка, управление аккаунтами.
 
-**Готово к запуску:** форма документов, изготовление номеров (павильон 2), касса, склад, управление аккаунтами, печать документов.  
-**Важно:** раздел аналитики присутствует в интерфейсе, но в текущем состоянии отключён как недоведённый.  
-Навигация по актуальным и историческим документам: см. [docs/REPOSITORY_STATE.md](/Users/NotPlay/Documents/dev/pavilion/docs/REPOSITORY_STATE.md).
+Проект построен как один рабочий контур: `FastAPI + PostgreSQL + статический frontend`.
 
-## Основные документы
+## Актуальные документы
 
-Если нужно быстро понять проект без лишней археологии, достаточно этих файлов:
+Если нужно быстро понять проект, достаточно этих файлов:
 
-1. `README.md` — что это за проект и как он устроен в целом.
-2. `PROJECT_CONTEXT.md` — бизнес-логика и целевая модель системы.
-3. `INSTALL.md` — локальная установка и первый запуск.
-4. `USER_GUIDE.md` — как системой пользуются сотрудники.
+1. `README.md` — общий обзор.
+2. `PROJECT_CONTEXT.md` — бизнес-логика и текущая модель ролей.
+3. `INSTALL.md` — локальный запуск и первый старт.
+4. `USER_GUIDE.md` — пользовательские сценарии.
+5. `DEPLOYMENT.md` — серверный деплой.
+6. `docs/SMOKE_TEST.md` — финальная проверка после изменений или выката.
 
-Отдельно для сервера:
+Карта репозитория: [docs/REPOSITORY_STATE.md](/Users/NotPlay/Documents/dev/pavilion/docs/REPOSITORY_STATE.md)
 
-- `DEPLOYMENT.md` — продакшн-развёртывание.
+## Что уже реализовано
 
-Исторические документы и старые планы вынесены в [docs/ARCHIVE.md](/Users/NotPlay/Documents/dev/pavilion/docs/ARCHIVE.md).
+- оформление заказа из единой формы;
+- приём оплаты и запись платежей;
+- печать документов из шаблонов `templates/*.docx`;
+- касса и смены по павильонам;
+- список заказов на номера и workflow статусов;
+- склад заготовок, резервирование, списание, брак;
+- касса номеров и выплаты оператору номеров;
+- аналитика по доходу, обороту, сотрудникам, статусам, месяцам и кварталам;
+- управление сотрудниками и роли доступа;
+- изолированный backend test suite.
 
----
+## Стек
 
-## Требования
+- Backend: `FastAPI`, `SQLAlchemy`, `PostgreSQL`
+- Frontend: статические `HTML/CSS/JS`
+- Deploy: `nginx + systemd`
 
-- Python 3.11+
-- PostgreSQL
-- (Опционально) Node или простой HTTP-сервер для frontend
+## Структура
 
----
-
-## Backend (FastAPI)
-
-1. Создать виртуальное окружение и установить зависимости:
-
-   ```bash
-   cd backend
-   python -m venv .venv
-   .venv\Scripts\activate   # Windows
-   pip install -r requirements.txt
-   ```
-
-2. Настроить БД: скопировать `backend/.env.example` в `backend/.env` и задать `DATABASE_URL`:
-
-   ```
-   DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/eye_w
-   ```
-
-3. Запуск:
-
-   ```bash
-   cd backend
-   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-   ```
-
-   Документация API: http://localhost:8000/docs
-
----
-
-## Frontend (веб-форма операторов)
-
-Статические файлы в папке **frontend/** (HTML, CSS, JS). Подключение к API по умолчанию: `http://localhost:8000`.
-
-1. Открыть в браузере файл `frontend/index.html`  
-   **или**
-2. Запустить любой HTTP-сервер из папки `frontend`, например:
-
-   ```bash
-   cd frontend
-   python -m http.server 8080
-   ```
-   Затем открыть http://localhost:8080
-
----
-
-## Шаблоны документов
-
-Папка **templates/** в корне проекта — шаблоны docx для генерации документов (DKP, МРЭО, заявления и т.д.). Backend подставляет данные заказа в плейсхолдеры `{{ ... }}`.
-
----
+- `backend/` — API, модели, сервисы, тесты
+- `frontend/` — рабочие страницы и JS-логика
+- `templates/` — шаблоны документов
+- `deploy/` — nginx, серверные скрипты, smoke-check
+- `docs/` — рабочая документация по состоянию проекта
 
 ## Основные эндпоинты
 
-| Метод | Путь | Описание |
-|-------|------|----------|
-| GET | /health | Проверка работы сервера |
-| POST | /orders | Создание заказа |
-| POST | /orders/{id}/pay | Принять оплату по заказу |
-| GET | /orders | Список заказов |
-| GET | /orders/{id} | Заказ по id |
-| GET | /orders/{id}/documents/{template} | Скачать сгенерированный docx |
-| GET | /employees | Список сотрудников |
-| POST | /employees | Создание сотрудника |
-| PATCH | /employees/{id} | Обновление сотрудника (имя, роль, is_active) |
-| GET | /analytics/today | Сводка за день |
-| GET | /analytics/month | Сводка за месяц |
-| GET | /analytics/employees | Учёт по сотрудникам |
+| Метод | Путь | Назначение |
+|-------|------|------------|
+| `GET` | `/health` | Проверка живости backend |
+| `POST` | `/auth/login` | Вход |
+| `GET` | `/auth/me` | Текущий пользователь, павильоны и меню |
+| `POST` | `/orders` | Создать заказ |
+| `POST` | `/orders/{id}/pay` | Принять оплату |
+| `POST` | `/orders/{id}/pay-extra` | Доплата за номера |
+| `PATCH` | `/orders/{id}/status` | Смена статуса заказа |
+| `GET` | `/orders/plate-list` | Рабочий список заказов павильона 2 |
+| `GET` | `/cash/shifts/current` | Текущая смена по павильону |
+| `GET` | `/warehouse/plate-stock` | Остаток и резервы склада |
+| `GET` | `/analytics/dashboard` | Основной управленческий дашборд |
+| `GET` | `/employees` | Список сотрудников |
 
----
+## Локальный запуск
 
-## Павильон 2 — изготовление номеров
+### Backend
 
-Оператор павильона 2 работает через **веб-интерфейс** (plate-operator.html) — логин/пароль, меню «Изготовление номеров». Список заказов с номерами, смена статусов, приём доплат. См. USER_GUIDE.md, раздел «Павильон 2».
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
 
----
+Документация API: `http://localhost:8000/docs`
 
-## Как тестировать
+### Frontend
 
-1. **База данных.** Должен быть запущен PostgreSQL с БД `eye_w`.
-   - Локально: создать БД и пользователя, в `backend/.env` указать `DATABASE_URL`.
-   - Через Docker (если установлен): в корне проекта выполнить `docker compose up -d` — поднимется PostgreSQL (порт 5432, пользователь `eye_user`, пароль `eye_pass`, БД `eye_w`). В `backend/.env` задать:
-     ```
-     DATABASE_URL=postgresql+asyncpg://eye_user:eye_pass@localhost:5432/eye_w
-     ```
+```bash
+cd frontend
+python3 -m http.server 8080
+```
 
-2. **Backend:** из корня проекта:
-   ```bash
-   .venv\Scripts\activate
-   cd backend
-   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-   ```
-   Проверка: http://localhost:8000/docs и http://localhost:8000/health
+Открыть: `http://localhost:8080/login.html`
 
-3. **Frontend:** в другом терминале:
-   ```bash
-   cd frontend
-   python -m http.server 8080
-   ```
-   Открыть http://localhost:8080 — форма оператора. Создать через API или форму заказ, принять оплату, проверить аналитику и скачивание документов.
+## Тестирование
 
-4. **Сотрудники:** через Swagger (POST /employees) создать сотрудника; PATCH /employees/{id} — обновить (имя, роль, is_active).
+Backend-тесты полностью изолированы: каждый тест поднимает свою временную SQLite-БД, создаёт схему и seed'ит тестового админа. Внешний Postgres и реальный `.env` для тестов не нужны.
 
----
+Основные команды:
 
-## Дальнейшая разработка
+```bash
+python3 -m pytest backend/tests -q
+python3 -m compileall backend/app
+node --check frontend/*.js frontend/form-page/*.js
+bash -n deploy/check_stack.sh
+```
 
-- История и старые планы сохранены, но часть из них уже устарела.
-- Для понимания, какие документы актуальны, а какие исторические, см. `docs/REPOSITORY_STATE.md`.
+Сценарии покрывают:
+
+- логин и `/auth/me`;
+- создание заказа и оплату;
+- кассу и смены;
+- склад;
+- аналитику;
+- smoke matrix по ролям.

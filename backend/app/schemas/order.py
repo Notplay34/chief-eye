@@ -1,6 +1,6 @@
 from decimal import Decimal
 from typing import Optional, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class DocumentItem(BaseModel):
@@ -54,6 +54,8 @@ class OrderCreate(BaseModel):
 
 
 class OrderResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     public_id: str
     status: str
@@ -65,10 +67,6 @@ class OrderResponse(BaseModel):
     service_type: Optional[str] = None
     created_at: str
     client: Optional[str] = None  # для списка: из form_data
-
-    class Config:
-        from_attributes = True
-
 
 class OrderDetailResponse(OrderResponse):
     """Заказ с деталями для админки: form_data и кто оформил."""
