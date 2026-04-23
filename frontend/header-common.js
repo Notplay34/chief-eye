@@ -41,7 +41,7 @@
     var menu_items = [];
     if (role === 'ROLE_OPERATOR' || role === 'ROLE_MANAGER' || role === 'ROLE_ADMIN') {
       menu_items.push({ id: 'form_p1', label: 'Подготовка документов', href: 'index.html' });
-      menu_items.push({ id: 'cash_p1', label: 'Касса и смены', href: 'cash-shifts.html' });
+      menu_items.push({ id: 'cash_p1', label: 'Касса', href: 'cash-shifts.html' });
     }
     if (role === 'ROLE_PLATE_OPERATOR' || role === 'ROLE_MANAGER' || role === 'ROLE_ADMIN') {
       menu_items.push({ id: 'plates', label: 'Невыданные номера', href: 'plate-operator.html' });

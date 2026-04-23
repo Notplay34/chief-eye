@@ -1,6 +1,6 @@
 """Cash and shift domain logic."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Optional
 
@@ -37,9 +37,57 @@ async def get_current_shift(db: AsyncSession, pavilion: int) -> Optional[CashShi
     return (await db.execute(query)).scalar_one_or_none()
 
 
+def _workday_bounds(now: datetime) -> tuple[datetime, datetime]:
+    start = datetime(now.year, now.month, now.day)
+    return start, start + timedelta(days=1)
+
+
 async def current_shift_id(db: AsyncSession, pavilion: int) -> Optional[int]:
     shift = await get_current_shift(db, pavilion)
     return shift.id if shift else None
+
+
+async def ensure_workday_shift(db: AsyncSession, pavilion: int, user: UserInfo) -> CashShift:
+    """Return today's active cash bucket for pavilion, creating it lazily when needed."""
+    now = datetime.utcnow()
+    start, end = _workday_bounds(now)
+    today_query = (
+        select(CashShift)
+        .where(
+            CashShift.pavilion == pavilion,
+            CashShift.status == ShiftStatus.OPEN,
+            CashShift.opened_at >= start,
+            CashShift.opened_at < end,
+        )
+        .order_by(CashShift.opened_at.desc())
+        .limit(1)
+    )
+    today_shift = (await db.execute(today_query)).scalar_one_or_none()
+    if today_shift is not None:
+        return today_shift
+
+    old_open_query = select(CashShift).where(
+        CashShift.pavilion == pavilion,
+        CashShift.status == ShiftStatus.OPEN,
+    )
+    old_open_shifts = (await db.execute(old_open_query)).scalars().all()
+    for shift in old_open_shifts:
+        shift.status = ShiftStatus.CLOSED
+        shift.closed_at = now
+        shift.closed_by_id = user.id
+        if shift.closing_balance is None:
+            shift.closing_balance = shift.opening_balance
+        db.add(shift)
+
+    shift = CashShift(
+        pavilion=pavilion,
+        opened_by_id=user.id,
+        opening_balance=Decimal("0"),
+        status=ShiftStatus.OPEN,
+    )
+    db.add(shift)
+    await db.flush()
+    return shift
 
 
 def can_manage_pavilion_cash(user: UserInfo, pavilion: int) -> bool:

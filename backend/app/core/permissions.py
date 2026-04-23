@@ -126,7 +126,7 @@ def get_menu_items(role: str) -> List[dict]:
     if can_access_resource(role, Resource.CASH_P1):
         items.append({
             "id": "cash_p1",
-            "label": "Касса и смены",
+            "label": "Касса",
             "href": "cash-shifts.html",
             "group": "Касса (павильон 1)",
         })

@@ -60,9 +60,6 @@ def test_plate_status_flow_updates_stock_and_payout_register(client: TestClient,
     assert add_stock_response.status_code == 200, add_stock_response.text
     assert add_stock_response.json()["quantity"] == 5
 
-    client.post("/cash/shifts", json={"pavilion": 1, "opening_balance": "100"}, headers=auth_headers)
-    client.post("/cash/shifts", json={"pavilion": 2, "opening_balance": "50"}, headers=auth_headers)
-
     order = create_paid_plate_order(client, auth_headers, plate_quantity=2)
 
     in_progress_response = client.patch(
@@ -108,8 +105,6 @@ def test_plate_status_flow_updates_stock_and_payout_register(client: TestClient,
 
 def test_paying_plate_payouts_moves_money_between_cash_tables(client: TestClient, auth_headers: dict[str, str]):
     client.post("/warehouse/plate-stock/add", json={"amount": 3}, headers=auth_headers)
-    client.post("/cash/shifts", json={"pavilion": 1, "opening_balance": "100"}, headers=auth_headers)
-    client.post("/cash/shifts", json={"pavilion": 2, "opening_balance": "50"}, headers=auth_headers)
 
     order = create_paid_plate_order(client, auth_headers)
 
@@ -139,21 +134,16 @@ def test_paying_plate_payouts_moves_money_between_cash_tables(client: TestClient
     assert payout_rows[0]["total"] == -1500.0
 
 
-def test_plate_extra_payment_requires_open_shift_pavilion2(client: TestClient, auth_headers: dict[str, str]):
-    client.post("/cash/shifts", json={"pavilion": 1, "opening_balance": "100"}, headers=auth_headers)
-    client.post("/cash/shifts", json={"pavilion": 2, "opening_balance": "50"}, headers=auth_headers)
+def test_plate_extra_payment_uses_workday_cash_bucket_automatically(client: TestClient, auth_headers: dict[str, str]):
     order = create_paid_plate_order(client, auth_headers)
-    current_shift = client.get("/cash/shifts/current", params={"pavilion": 2}, headers=auth_headers).json()["shift"]
-    client.patch(
-        f"/cash/shifts/{current_shift['id']}/close",
-        json={"closing_balance": "50"},
-        headers=auth_headers,
-    )
 
     extra_payment_response = client.post(
         f"/orders/{order['id']}/pay-extra",
         json={"amount": 700},
         headers=auth_headers,
     )
-    assert extra_payment_response.status_code == 400, extra_payment_response.text
-    assert "смену павильона 2" in extra_payment_response.json()["detail"].lower()
+    assert extra_payment_response.status_code == 200, extra_payment_response.text
+
+    current_response = client.get("/cash/shifts/current", params={"pavilion": 2}, headers=auth_headers)
+    assert current_response.status_code == 200, current_response.text
+    assert current_response.json()["shift"]["status"] == "OPEN"

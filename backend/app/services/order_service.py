@@ -3,11 +3,12 @@ from decimal import Decimal
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.auth import UserInfo
 from app.data.price_list import get_label_by_template
 from app.models import CashRow, DocumentPrice, FormHistory, Order, OrderStatus, Payment, PaymentType, PlatePayout
 from app.schemas.order import OrderCreate
 from app.schemas.payment import PayOrderResponse
-from app.services.cash_service import get_current_shift
+from app.services.cash_service import ensure_workday_shift
 from app.services.errors import ServiceError
 from app.services.order_status import can_transition
 from app.services.template_registry import is_sellable_template, supported_sellable_templates
@@ -186,28 +187,26 @@ def order_cash_row_amounts(order: Order) -> dict:
     }
 
 
-async def accept_order_payment(db: AsyncSession, order: Order, employee_id: int) -> PayOrderResponse:
+async def accept_order_payment(db: AsyncSession, order: Order, user: UserInfo) -> PayOrderResponse:
     if not can_transition(order.status, OrderStatus.PAID):
         raise ServiceError(
             f"Нельзя принять оплату для заказа со статусом {order.status.value}",
             status_code=400,
         )
 
-    shift_1 = await get_current_shift(db, 1)
-    shift_2 = await get_current_shift(db, 2)
+    shift_1 = None
+    shift_2 = None
     if order.state_duty_amount > 0 or order.income_pavilion1 > 0:
-        if shift_1 is None:
-            raise ServiceError("Для приёма оплаты по павильону 1 откройте смену", status_code=400)
+        shift_1 = await ensure_workday_shift(db, 1, user)
     if order.income_pavilion2 > 0:
-        if shift_2 is None:
-            raise ServiceError("Для платежей павильона 2 откройте смену", status_code=400)
+        shift_2 = await ensure_workday_shift(db, 2, user)
     if order.state_duty_amount > 0:
         db.add(
             Payment(
                 order_id=order.id,
                 amount=order.state_duty_amount,
                 type=PaymentType.STATE_DUTY,
-                employee_id=employee_id,
+                employee_id=user.id,
                 shift_id=shift_1.id,
             )
         )
@@ -217,7 +216,7 @@ async def accept_order_payment(db: AsyncSession, order: Order, employee_id: int)
                 order_id=order.id,
                 amount=order.income_pavilion1,
                 type=PaymentType.INCOME_PAVILION1,
-                employee_id=employee_id,
+                employee_id=user.id,
                 shift_id=shift_1.id,
             )
         )
@@ -227,7 +226,7 @@ async def accept_order_payment(db: AsyncSession, order: Order, employee_id: int)
                 order_id=order.id,
                 amount=order.income_pavilion2,
                 type=PaymentType.INCOME_PAVILION2,
-                employee_id=employee_id,
+                employee_id=user.id,
                 shift_id=shift_2.id,
             )
         )
@@ -271,21 +270,19 @@ async def get_order_payments_summary(db: AsyncSession, order: Order) -> dict:
     }
 
 
-async def record_plate_extra_payment(db: AsyncSession, order: Order, amount: Decimal, employee_id: int) -> dict:
+async def record_plate_extra_payment(db: AsyncSession, order: Order, amount: Decimal, user: UserInfo) -> dict:
     if amount <= 0:
         raise ServiceError("Сумма должна быть больше нуля", status_code=400)
     if not order.need_plate:
         raise ServiceError("У заказа нет номера для доплаты", status_code=400)
 
-    shift_2 = await get_current_shift(db, 2)
-    if shift_2 is None:
-        raise ServiceError("Для доплаты за номера откройте смену павильона 2", status_code=400)
+    shift_2 = await ensure_workday_shift(db, 2, user)
     db.add(
         Payment(
             order_id=order.id,
             amount=amount,
             type=PaymentType.INCOME_PAVILION2,
-            employee_id=employee_id,
+            employee_id=user.id,
             shift_id=shift_2.id,
         )
     )

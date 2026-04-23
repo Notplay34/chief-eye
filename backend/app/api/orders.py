@@ -74,7 +74,7 @@ async def pay_order(
     try:
         order = await get_order_or_error(db, order_id)
         ensure_can_access_order(user, order)
-        response = await accept_order_payment(db, order, user.id)
+        response = await accept_order_payment(db, order, user)
     except ServiceError as exc:
         _raise_service_error(exc)
     logger.info("Оплата принята по заказу id=%s, строка кассы добавлена", order.id)
@@ -229,7 +229,7 @@ async def pay_extra(
     try:
         order = await get_order_or_error(db, order_id)
         ensure_can_access_plate_workflow(_user, order)
-        result = await record_plate_extra_payment(db, order, Decimal(str(body.amount)), _user.id)
+        result = await record_plate_extra_payment(db, order, Decimal(str(body.amount)), _user)
     except ServiceError as exc:
         _raise_service_error(exc)
     logger.info("Доплата за номера id=%s сумма=%s, строка кассы добавлена", order.id, body.amount)

@@ -67,9 +67,6 @@ def test_me_with_token_returns_current_user(client: TestClient, auth_headers: di
 
 
 def test_payment_flow_creates_payments_and_cash_row(client: TestClient, auth_headers: dict[str, str]):
-    client.post("/cash/shifts", json={"pavilion": 1, "opening_balance": "100"}, headers=auth_headers)
-    client.post("/cash/shifts", json={"pavilion": 2, "opening_balance": "50"}, headers=auth_headers)
-
     order = create_paid_order(client, auth_headers, need_plate=True)
 
     payments_response = client.get(f"/orders/{order['id']}/payments", headers=auth_headers)
@@ -109,13 +106,18 @@ def test_order_author_is_taken_from_jwt_not_payload(client: TestClient, auth_hea
     assert detail_response.json()["created_by_name"] == "Тестовый админ"
 
 
-def test_order_payment_requires_open_shift(client: TestClient, auth_headers: dict[str, str]):
+def test_order_payment_creates_workday_cash_bucket_automatically(client: TestClient, auth_headers: dict[str, str]):
     create_response = client.post("/orders", json=make_order_payload(), headers=auth_headers)
     assert create_response.status_code == 200, create_response.text
 
     pay_response = client.post(f"/orders/{create_response.json()['id']}/pay", headers=auth_headers)
-    assert pay_response.status_code == 400, pay_response.text
-    assert "откройте смену" in pay_response.json()["detail"].lower()
+    assert pay_response.status_code == 200, pay_response.text
+
+    current_response = client.get("/cash/shifts/current", params={"pavilion": 1}, headers=auth_headers)
+    assert current_response.status_code == 200, current_response.text
+    current_data = current_response.json()
+    assert current_data["shift"]["status"] == "OPEN"
+    assert current_data["total_in_shift"] == 1050.0
 
 
 def test_empty_order_is_rejected(client: TestClient, auth_headers: dict[str, str]):
