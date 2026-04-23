@@ -112,21 +112,56 @@
     if (preview.previewTotal) preview.previewTotal.textContent = page.formatMoney(page.getTotal());
   };
 
-  page.updateDocList = function () {
-    if (!page.docList) return;
-    if (!page.state.selectedDocuments.length) {
-      page.docList.innerHTML = '<li class="doc-list__item doc-list__item--placeholder">Добавьте документы выше — здесь будет тот же список</li>';
-      return;
-    }
-    page.docList.innerHTML = page.state.selectedDocuments.map(function (item) {
-      return '<li class="doc-list__item">' + (item.label || item.template) + '</li>';
-    }).join('');
-  };
-
   page.syncFromMainForm = function () {
     page.updateSummary();
     page.updatePreview();
-    page.updateDocList();
+  };
+
+  page.renderHistoryPage = function () {
+    var listEl = page.formHistoryList;
+    var rangeEl = page.historyRange;
+    var prevBtn = page.historyPrev;
+    var nextBtn = page.historyNext;
+    if (!listEl) return;
+
+    var items = page.state.historyItems || [];
+    var pageSize = page.state.historyPageSize || 5;
+    var totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+    if (page.state.historyPage >= totalPages) page.state.historyPage = totalPages - 1;
+    if (page.state.historyPage < 0) page.state.historyPage = 0;
+
+    var start = page.state.historyPage * pageSize;
+    var end = Math.min(start + pageSize, items.length);
+    var visibleItems = items.slice(start, end);
+
+    if (rangeEl) {
+      rangeEl.textContent = items.length ? ((start + 1) + '–' + end + ' из ' + items.length) : '0–0';
+    }
+    if (prevBtn) prevBtn.disabled = page.state.historyPage <= 0;
+    if (nextBtn) nextBtn.disabled = end >= items.length;
+
+    if (!visibleItems.length) {
+      listEl.innerHTML = '<li class="form-history-list__loading">Нет записей.</li>';
+      return;
+    }
+
+    listEl.innerHTML = visibleItems.map(function (item) {
+      var dataAttr = 'data-form-data="' + JSON.stringify(item.form_data || {}).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') + '"';
+      return '<li class="form-history-list__item" ' + dataAttr + '>' +
+        '<span class="form-history-list__title">' + String(item.label || 'Без имени').replace(/</g, '&lt;') + '</span>' +
+        '<span class="form-history-list__time">' + (item.created_label || '') + '</span>' +
+      '</li>';
+    }).join('');
+
+    listEl.querySelectorAll('.form-history-list__item').forEach(function (li) {
+      li.addEventListener('click', function () {
+        try {
+          var data = this.getAttribute('data-form-data');
+          if (data) page.applyFormData(JSON.parse(data));
+          page.closeHistoryPopover();
+        } catch (_) {}
+      });
+    });
   };
 
   page.toggleClientType = function () {

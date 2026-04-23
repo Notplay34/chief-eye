@@ -152,12 +152,11 @@
     if (trusteeBody) trusteeBody.classList.toggle('form-section__body--closed', !(inputs.hasTrustee && inputs.hasTrustee.checked));
     page.renderDocumentsList();
     page.syncFromMainForm();
-    page.updateDocList();
   };
 
   page.loadFormHistory = async function () {
-    var listEl = page.el('formHistoryList');
-    var loadingEl = page.el('formHistoryLoading');
+    var listEl = page.formHistoryList;
+    var loadingEl = page.formHistoryLoading;
     if (!listEl) return;
     if (loadingEl) loadingEl.textContent = 'Загрузка…';
     try {
@@ -165,30 +164,25 @@
       if (!response.ok) throw new Error(response.statusText);
       var items = await response.json();
       if (!Array.isArray(items)) items = [];
-      if (loadingEl) loadingEl.remove();
-      if (!items.length) {
-        listEl.innerHTML = '<li class="form-history-list__loading">Нет записей.</li>';
-        return;
-      }
-      listEl.innerHTML = items.map(function (item) {
+      page.state.historyItems = items.map(function (item) {
         var data = item.form_data || {};
-        var label = data.client_fio || data.client_legal_name || 'Без имени';
-        var dt = item.created_at
-          ? new Date(item.created_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-          : '';
-        var dataAttr = 'data-form-data="' + JSON.stringify(item.form_data || {}).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') + '"';
-        return '<li class="form-history-list__item" ' + dataAttr + '>' + String(label).replace(/</g, '&lt;') + ' — ' + dt + '</li>';
-      }).join('');
-      listEl.querySelectorAll('.form-history-list__item').forEach(function (li) {
-        li.addEventListener('click', function () {
-          try {
-            var data = this.getAttribute('data-form-data');
-            if (data) page.applyFormData(JSON.parse(data));
-          } catch (_) {}
-        });
+        return {
+          form_data: data,
+          label: data.client_fio || data.client_legal_name || 'Без имени',
+          created_label: item.created_at
+            ? new Date(item.created_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+            : ''
+        };
       });
+      page.state.historyPage = 0;
+      page.renderHistoryPage();
     } catch (_) {
+      page.state.historyItems = [];
+      page.state.historyPage = 0;
       listEl.innerHTML = '<li class="form-history-list__loading">Не удалось загрузить историю</li>';
+      if (page.historyRange) page.historyRange.textContent = '0–0';
+      if (page.historyPrev) page.historyPrev.disabled = true;
+      if (page.historyNext) page.historyNext.disabled = true;
     }
   };
 

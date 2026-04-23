@@ -215,14 +215,14 @@
 
   function loadLast10Orders() {
     if (window.getCurrentPavilion() !== 1) return;
+    var loading = document.getElementById('lastOrdersLoading');
+    var table = document.getElementById('lastOrdersTable');
+    var body = document.getElementById('lastOrdersBody');
+    var empty = document.getElementById('lastOrdersEmpty');
+    if (!loading || !table || !body || !empty) return;
     fetchApi(API + '/orders?pavilion=1&limit=10')
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (orders) {
-        var loading = document.getElementById('lastOrdersLoading');
-        var table = document.getElementById('lastOrdersTable');
-        var body = document.getElementById('lastOrdersBody');
-        var empty = document.getElementById('lastOrdersEmpty');
-        if (!body) return;
         loading.style.display = 'none';
         if (!orders || orders.length === 0) {
           empty.style.display = 'block';
@@ -237,7 +237,8 @@
         }).join('');
       })
       .catch(function () {
-        document.getElementById('lastOrdersLoading').textContent = 'Ошибка загрузки';
+        var loading = document.getElementById('lastOrdersLoading');
+        if (loading) loading.textContent = 'Ошибка загрузки';
       });
   }
 

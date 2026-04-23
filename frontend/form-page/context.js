@@ -9,7 +9,10 @@
     fetchApi: window.fetchWithAuth || fetch,
     state: {
       priceList: [],
-      selectedDocuments: []
+      selectedDocuments: [],
+      historyItems: [],
+      historyPage: 0,
+      historyPageSize: 5
     },
     el: el,
     inputs: {
@@ -52,7 +55,13 @@
     btnAddDoc: el('btnAddDoc'),
     documentsList: el('documentsList'),
     documentsEmpty: el('documentsEmpty'),
-    docList: el('docList'),
+    historyTrigger: el('historyTrigger'),
+    historyPopover: el('historyPopover'),
+    historyRange: el('historyRange'),
+    historyPrev: el('historyPrev'),
+    historyNext: el('historyNext'),
+    formHistoryList: el('formHistoryList'),
+    formHistoryLoading: el('formHistoryLoading'),
     summary: {
       sumStateDuty: el('sumStateDuty'),
       sumIncome: el('sumIncome'),

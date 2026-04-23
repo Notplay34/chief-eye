@@ -40,11 +40,58 @@
     }
   };
 
+  page.openHistoryPopover = function () {
+    if (!page.historyPopover || !page.historyTrigger) return;
+    page.historyPopover.hidden = false;
+    page.historyTrigger.setAttribute('aria-expanded', 'true');
+  };
+
+  page.closeHistoryPopover = function () {
+    if (!page.historyPopover || !page.historyTrigger) return;
+    page.historyPopover.hidden = true;
+    page.historyTrigger.setAttribute('aria-expanded', 'false');
+  };
+
+  page.toggleHistoryPopover = function () {
+    if (!page.historyPopover) return;
+    if (page.historyPopover.hidden) page.openHistoryPopover();
+    else page.closeHistoryPopover();
+  };
+
+  page.bindHistoryMenu = function () {
+    if (page.historyTrigger) {
+      page.historyTrigger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        page.toggleHistoryPopover();
+      });
+    }
+    if (page.historyPrev) {
+      page.historyPrev.addEventListener('click', function (e) {
+        e.stopPropagation();
+        page.state.historyPage -= 1;
+        page.renderHistoryPage();
+      });
+    }
+    if (page.historyNext) {
+      page.historyNext.addEventListener('click', function (e) {
+        e.stopPropagation();
+        page.state.historyPage += 1;
+        page.renderHistoryPage();
+      });
+    }
+    document.addEventListener('click', function (e) {
+      if (!page.historyPopover || page.historyPopover.hidden) return;
+      if (e.target.closest('#historyMenu')) return;
+      page.closeHistoryPopover();
+    });
+  };
+
   page.init = async function () {
     await page.loadPriceList();
     page.bindInputs();
     page.setupPlateCheckbox();
     page.setupTogglableSections();
+    page.bindHistoryMenu();
     page.syncPlateToDocuments();
     page.renderDocumentsList();
     page.syncFromMainForm();

@@ -18,7 +18,27 @@
       <div class="main-content main-content--p1" id="contentP1">
       <!-- Основная форма: один блок ввода — остальное подставляется -->
       <section class="card card--primary" id="mainForm">
-        <h2 class="card__title">Данные заказа</h2>
+        <div class="card__title-row">
+          <h2 class="card__title">Данные заказа</h2>
+          <div class="history-menu" id="historyMenu">
+            <button type="button" class="history-menu__trigger" id="historyTrigger" aria-expanded="false" aria-controls="historyPopover">
+              История
+            </button>
+            <div class="history-menu__popover" id="historyPopover" hidden>
+              <div class="history-menu__header">
+                <strong>Последние заполнения</strong>
+                <span class="history-menu__meta" id="historyRange">0–0</span>
+              </div>
+              <ul class="form-history-list form-history-list--popover" id="formHistoryList">
+                <li class="form-history-list__loading" id="formHistoryLoading">Загрузка…</li>
+              </ul>
+              <div class="history-menu__footer">
+                <button type="button" class="history-menu__nav" id="historyPrev" disabled>Назад</button>
+                <button type="button" class="history-menu__nav" id="historyNext" disabled>Дальше</button>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <fieldset class="form-section">
           <legend class="form-section__title">Покупатель / клиент</legend>
@@ -258,7 +278,6 @@
         <p class="summary__hint">Сумма считается автоматически из полей выше</p>
       </section>
 
-      <!-- Мини-сводка для печати (заполняется из основной формы) -->
       <section class="card card--preview" id="previewCard">
         <h2 class="card__title">Сводка для документов</h2>
         <div class="preview" id="documentPreview">
@@ -273,38 +292,6 @@
           <p class="preview__line"><strong>Документы:</strong> <span id="previewService">—</span></p>
           <p class="preview__line"><strong>К оплате:</strong> <span id="previewTotal">0 ₽</span></p>
         </div>
-      </section>
-
-      <!-- Список документов для печати = выбранные в блоке «Документы и оплата» -->
-      <section class="card card--docs" id="docsCard">
-        <h2 class="card__title">Документы для печати</h2>
-        <ul class="doc-list" id="docList">
-          <li class="doc-list__item doc-list__item--placeholder">Добавьте документы выше — здесь будет тот же список</li>
-        </ul>
-      </section>
-
-      <!-- Последние 10 заявок павильона 1 -->
-      <section class="card card--last-orders" id="lastOrdersCard">
-        <h2 class="card__title">Последние 10 заявок</h2>
-        <div id="lastOrdersContainer">
-          <p class="text-caption" id="lastOrdersLoading">Загрузка…</p>
-          <table class="orders-table" id="lastOrdersTable" style="display:none;">
-            <thead>
-              <tr><th>№</th><th>Клиент</th><th>Сумма</th><th>Статус</th><th>Дата</th></tr>
-            </thead>
-            <tbody id="lastOrdersBody"></tbody>
-          </table>
-          <p class="text-caption" id="lastOrdersEmpty" style="display:none;">Нет заявок</p>
-        </div>
-      </section>
-
-      <!-- История заполнения: клик — подставить данные в форму -->
-      <section class="card card--history" id="historyCard">
-        <h2 class="card__title">История заполнения</h2>
-        <p class="text-caption" style="margin-bottom:0.5rem;">Записи создаются после нажатия «Принять наличные». Клик по строке — подставить данные в форму.</p>
-        <ul class="form-history-list" id="formHistoryList">
-          <li class="form-history-list__loading" id="formHistoryLoading">Загрузка…</li>
-        </ul>
       </section>
       </div>
 
