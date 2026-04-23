@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Вход — Павильоны МРЭО</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=PT+Serif:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-card">
+      <h1>Вход в систему</h1>
+      <p class="login-subtitle">Павильоны МРЭО</p>
+      <div id="loginError" class="login-error" style="display: none;"></div>
+      <form id="loginForm" method="post" action="">
+        <label for="login">Логин</label>
+        <input type="text" id="login" name="username" autocomplete="username" required>
+        <label for="password">Пароль</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" required>
+        <button type="submit" class="btn btn--primary" id="btnSubmit">Войти</button>
+      </form>
+    </div>
+  </div>
+  <script src="auth.js"></script>
+  <script>
+    (function () {
+      if (window.getToken && window.getToken()) {
+        window.location.href = 'index.html';
+        return;
+      }
+      var form = document.getElementById('loginForm');
+      var errEl = document.getElementById('loginError');
+      var btn = document.getElementById('btnSubmit');
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        errEl.style.display = 'none';
+        errEl.textContent = '';
+        btn.disabled = true;
+        btn.textContent = 'Вход…';
+
+        var formData = new FormData();
+        formData.append('username', document.getElementById('login').value.trim());
+        formData.append('password', document.getElementById('password').value);
+
+        var base = window.API_BASE_URL || '';
+        fetch(base + '/auth/login', { method: 'POST', body: formData })
+          .then(function (res) {
+            if (!res.ok) {
+              return res.json().then(function (j) { throw new Error(j.detail || 'Ошибка входа'); }).catch(function () { throw new Error('Ошибка ' + res.status); });
+            }
+            return res.json();
+          })
+          .then(function (data) {
+            window.setToken(data.access_token, data.user);
+            var token = data.access_token;
+            return fetch(base + '/auth/me', { headers: { 'Authorization': 'Bearer ' + token } }).then(function (r) {
+              if (!r.ok) throw new Error('token_rejected');
+              return r.json();
+            });
+          })
+          .then(function (me) {
+            if (me) {
+              window.setMe(me);
+              var allowed = me.allowed_pavilions || [1];
+              var saved = localStorage.getItem('eye_w_pavilion');
+              if (saved !== '1' && saved !== '2' && allowed.length) localStorage.setItem('eye_w_pavilion', String(allowed[0]));
+            }
+            window.location.href = 'index.html';
+          })
+          .catch(function (err) {
+            var msg = err.message || 'Неверный логин или пароль';
+            if (msg === 'token_rejected') {
+              msg = 'Сервер не принял токен — из-за этого вас выкидывает обратно на логин. На сервере выполните: cd /opt/eye_w && bash deploy/setup_server.sh';
+            }
+            errEl.textContent = msg;
+            errEl.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Войти';
+          });
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Аналитика — в разработке</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=PT+Serif:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="header header--dashboard">
+    <div class="header__row">
+      <div class="header__brand">
+        <h1 class="header__title">РегДок</h1>
+      </div>
+      <div class="header__actions">
+        <div class="header__menu-wrap">
+          <span class="header__user-name" id="headerUserName" title="Открыть меню">—</span>
+          <button type="button" class="header__menu-btn" id="btnMenu" aria-label="Меню" title="Меню">⋮</button>
+          <a href="login.html" class="header__logout-link" id="headerLogoutLink" onclick="window.clearAuth && window.clearAuth();">Выйти</a>
+          <div class="header__dropdown" id="menuDropdown" aria-hidden="true">
+            <div class="header__dropdown-inner" id="menuDropdownInner"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="admin">
+    <header class="header">
+      <div>
+        <h1 class="header__title">Аналитика</h1>
+        <p class="header__subtitle">Раздел временно отключён. Функция в разработке.</p>
+      </div>
+    </header>
+
+    <section class="admin-block">
+      <p class="text-muted">
+        Раздел «Аналитика» сейчас недоступен. Как только отчёты будут готовы, они появятся здесь.
+      </p>
+    </section>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="header-common.js"></script>
+  <script src="analytics.js"></script>
+</body>
+</html>
+

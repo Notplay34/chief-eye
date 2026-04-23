@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>if(!localStorage.getItem('eye_w_token'))window.location.replace('login.html');</script>
+  <title>Склад заготовок</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=PT+Serif:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="header header--dashboard">
+    <div class="header__row">
+      <div class="header__brand">
+        <h1 class="header__title">РегДок</h1>
+      </div>
+      <div class="header__actions">
+        <div class="header__menu-wrap">
+          <span class="header__user-name" id="headerUserName" title="Открыть меню">—</span>
+          <button type="button" class="header__menu-btn" id="btnMenu" aria-label="Меню" title="Меню">⋮</button>
+          <a href="login.html" class="header__logout-link" id="headerLogoutLink" onclick="window.clearAuth && window.clearAuth();">Выйти</a>
+          <div class="header__dropdown" id="menuDropdown" aria-hidden="true">
+            <div class="header__dropdown-inner" id="menuDropdownInner"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="warehouse-page">
+    <header class="header">
+      <div>
+        <h1 class="header__title">Склад заготовок</h1>
+        <p class="header__subtitle">Остатки номеров, пополнение. Резерв под заказы и списание при изготовлении.</p>
+      </div>
+    </header>
+
+    <div class="warehouse-card">
+      <h2>Остаток на складе</h2>
+      <div class="warehouse-stat" id="quantity">—</div>
+      <div class="warehouse-stat-label">Всего заготовок</div>
+      <div class="warehouse-stat" id="reserved" style="font-size:1.25rem; margin-top:0.75rem;">—</div>
+      <div class="warehouse-stat-label">Зарезервировано (невыданные заказы)</div>
+      <div id="reservedBreakdown" class="warehouse-breakdown"></div>
+      <div class="warehouse-stat" id="available" style="font-size:1.25rem; margin-top:0.75rem;">—</div>
+      <div class="warehouse-stat-label">Доступно для новых заказов</div>
+    </div>
+
+    <div class="warehouse-card">
+      <h2>Пополнить склад</h2>
+      <div class="warehouse-row">
+        <input type="number" id="addAmount" min="1" value="10" placeholder="Кол-во">
+        <button type="button" class="btn btn--primary" id="btnAdd">Добавить</button>
+      </div>
+      <p id="warehouseMsg" class="warehouse-msg"></p>
+    </div>
+
+    <div class="warehouse-card">
+      <h2>Списание</h2>
+      <div class="warehouse-stat" id="defectsMonth" style="font-size:1.25rem;">—</div>
+      <div class="warehouse-stat-label">Браков за месяц</div>
+      <p class="warehouse-stat-label" style="margin:0.75rem 0 0.5rem;">При нажатии «Выдано» в павильоне 2 заказ списывается со склада. Брак — списать 1 шт из остатка.</p>
+      <div class="warehouse-row">
+        <button type="button" class="btn btn--secondary" id="btnDefect">Добавить брак (−1 шт)</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="header-common.js"></script>
+  <script>
+(function () {
+  var API = window.API_BASE_URL || '';
+  var fetchApi = window.fetchWithAuth || fetch;
+  if (!window.getToken || !window.getToken()) return;
+
+  var user = window.getUser();
+  var nameEl = document.getElementById('userName');
+  if (user && nameEl) nameEl.textContent = user.name || '';
+
+  function msg(t, isErr) {
+    var el = document.getElementById('warehouseMsg');
+    el.textContent = t || '';
+    el.className = 'warehouse-msg' + (isErr ? ' err' : ' ok');
+  }
+
+  function load() {
+    var hint = ' Проверьте nginx: в location добавьте warehouse (см. deploy/nginx-eye_w.conf), затем nginx -t && systemctl reload nginx.';
+    fetchApi(API + '/warehouse/plate-stock')
+      .then(function (r) {
+        return r.text().then(function (text) {
+          var t = (text || '').trim();
+          if (t.indexOf('<') === 0) {
+            throw new Error('Сервер вернул HTML вместо данных.' + hint);
+          }
+          if (!r.ok) {
+            try { var j = JSON.parse(t); throw new Error(j.detail || r.statusText); } catch (e) { if (e.message && e.message !== r.statusText) throw e; }
+            throw new Error(r.statusText || 'Ошибка ' + r.status);
+          }
+          try { return JSON.parse(t); } catch (_) {
+            throw new Error('Ответ не JSON.' + hint);
+          }
+        });
+      })
+      .then(function (d) {
+        document.getElementById('quantity').textContent = d.quantity;
+        document.getElementById('reserved').textContent = d.reserved;
+        document.getElementById('available').textContent = d.available;
+        document.getElementById('defectsMonth').textContent = d.defects_this_month != null ? d.defects_this_month : '—';
+        var breakdown = d.reserved_breakdown || [];
+        var el = document.getElementById('reservedBreakdown');
+        if (breakdown.length === 0) {
+          el.textContent = '';
+        } else {
+          var bySum = {};
+          breakdown.forEach(function (b) {
+            var sum = Math.round(b.total_amount);
+            bySum[sum] = (bySum[sum] || 0) + b.quantity;
+          });
+          el.textContent = Object.keys(bySum).sort(function (a, b) { return Number(b) - Number(a); }).map(function (sum) {
+            return sum + ' ₽ — ' + bySum[sum] + ' шт';
+          }).join(', ');
+        }
+      })
+      .catch(function (e) {
+        document.getElementById('quantity').textContent = '—';
+        document.getElementById('reserved').textContent = '—';
+        document.getElementById('available').textContent = '—';
+        document.getElementById('reservedBreakdown').textContent = '';
+        document.getElementById('defectsMonth').textContent = '—';
+        msg('Ошибка: ' + (e.message || ''), true);
+      });
+  }
+
+  document.getElementById('btnAdd').onclick = function () {
+    var inp = document.getElementById('addAmount');
+    var n = parseInt(inp.value, 10);
+    if (isNaN(n) || n < 1) {
+      msg('Введите число больше 0', true);
+      return;
+    }
+    fetchApi(API + '/warehouse/plate-stock/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: n })
+    })
+      .then(function (r) {
+        return r.text().then(function (text) {
+          var t = (text || '').trim();
+          if (t.indexOf('<') === 0) throw new Error('Сервер вернул HTML. Обновите nginx (добавьте warehouse в location).');
+          if (!r.ok) {
+            try { var j = JSON.parse(t); throw new Error(j.detail || r.statusText); } catch (e) { if (e.message && e.message !== r.statusText) throw e; }
+            throw new Error(r.statusText);
+          }
+          return t ? JSON.parse(t) : {};
+        });
+      })
+      .then(function () {
+        msg('Добавлено ' + n + ' шт.');
+        load();
+        setTimeout(function () { msg(''); }, 3000);
+      })
+      .catch(function (e) {
+        msg('Ошибка: ' + (e.message || ''), true);
+      });
+  };
+
+  document.getElementById('btnDefect').onclick = function () {
+    if (!confirm('Списать 1 шт как брак?')) return;
+    fetchApi(API + '/warehouse/plate-stock/defect', { method: 'POST' })
+      .then(function (r) {
+        return r.text().then(function (text) {
+          var t = (text || '').trim();
+          if (t.indexOf('<') === 0) throw new Error('Сервер вернул HTML.');
+          if (!r.ok) {
+            try { var j = JSON.parse(t); throw new Error(j.detail || r.statusText); } catch (e) { if (e.message && e.message !== r.statusText) throw e; }
+            throw new Error(r.statusText);
+          }
+          return t ? JSON.parse(t) : {};
+        });
+      })
+      .then(function () {
+        msg('Списано 1 шт (брак).');
+        load();
+        setTimeout(function () { msg(''); }, 3000);
+      })
+      .catch(function (e) {
+        msg('Ошибка: ' + (e.message || ''), true);
+      });
+  };
+
+  load();
+})();
+  </script>
+</body>
+</html>

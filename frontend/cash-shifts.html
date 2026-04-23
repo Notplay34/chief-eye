@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>if(!localStorage.getItem('eye_w_token'))window.location.replace('login.html');</script>
+  <title>Касса</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="cash-crm.css">
+</head>
+<body class="cash-crm-body">
+  <header class="header header--dashboard">
+    <div class="header__row">
+      <div class="header__brand">
+        <h1 class="header__title">РегДок</h1>
+      </div>
+      <div class="header__actions">
+        <div class="header__menu-wrap">
+          <span class="header__user-name" id="headerUserName" title="Открыть меню">—</span>
+          <button type="button" class="header__menu-btn" id="btnMenu" aria-label="Меню" title="Меню">⋮</button>
+          <a href="login.html" class="header__logout-link" id="headerLogoutLink" onclick="window.clearAuth && window.clearAuth();">Выйти</a>
+          <div class="header__dropdown" id="menuDropdown" aria-hidden="true">
+            <div class="header__dropdown-inner" id="menuDropdownInner"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="cash-crm">
+    <div class="cash-crm__header-card">
+      <div class="cash-crm__header-text">
+        <h2 class="cash-crm__title">Касса</h2>
+        <p class="cash-crm__subtitle">ФИО, заявление, госпошлина, ДКП, страховка, номера — итого по строке пересчитывается автоматически</p>
+      </div>
+      <div class="cash-crm__header-actions">
+        <button type="button" class="cash-crm__btn-add" id="btnAddRow">Добавить строку</button>
+      </div>
+    </div>
+
+    <div class="cash-crm__main">
+      <div class="cash-crm__table-card">
+        <div class="cash-crm__table-wrap">
+          <div class="cash-crm__grid">
+            <div class="cash-crm__grid-header">
+              <div class="cash-crm__grid-cell cash-crm__grid-cell--name">ФИО</div>
+              <div class="cash-crm__grid-cell cash-crm__grid-cell--num">Заявление</div>
+              <div class="cash-crm__grid-cell cash-crm__grid-cell--num">Госпошлина</div>
+              <div class="cash-crm__grid-cell cash-crm__grid-cell--num">ДКП</div>
+              <div class="cash-crm__grid-cell cash-crm__grid-cell--num">Страховка</div>
+              <div class="cash-crm__grid-cell cash-crm__grid-cell--num">Номера</div>
+              <div class="cash-crm__grid-cell cash-crm__grid-cell--num">Итого</div>
+              <div class="cash-crm__grid-cell cash-crm__grid-cell--del"></div>
+            </div>
+            <div class="cash-crm__grid-body" id="cashBody">
+              <div class="cash-crm__grid-row cash-crm__grid-row--placeholder">
+                <div class="cash-crm__grid-cell cash-crm__placeholder" style="grid-column: 1 / -1;">Загрузка…</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p id="cashMsg" class="cash-crm__msg"></p>
+      </div>
+
+      <aside class="cash-crm__total-card">
+        <div class="cash-crm__total-label">Итого в кассе</div>
+        <div class="cash-crm__total-value" id="cashTotalCell">
+          <span class="cash-crm__amount-num">0</span><span class="cash-crm__amount-currency"> ₽</span>
+        </div>
+        <button type="button" class="cash-payout__chip" id="btnPayoutToggle">
+          Номера: к выдаче <span id="payoutTotalShort">0 ₽</span>
+        </button>
+        <div class="cash-payout__panel" id="cashPayoutPanel" hidden>
+          <div class="cash-payout__panel-header">
+            <span class="cash-payout__label">Номера к выдаче</span>
+            <span class="cash-payout__total" id="payoutTotal">0 ₽</span>
+          </div>
+          <div class="cash-payout__panel-body">
+            <table class="cash-payout__table">
+              <tbody id="payoutBody">
+                <tr><td colspan="2" class="cash-payout__empty">Загрузка…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <button type="button" class="cash-payout__btn" id="btnPayoutPay">Выдать деньги оператору номеров</button>
+          <p class="cash-payout__msg" id="payoutMsg"></p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="header-common.js"></script>
+  <script src="cash-crm.js"></script>
+  <script src="cash-payouts.js"></script>
+</body>
+</html>

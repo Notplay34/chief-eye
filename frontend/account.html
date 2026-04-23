@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Меню</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=PT+Serif:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="header header--dashboard">
+    <div class="header__row">
+      <div class="header__brand">
+        <h1 class="header__title">РегДок</h1>
+      </div>
+      <div class="header__actions">
+        <div class="header__menu-wrap">
+          <span class="header__user-name" id="headerUserName" title="Открыть меню">—</span>
+          <button type="button" class="header__menu-btn" id="btnMenu" aria-label="Меню" title="Меню">⋮</button>
+          <a href="login.html" class="header__logout-link" id="headerLogoutLink" onclick="window.clearAuth && window.clearAuth();">Выйти</a>
+          <div class="header__dropdown" id="menuDropdown" aria-hidden="true">
+            <div class="header__dropdown-inner" id="menuDropdownInner"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="account">
+    <nav class="account__sidebar">
+      <div class="menu-group">
+        <div class="menu-group__title">Подготовка документов</div>
+        <a href="index.html">Форма подготовки документов</a>
+      </div>
+      <div class="menu-group" id="menuGroupPlate">
+        <div class="menu-group__title">Номера</div>
+        <a href="plate-operator.html" id="linkPlate" style="display:none;">Невыданные номера</a>
+        <a href="plate-cash.html" id="linkPlateCash" style="display:none;">Касса номеров</a>
+        <a href="warehouse.html" id="linkWarehouse" style="display:none;">Склад заготовок</a>
+      </div>
+      <div class="menu-group" id="menuGroupCash">
+        <div class="menu-group__title">Касса (павильон 1)</div>
+        <a href="cash-shifts.html" id="linkCash" style="display:none;">Касса и смены</a>
+      </div>
+      <div class="menu-group" id="menuGroupAdmin">
+        <div class="menu-group__title">Управление</div>
+        <a href="analytics-docs.html" id="linkAnalyticsDocs" style="display:none;">Аналитика — Документы</a>
+        <a href="analytics-plates.html" id="linkAnalyticsPlates" style="display:none;">Аналитика — Номера</a>
+        <a href="admin.html" id="linkAdmin" style="display:none;">Админка</a>
+        <a href="users.html" id="linkUsers" style="display:none;">Управление аккаунтами</a>
+      </div>
+      <div class="menu-group" style="margin-top: 1.5rem;">
+        <a href="#" id="linkChangePassword" style="color: var(--text-muted);">Сменить пароль</a>
+        <a href="login.html" id="linkLogout" style="color: var(--text-muted);">Выйти</a>
+      </div>
+    </nav>
+    <main class="account__content">
+      <h1>Меню</h1>
+      <p id="userInfo">Выберите раздел слева.</p>
+    </main>
+  </div>
+  <div id="modalChangePassword" class="modal" aria-hidden="true">
+    <div class="modal__box">
+      <h3>Сменить пароль</h3>
+      <label for="inputOldPassword">Текущий пароль</label>
+      <input type="password" id="inputOldPassword" autocomplete="current-password">
+      <label for="inputNewPassword">Новый пароль</label>
+      <input type="password" id="inputNewPassword" autocomplete="new-password">
+      <label for="inputNewPassword2">Повторите новый пароль</label>
+      <input type="password" id="inputNewPassword2" autocomplete="new-password">
+      <p id="passwordMsg" class="text-caption" style="margin:0 0 0.75rem;"></p>
+      <div class="row-actions">
+        <button type="button" class="btn btn--primary" id="btnSubmitPassword">Сохранить</button>
+        <button type="button" class="btn btn--secondary" id="btnCancelPassword">Отмена</button>
+      </div>
+    </div>
+  </div>
+  <script src="auth.js"></script>
+  <script src="header-common.js"></script>
+  <script>
+    (function () {
+      if (!window.requireAuth()) return;
+      var user = window.getUser();
+      if (!user) return;
+      document.getElementById('userInfo').textContent = 'Вы вошли как ' + (user.name || user.login || '');
+      if (['ROLE_PLATE_OPERATOR', 'ROLE_MANAGER', 'ROLE_ADMIN'].indexOf(user.role) >= 0) {
+        document.getElementById('linkPlate').style.display = 'block';
+        document.getElementById('linkPlateCash').style.display = 'block';
+        document.getElementById('linkWarehouse').style.display = 'block';
+      }
+      if (['ROLE_OPERATOR', 'ROLE_PLATE_OPERATOR', 'ROLE_MANAGER', 'ROLE_ADMIN'].indexOf(user.role) >= 0) {
+        document.getElementById('linkCash').style.display = 'block';
+      }
+      if (user.role === 'ROLE_ADMIN') {
+        document.getElementById('linkAnalyticsDocs').style.display = 'block';
+        document.getElementById('linkAnalyticsPlates').style.display = 'block';
+        document.getElementById('linkAdmin').style.display = 'block';
+        document.getElementById('linkUsers').style.display = 'block';
+      }
+      document.getElementById('linkLogout').addEventListener('click', function (e) {
+        e.preventDefault();
+        window.clearAuth();
+        window.location.href = 'login.html';
+      });
+
+      var modalPwd = document.getElementById('modalChangePassword');
+      var linkPwd = document.getElementById('linkChangePassword');
+      var btnSubmitPwd = document.getElementById('btnSubmitPassword');
+      var btnCancelPwd = document.getElementById('btnCancelPassword');
+      var inputOld = document.getElementById('inputOldPassword');
+      var inputNew = document.getElementById('inputNewPassword');
+      var inputNew2 = document.getElementById('inputNewPassword2');
+      var msgPwd = document.getElementById('passwordMsg');
+      var API = window.API_BASE_URL || (window.location.hostname === 'localhost' ? 'http://localhost:8000' : '');
+      var fetchApi = window.fetchWithAuth || fetch;
+
+      function showModal(show) {
+        modalPwd.style.display = show ? 'flex' : 'none';
+        if (!show) {
+          inputOld.value = inputNew.value = inputNew2.value = '';
+          msgPwd.textContent = '';
+        }
+      }
+      linkPwd.addEventListener('click', function (e) { e.preventDefault(); showModal(true); });
+      btnCancelPwd.addEventListener('click', function () { showModal(false); });
+      modalPwd.addEventListener('click', function (e) { if (e.target === modalPwd) showModal(false); });
+
+      btnSubmitPwd.addEventListener('click', function () {
+        var oldP = inputOld.value;
+        var newP = inputNew.value;
+        var newP2 = inputNew2.value;
+        msgPwd.textContent = '';
+        if (!oldP) { msgPwd.textContent = 'Введите текущий пароль'; msgPwd.style.color = '#b91c1c'; return; }
+        if (!newP || newP.length < 4) { msgPwd.textContent = 'Новый пароль — не менее 4 символов'; msgPwd.style.color = '#b91c1c'; return; }
+        if (newP !== newP2) { msgPwd.textContent = 'Пароли не совпадают'; msgPwd.style.color = '#b91c1c'; return; }
+        fetchApi(API + '/auth/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ old_password: oldP, new_password: newP })
+        }).then(function (r) {
+          if (r.ok) {
+            msgPwd.textContent = 'Пароль изменён.';
+            msgPwd.style.color = 'var(--income)';
+            setTimeout(function () { showModal(false); }, 1500);
+          } else return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
+        }).catch(function (e) {
+          msgPwd.textContent = e.message || 'Ошибка';
+          msgPwd.style.color = '#b91c1c';
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

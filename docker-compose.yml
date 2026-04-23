@@ -1,0 +1,19 @@
+# PostgreSQL для локального тестирования
+# Запуск: docker-compose up -d
+# Остановка: docker-compose down
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: eye_w_db
+    environment:
+      POSTGRES_DB: eye_w
+      POSTGRES_USER: eye_user
+      POSTGRES_PASSWORD: eye_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - eye_w_pgdata:/var/lib/postgresql/data
+
+volumes:
+  eye_w_pgdata:

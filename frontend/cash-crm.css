@@ -1,0 +1,555 @@
+/**
+ * Касса — премиальный финтех UI (Stripe / Linear / Revolut)
+ * Строгая сетка, табличные цифры, без переносов, #f5f7fb
+ */
+.cash-crm-body {
+  background: #f5f7fb;
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+.cash-crm {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* ----- Header card ----- */
+.cash-crm__header-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px 28px;
+  margin-bottom: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
+}
+
+.cash-crm__header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.cash-crm__title {
+  margin: 0 0 4px 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+  letter-spacing: -0.3px;
+}
+
+.cash-crm__subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.45;
+}
+
+.cash-crm__header-actions {
+  flex-shrink: 0;
+}
+
+.cash-crm__btn-add {
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 12px;
+  border: none;
+  background: #0d6b5c;
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+  font-family: inherit;
+}
+
+.cash-crm__btn-add:hover {
+  background: #0a5549;
+}
+
+.cash-crm__btn-add:active {
+  transform: scale(0.98);
+}
+
+/* ----- Main: table + total ----- */
+.cash-crm__main {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+@media (max-width: 1024px) {
+  .cash-crm__main {
+    flex-direction: column;
+  }
+}
+
+/* Чип под «Итого в кассе» + компактная панель */
+.cash-payout__chip {
+  margin-top: 8px;
+  padding: 6px 10px;
+  width: 100%;
+  border-radius: 999px;
+  border: none;
+  background: #f3f4ff;
+  color: #111827;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: inherit;
+}
+
+.cash-payout__chip:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.cash-payout__panel {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+}
+
+.cash-payout__panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.cash-payout__label {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.cash-payout__total {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.cash-payout__panel-body {
+  max-height: 140px;
+  overflow-y: auto;
+  margin-bottom: 6px;
+}
+
+.cash-payout__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.cash-payout__table td {
+  padding: 3px 0;
+}
+
+.cash-payout__amount {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.cash-payout__empty {
+  text-align: left;
+  padding: 4px 0;
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.cash-payout__btn {
+  width: 100%;
+  margin-top: 4px;
+  height: 32px;
+  border-radius: 999px;
+  border: none;
+  background: #0d6b5c;
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.cash-payout__btn:hover {
+  background: #0a5549;
+}
+
+.cash-payout__msg {
+  margin: 4px 0 0 0;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.cash-payout__msg--err {
+  color: #b91c1c;
+}
+
+/* ----- Table card ----- */
+.cash-crm__table-card {
+  flex: 1;
+  min-width: 0;
+  background: #fff;
+  border-radius: 16px;
+  padding: 0;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.cash-crm__table-wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: calc(100vh - 280px);
+}
+
+/* ----- Grid: фиксированная структура колонок ----- */
+.cash-crm__grid {
+  min-width: 800px;
+}
+
+.cash-crm__grid-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1.2fr 60px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fafbfc;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.cash-crm__grid-header .cash-crm__grid-cell {
+  padding: 14px 16px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.cash-crm__grid-body {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1.2fr 60px;
+  grid-auto-rows: 56px;
+}
+
+.cash-crm__grid-row {
+  display: contents;
+}
+
+.cash-crm__grid-row .cash-crm__grid-cell {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-bottom: 1px solid #eef2f7;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  transition: background 0.15s ease;
+}
+
+.cash-crm__grid-row:hover .cash-crm__grid-cell {
+  background: #f8fafc;
+}
+
+.cash-crm__grid-cell--name {
+  min-width: 0;
+}
+
+.cash-crm__grid-cell--num {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.cash-crm__grid-cell--del {
+  justify-content: center;
+  padding: 0 8px;
+}
+
+/* ----- Табличные числа: сумма в одну строку ----- */
+.cash-crm__amount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.cash-crm__amount-num,
+.cash-crm__amount-currency {
+  display: inline;
+}
+
+/* ----- Inputs ----- */
+.cash-crm__input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  box-sizing: border-box;
+}
+
+.cash-crm__input:hover {
+  border-color: #d1d5db;
+}
+
+.cash-crm__input:focus {
+  outline: none;
+  border-color: #0d6b5c;
+  box-shadow: 0 0 0 3px rgba(13, 107, 92, 0.1);
+  background: #fafbfc;
+}
+
+.cash-crm__input--num {
+  text-align: right;
+}
+
+.cash-crm__input--num::-webkit-outer-spin-button,
+.cash-crm__input--num::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.cash-crm__input--num[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* ----- Итого по строке: сильная типографика ----- */
+.cash-crm__row-total {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: #111827;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.cash-crm__row-total.cash-crm__row-total--zero {
+  color: #9ca3af;
+}
+
+.cash-crm__row-total.cash-crm__row-total--negative {
+  color: #b91c1c;
+}
+
+.cash-crm__row-total.cash-crm__row-total--positive {
+  color: #065f46;
+}
+
+/* Редактируемое поле Итого по строке (в т.ч. минус) */
+.cash-crm__input--total {
+  width: 6em;
+  min-width: 4em;
+  text-align: right;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  padding: 0 2px 0 0;
+}
+.cash-crm__input--total:focus {
+  outline: none;
+}
+.cash-crm__input--total::-webkit-outer-spin-button,
+.cash-crm__input--total::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.cash-crm__input--total[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* ----- Delete button ----- */
+.cash-crm__btn-del {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background 0.15s ease;
+  font-size: 1rem;
+}
+
+.cash-crm__btn-del:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+/* ----- Day separator ----- */
+.cash-crm__grid-row-day {
+  display: contents;
+}
+
+.cash-crm__grid-row-day .cash-crm__grid-cell {
+  grid-column: 1 / -1;
+  height: 40px;
+  min-height: 40px;
+  background: #f8fafc;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  letter-spacing: 0.3px;
+}
+
+.cash-crm__grid-row-day .cash-crm__grid-cell:hover {
+  background: #f8fafc;
+}
+
+/* ----- Placeholder ----- */
+.cash-crm__grid-row--placeholder {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: 1fr;
+}
+
+.cash-crm__placeholder {
+  grid-column: 1 / -1;
+  padding: 40px 24px !important;
+  justify-content: center;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+  border: none !important;
+}
+
+/* ----- New row animation ----- */
+.cash-crm__grid-row--new .cash-crm__grid-cell {
+  animation: cash-crm-fade-in 0.3s ease;
+}
+
+@keyframes cash-crm-fade-in {
+  from {
+    opacity: 0;
+    background: #ecfdf5;
+  }
+  to {
+    opacity: 1;
+    background: transparent;
+  }
+}
+
+.cash-crm__grid-row:hover.cash-crm__grid-row--new .cash-crm__grid-cell {
+  background: #f8fafc;
+}
+
+/* ----- Message ----- */
+.cash-crm__msg {
+  padding: 12px 20px;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  border-top: 1px solid #eef2f7;
+}
+
+.cash-crm__msg.err {
+  color: #b91c1c;
+}
+
+.cash-crm__msg.ok {
+  color: #065f46;
+}
+
+/* ----- ИТОГО В КАССЕ — KPI-блок ----- */
+.cash-crm__total-card {
+  flex-shrink: 0;
+  width: 260px;
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
+  border: 1px solid #eef2f7;
+}
+
+@media (min-width: 1025px) {
+  .cash-crm__total-card {
+    position: sticky;
+    top: 24px;
+  }
+}
+
+.cash-crm__total-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.cash-crm__total-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  white-space: nowrap;
+}
+
+.cash-crm__total-value .cash-crm__amount-currency {
+  font-weight: 600;
+  margin-left: 2px;
+}
+
+.cash-crm__total-value.cash-crm__total-value--negative {
+  color: #b91c1c;
+}
+
+.cash-crm__total-value.cash-crm__total-value--positive {
+  color: #065f46;
+}
+
+/* ----- Responsive ----- */
+@media (max-width: 768px) {
+  .cash-crm {
+    padding: 16px;
+  }
+
+  .cash-crm__header-card {
+    padding: 20px;
+  }
+
+  .cash-crm__title {
+    font-size: 1.25rem;
+  }
+
+  .cash-crm__table-wrap {
+    max-height: none;
+  }
+
+  .cash-crm__total-card {
+    width: 100%;
+  }
+
+  .cash-crm__total-value {
+    font-size: 28px;
+  }
+}

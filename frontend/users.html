@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Управление аккаунтами</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=PT+Serif:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="header header--dashboard">
+    <div class="header__row">
+      <div class="header__brand">
+        <h1 class="header__title">РегДок</h1>
+      </div>
+      <div class="header__actions">
+        <div class="header__menu-wrap">
+          <span class="header__user-name" id="headerUserName" title="Открыть меню">—</span>
+          <button type="button" class="header__menu-btn" id="btnMenu" aria-label="Меню" title="Меню">⋮</button>
+          <a href="login.html" class="header__logout-link" id="headerLogoutLink" onclick="window.clearAuth && window.clearAuth();">Выйти</a>
+          <div class="header__dropdown" id="menuDropdown" aria-hidden="true">
+            <div class="header__dropdown-inner" id="menuDropdownInner"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="users">
+    <header class="header">
+      <div>
+        <h1 class="header__title">Управление аккаунтами</h1>
+        <p class="header__subtitle">Сотрудники, роли, пароли</p>
+      </div>
+    </header>
+    <p><button type="button" class="btn" id="btnAdd">Добавить сотрудника</button></p>
+    <div id="listContent" class="loading">Загрузка…</div>
+  </div>
+
+  <div class="modal" id="modalForm">
+    <div class="modal__box">
+      <h3 id="modalTitle">Добавить сотрудника</h3>
+      <form id="formEdit">
+        <input type="hidden" id="formId" value="">
+        <label>Имя</label>
+        <input type="text" id="formName" required>
+        <label>Логин (для входа в систему)</label>
+        <input type="text" id="formLogin" autocomplete="off">
+        <label>Пароль <span id="formPasswordHint" class="text-muted">(для нового — обязательно; при редактировании оставьте пустым, чтобы не менять)</span></label>
+        <input type="password" id="formPassword" autocomplete="new-password">
+        <label>Роль</label>
+        <select id="formRole">
+          <option value="ROLE_OPERATOR">Оператор документов</option>
+          <option value="ROLE_PLATE_OPERATOR">Оператор номеров</option>
+          <option value="ROLE_MANAGER">Управляющий</option>
+          <option value="ROLE_ADMIN">Директор</option>
+        </select>
+        <label id="formActiveLabel" style="display:none;"><input type="checkbox" id="formActive" checked> Активен</label>
+        <div class="row">
+          <button type="submit" class="btn">Сохранить</button>
+          <button type="button" class="btn" id="btnCancel">Отмена</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="header-common.js"></script>
+  <script>
+    (function () {
+      if (!window.requireAuth()) return;
+      var user = window.getUser();
+      if (user && document.getElementById('usersUserName')) document.getElementById('usersUserName').textContent = user.name || '';
+      if (user && user.role !== 'ROLE_ADMIN') {
+        document.getElementById('listContent').innerHTML = '<p class="error">Доступ только у директора.</p>';
+        return;
+      }
+      var API = window.API_BASE_URL || '';
+      var fetchApi = window.fetchWithAuth || fetch;
+      var listEl = document.getElementById('listContent');
+      var modal = document.getElementById('modalForm');
+      var form = document.getElementById('formEdit');
+      var editingId = null;
+
+      function roleLabel(r) {
+        return {
+          ROLE_OPERATOR: 'Оператор документов',
+          ROLE_PLATE_OPERATOR: 'Оператор номеров',
+          ROLE_MANAGER: 'Управляющий',
+          ROLE_ADMIN: 'Директор'
+        }[r] || r;
+      }
+
+      function loadList() {
+        listEl.textContent = 'Загрузка…';
+        fetchApi(API + '/employees?all=1').then(function (r) {
+          if (!r.ok) throw new Error(r.statusText);
+          return r.json();
+        }).then(function (list) {
+          if (!list.length) {
+            listEl.innerHTML = '<p class="text-muted">Нет сотрудников. Нажмите «Добавить сотрудника».</p>';
+            return;
+          }
+          var myId = user ? user.id : null;
+          var rows = list.map(function (e) {
+            var tr = e.is_active ? '' : ' class="inactive"';
+            var loginCell = (e.login ? '<span class="copy-link" data-login="' + (e.login || '').replace(/"/g, '&quot;') + '" title="Копировать логин">' + e.login + '</span>' : '—');
+            var actions = '<div class="table-actions">';
+            actions += '<button type="button" class="btn btn-sm btn-edit" data-id="' + e.id + '">Изменить</button>';
+            if (e.is_active && e.id !== myId) {
+              actions += '<button type="button" class="btn btn-sm btn-danger btn-deactivate" data-id="' + e.id + '" data-name="' + (e.name || '').replace(/"/g, '&quot;') + '">Деактивировать</button>';
+            }
+            if (!e.is_active) {
+              actions += '<button type="button" class="btn btn-sm btn-restore" data-id="' + e.id + '">Восстановить</button>';
+            }
+            actions += '</div>';
+            return '<tr' + tr + '><td>' + e.id + '</td><td>' + (e.name || '') + '</td><td>' + loginCell + '</td><td>' + roleLabel(e.role) + '</td><td>' + (e.is_active ? 'Да' : 'Нет') + '</td><td>' + actions + '</td></tr>';
+          }).join('');
+          listEl.innerHTML = '<table class="users-table"><thead><tr><th>ID</th><th>Имя</th><th>Логин</th><th>Роль</th><th>Активен</th><th>Действия</th></tr></thead><tbody>' + rows + '</tbody></table>';
+          listEl.querySelectorAll('.btn-edit').forEach(function (btn) {
+            btn.addEventListener('click', function () { openEdit(Number(btn.getAttribute('data-id'))); });
+          });
+          listEl.querySelectorAll('.btn-deactivate').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var id = Number(btn.getAttribute('data-id'));
+              var name = btn.getAttribute('data-name') || '';
+              if (confirm('Деактивировать «' + name + '»? Он не сможет войти в систему.')) deactivate(id);
+            });
+          });
+          listEl.querySelectorAll('.btn-restore').forEach(function (btn) {
+            btn.addEventListener('click', function () { restore(Number(btn.getAttribute('data-id'))); });
+          });
+          listEl.querySelectorAll('.copy-link').forEach(function (el) {
+            el.addEventListener('click', function () { copyLogin(el.getAttribute('data-login')); });
+          });
+        }).catch(function (err) {
+          listEl.innerHTML = '<p class="error">' + (err.message || 'Ошибка загрузки') + '</p>';
+        });
+      }
+
+      function openAdd() {
+        editingId = null;
+        document.getElementById('modalTitle').textContent = 'Добавить сотрудника';
+        document.getElementById('formId').value = '';
+        document.getElementById('formName').value = '';
+        document.getElementById('formLogin').value = '';
+        document.getElementById('formLogin').disabled = false;
+        document.getElementById('formPassword').value = '';
+        document.getElementById('formPasswordHint').textContent = '';
+        document.getElementById('formActiveLabel').style.display = 'none';
+        modal.classList.add('show');
+      }
+
+      function openEdit(id) {
+        fetchApi(API + '/employees?all=1').then(function (r) { return r.json(); }).then(function (list) {
+          var e = list.find(function (x) { return x.id === id; });
+          if (!e) return;
+          editingId = id;
+          document.getElementById('modalTitle').textContent = 'Изменить сотрудника';
+          document.getElementById('formId').value = id;
+          document.getElementById('formName').value = e.name || '';
+          document.getElementById('formLogin').value = e.login || '';
+          document.getElementById('formLogin').disabled = true;
+          document.getElementById('formPassword').value = '';
+          document.getElementById('formPasswordHint').textContent = '(оставьте пустым, чтобы не менять)';
+          document.getElementById('formRole').value = e.role || 'ROLE_OPERATOR';
+          document.getElementById('formActive').checked = e.is_active !== false;
+          document.getElementById('formActiveLabel').style.display = 'block';
+          modal.classList.add('show');
+        });
+      }
+
+      function closeModal() {
+        modal.classList.remove('show');
+      }
+
+      function copyLogin(login) {
+        if (!login) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(login).then(function () { alert('Логин скопирован'); }).catch(function () { fallbackCopy(login); });
+        } else { fallbackCopy(login); }
+      }
+      function fallbackCopy(text) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        alert('Логин скопирован');
+      }
+
+      function deactivate(id) {
+        fetchApi(API + '/employees/' + id, { method: 'DELETE' }).then(function (r) {
+          if (!r.ok) return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
+          loadList();
+        }).catch(function (err) { alert(err.message); });
+      }
+      function restore(id) {
+        fetchApi(API + '/employees/' + id, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_active: true })
+        }).then(function (r) {
+          if (!r.ok) return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
+          loadList();
+        }).catch(function (err) { alert(err.message); });
+      }
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var id = document.getElementById('formId').value;
+        var payload = {
+          name: document.getElementById('formName').value.trim(),
+          role: document.getElementById('formRole').value,
+          is_active: document.getElementById('formActive').checked
+        };
+        if (!editingId) {
+          payload.login = document.getElementById('formLogin').value.trim() || null;
+          payload.password = document.getElementById('formPassword').value || null;
+          if (!payload.login || !payload.password) {
+            alert('Для нового сотрудника укажите логин и пароль.');
+            return;
+          }
+        } else {
+          payload.login = document.getElementById('formLogin').value.trim() || null;
+          var pwd = document.getElementById('formPassword').value;
+          if (pwd) payload.password = pwd;
+        }
+        var url = editingId ? API + '/employees/' + editingId : API + '/employees';
+        var method = editingId ? 'PATCH' : 'POST';
+        fetchApi(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).then(function (r) {
+          if (!r.ok) return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
+          closeModal();
+          loadList();
+        }).catch(function (err) {
+          alert(err.message || 'Ошибка сохранения');
+        });
+      });
+
+      document.getElementById('btnAdd').addEventListener('click', openAdd);
+      document.getElementById('btnCancel').addEventListener('click', closeModal);
+      modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+
+      loadList();
+    })();
+  </script>
+</body>
+</html>
