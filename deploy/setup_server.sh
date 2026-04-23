@@ -5,6 +5,12 @@
 set -e
 cd "$(dirname "$0")/.."
 
+if ! command -v curl >/dev/null 2>&1; then
+  echo "=== 0. Установка curl ==="
+  apt-get update
+  apt-get install -y curl
+fi
+
 echo "=== 1. backend/.env ==="
 if [ ! -f backend/.env ]; then
   touch backend/.env
@@ -50,6 +56,9 @@ echo "=== 2. Nginx ==="
 cp deploy/nginx-eye_w.conf /etc/nginx/sites-available/eye_w
 # Убрать default_server, чтобы не конфликтовать с другими сайтами в sites-enabled
 sed -i 's/ listen 80 default_server;/ listen 80;/' /etc/nginx/sites-available/eye_w
+if [ -L /etc/nginx/sites-enabled/default ]; then
+  unlink /etc/nginx/sites-enabled/default
+fi
 ln -sf /etc/nginx/sites-available/eye_w /etc/nginx/sites-enabled/eye_w 2>/dev/null || true
 nginx -t
 systemctl reload nginx
@@ -58,7 +67,9 @@ echo "Nginx обновлён"
 if command -v curl >/dev/null 2>&1; then
   echo "=== 2b. Проверка: доходит ли токен до бэкенда через nginx ==="
   SUPERLOGIN="$(sed -n 's/^SUPERUSER_LOGIN=//p' backend/.env | head -n1)"
-  TOKEN=$(curl -s -X POST http://127.0.0.1:8000/auth/login -d "username=$SUPERLOGIN&password=$SUPERPASS" -H "Content-Type: application/x-www-form-urlencoded" 2>/dev/null | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
+  TOKEN=$(curl -s -X POST http://127.0.0.1:8000/auth/login \
+    --data-urlencode "username=$SUPERLOGIN" \
+    --data-urlencode "password=$SUPERPASS" 2>/dev/null | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
   if [ -n "$TOKEN" ]; then
     CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" http://127.0.0.1/auth/me 2>/dev/null)
     if [ "$CODE" = "200" ]; then
