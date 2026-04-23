@@ -16,6 +16,35 @@
   var form = document.getElementById('formEdit');
   var editingId = null;
 
+  function formatDetail(detail) {
+    if (!detail) return '';
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail)) {
+      return detail.map(function (item) {
+        if (!item) return '';
+        if (typeof item === 'string') return item;
+        var path = Array.isArray(item.loc) ? item.loc.filter(function (part) { return part !== 'body'; }).join('.') : '';
+        var msg = item.msg || item.detail || '';
+        return path ? (path + ': ' + msg) : msg;
+      }).filter(Boolean).join('\n');
+    }
+    if (typeof detail === 'object') {
+      return detail.detail || detail.message || JSON.stringify(detail);
+    }
+    return String(detail);
+  }
+
+  function extractError(response) {
+    return response.json()
+      .then(function (payload) {
+        throw new Error(formatDetail(payload && payload.detail) || response.statusText || 'Ошибка запроса');
+      })
+      .catch(function (err) {
+        if (err instanceof Error && err.message) throw err;
+        throw new Error(response.statusText || 'Ошибка запроса');
+      });
+  }
+
   function roleLabel(role) {
     return {
       ROLE_OPERATOR: 'Оператор документов',
@@ -50,7 +79,7 @@
     listEl.textContent = 'Загрузка…';
     fetchApi(api + '/employees?all=1')
       .then(function (r) {
-        if (!r.ok) throw new Error(r.statusText);
+        if (!r.ok) return extractError(r);
         return r.json();
       })
       .then(function (list) {
@@ -114,7 +143,10 @@
 
   function openEdit(id) {
     fetchApi(api + '/employees?all=1')
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r.ok) return extractError(r);
+        return r.json();
+      })
       .then(function (list) {
         var employee = list.find(function (item) { return item.id === id; });
         if (!employee) return;
@@ -140,7 +172,7 @@
   function deactivate(id) {
     fetchApi(api + '/employees/' + id, { method: 'DELETE' })
       .then(function (r) {
-        if (!r.ok) return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
+        if (!r.ok) return extractError(r);
         loadList();
       })
       .catch(function (err) {
@@ -155,7 +187,7 @@
       body: JSON.stringify({ is_active: true })
     })
       .then(function (r) {
-        if (!r.ok) return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
+        if (!r.ok) return extractError(r);
         loadList();
       })
       .catch(function (err) {
@@ -167,8 +199,7 @@
     e.preventDefault();
     var payload = {
       name: document.getElementById('formName').value.trim(),
-      role: document.getElementById('formRole').value,
-      is_active: document.getElementById('formActive').checked
+      role: document.getElementById('formRole').value
     };
     if (!editingId) {
       payload.login = document.getElementById('formLogin').value.trim() || null;
@@ -179,6 +210,7 @@
       }
     } else {
       payload.login = document.getElementById('formLogin').value.trim() || null;
+      payload.is_active = document.getElementById('formActive').checked;
       var password = document.getElementById('formPassword').value;
       if (password) payload.password = password;
     }
@@ -189,7 +221,7 @@
       body: JSON.stringify(payload)
     })
       .then(function (r) {
-        if (!r.ok) return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
+        if (!r.ok) return extractError(r);
         closeModal();
         loadList();
       })
