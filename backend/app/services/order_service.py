@@ -55,6 +55,7 @@ def _form_data_from_create(d: OrderCreate, canonical_documents: list[dict]) -> d
         "dkp_number": d.dkp_number,
         "dkp_summary": d.dkp_summary,
         "summa_dkp": str(d.summa_dkp),
+        "state_duty": str(d.state_duty),
         "plate_quantity": d.plate_quantity,
     }
     if canonical_documents:

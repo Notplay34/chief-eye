@@ -17,10 +17,15 @@ TEMPLATES_DIR = _BASE / "templates"
 # Маппинг: имя плейсхолдера в шаблоне (без {{ }}) → ключ в form_data
 PLACEHOLDER_TO_FIELD = {
     "ФИО": "client_fio",
+    "ФИО дов": "trustee_fio",
+    "ФИО_подписант": "client_fio",
     "Паспорт": "client_passport",
+    "Паспорт дов": "trustee_passport",
     "Адрес": "client_address",
+    "Адрес дов": "client_address",
     "Телефон": "client_phone",
     "Номер телефона": "client_phone",
+    "Номер телефона дов": "client_phone",
     "ФИО продавец": "seller_fio",
     "Паспорт продавец": "seller_passport",
     "Адрес продавец": "seller_address",
@@ -42,6 +47,14 @@ PLACEHOLDER_TO_FIELD = {
     "Название": "client_legal_name",
     "ИНН": "client_inn",
     "ОГРН": "client_ogrn",
+    "Сумма госпошлины": "state_duty",
+    "Подпись": "client_fio",
+    "Дата рождения": None,
+    "Место рождения": None,
+    "Масса": None,
+    "Мощность": None,
+    "ОСАГО": None,
+    "Текущая_дата": None,
 }
 
 
@@ -53,6 +66,8 @@ def _form_data_to_replace_map(form_data: Optional[dict], doc_date: Optional[date
     result = {}
     for placeholder, field_key in PLACEHOLDER_TO_FIELD.items():
         value = form_data.get(field_key) if field_key else None
+        if value is None and placeholder == "Текущая_дата":
+            value = doc_date.strftime("%d.%m.%Y")
         if value is None and placeholder == "Дата ДКП":
             value = doc_date.strftime("%d.%m.%Y")
         if value is None and placeholder == "ДКП":

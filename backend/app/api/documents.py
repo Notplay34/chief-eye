@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.auth import RequireOrdersListAccess, UserInfo
 from app.core.database import get_db
 from app.models import Order
-from app.services.docx_service import render_docx
+from app.services.docx_service import TEMPLATES_DIR, render_docx
 from app.services.errors import ServiceError
 from app.services.order_access import ensure_can_print_template
 from app.services.template_registry import is_printable_template

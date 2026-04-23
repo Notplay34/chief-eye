@@ -1,6 +1,8 @@
 from decimal import Decimal
 from typing import Optional, List
-from pydantic import BaseModel, Field, ConfigDict
+import re
+
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
 class DocumentItem(BaseModel):
@@ -50,6 +52,57 @@ class OrderCreate(BaseModel):
     summa_dkp: Decimal = Field(default=Decimal("0"), ge=0)
     # Список документов для печати (прейскурант): сумма по ним считается автоматически
     documents: Optional[List[DocumentItem]] = None
+
+    @field_validator(
+        "client_fio",
+        "client_passport",
+        "client_address",
+        "client_phone",
+        "client_comment",
+        "client_legal_name",
+        "client_inn",
+        "client_ogrn",
+        "seller_fio",
+        "seller_passport",
+        "seller_address",
+        "trustee_fio",
+        "trustee_passport",
+        "trustee_basis",
+        "vin",
+        "brand_model",
+        "vehicle_type",
+        "year",
+        "engine",
+        "chassis",
+        "body",
+        "color",
+        "srts",
+        "plate_number",
+        "pts",
+        "dkp_date",
+        "dkp_number",
+        "dkp_summary",
+        "service_type",
+        mode="before",
+    )
+    @classmethod
+    def _normalize_optional_strings(cls, value):
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            return value
+        cleaned = value.strip()
+        return cleaned or None
+
+    @field_validator("client_phone")
+    @classmethod
+    def _validate_client_phone(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        digits = re.sub(r"\D", "", value)
+        if len(digits) != 11 or not digits.startswith("7"):
+            raise ValueError("Телефон должен быть в формате +7XXXXXXXXXX")
+        return "+" + digits
 
 
 class OrderResponse(BaseModel):
