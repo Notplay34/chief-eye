@@ -26,6 +26,14 @@ echo "== health напрямую =="
 curl -fsS http://127.0.0.1:8000/health
 echo
 
+echo "== service user =="
+SERVICE_USER="$(systemctl show -p User --value eye_w)"
+if [ "$SERVICE_USER" = "root" ] || [ -z "$SERVICE_USER" ]; then
+  echo "Сервис eye_w не должен работать от root"
+  exit 1
+fi
+echo "$SERVICE_USER"
+
 echo "== health через nginx =="
 curl -fsS http://127.0.0.1/health
 echo

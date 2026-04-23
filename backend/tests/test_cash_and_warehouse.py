@@ -11,7 +11,7 @@ def make_plate_order_payload(*, plate_quantity: int = 1) -> dict:
         "need_plate": True,
         "plate_quantity": plate_quantity,
         "documents": [
-            {"template": "statement.docx", "label": "Заявление", "price": "1000"},
+            {"template": "zaiavlenie.docx", "label": "Заявление", "price": "1000"},
             {"template": "number.docx", "label": "Номера", "price": "2000"},
         ],
         "extra_amount": "0",
@@ -40,7 +40,7 @@ def test_cash_shift_lifecycle_tracks_total_in_shift(client: TestClient, auth_hea
     assert current_response.status_code == 200, current_response.text
     current_data = current_response.json()
     assert current_data["shift"]["status"] == "OPEN"
-    assert current_data["total_in_shift"] == 3500.0
+    assert current_data["total_in_shift"] == 2550.0
 
     close_response = client.patch(
         f"/cash/shifts/{current_data['shift']['id']}/close",
@@ -102,7 +102,7 @@ def test_plate_status_flow_updates_stock_and_payout_register(client: TestClient,
     payouts_response = client.get("/cash/plate-payouts", headers=auth_headers)
     assert payouts_response.status_code == 200, payouts_response.text
     payouts = payouts_response.json()
-    assert payouts["total"] == 2700.0
+    assert payouts["total"] == 2200.0
     assert payouts["rows"][0]["client_name"] == "Пётр Петров"
 
 
@@ -119,7 +119,7 @@ def test_paying_plate_payouts_moves_money_between_cash_tables(client: TestClient
     pay_payouts_response = client.post("/cash/plate-payouts/pay", headers=auth_headers)
     assert pay_payouts_response.status_code == 200, pay_payouts_response.text
     assert pay_payouts_response.json()["count"] == 1
-    assert pay_payouts_response.json()["total"] == 2000.0
+    assert pay_payouts_response.json()["total"] == 1500.0
 
     open_payouts_response = client.get("/cash/plate-payouts", headers=auth_headers)
     assert open_payouts_response.status_code == 200, open_payouts_response.text
@@ -128,12 +128,32 @@ def test_paying_plate_payouts_moves_money_between_cash_tables(client: TestClient
 
     plate_rows_response = client.get("/cash/plate-rows", headers=auth_headers)
     assert plate_rows_response.status_code == 200, plate_rows_response.text
-    assert plate_rows_response.json()["total"] == 2000.0
+    assert plate_rows_response.json()["total"] == 1500.0
     assert plate_rows_response.json()["rows"][0]["client_name"] == "Пётр Петров"
 
     cash_rows_response = client.get("/cash/rows", headers=auth_headers)
     assert cash_rows_response.status_code == 200, cash_rows_response.text
     payout_rows = [row for row in cash_rows_response.json() if row["client_name"] == "Номера — выдача"]
     assert len(payout_rows) == 1
-    assert payout_rows[0]["plates"] == -2000.0
-    assert payout_rows[0]["total"] == -2000.0
+    assert payout_rows[0]["plates"] == -1500.0
+    assert payout_rows[0]["total"] == -1500.0
+
+
+def test_plate_extra_payment_requires_open_shift_pavilion2(client: TestClient, auth_headers: dict[str, str]):
+    client.post("/cash/shifts", json={"pavilion": 1, "opening_balance": "100"}, headers=auth_headers)
+    client.post("/cash/shifts", json={"pavilion": 2, "opening_balance": "50"}, headers=auth_headers)
+    order = create_paid_plate_order(client, auth_headers)
+    current_shift = client.get("/cash/shifts/current", params={"pavilion": 2}, headers=auth_headers).json()["shift"]
+    client.patch(
+        f"/cash/shifts/{current_shift['id']}/close",
+        json={"closing_balance": "50"},
+        headers=auth_headers,
+    )
+
+    extra_payment_response = client.post(
+        f"/orders/{order['id']}/pay-extra",
+        json={"amount": 700},
+        headers=auth_headers,
+    )
+    assert extra_payment_response.status_code == 400, extra_payment_response.text
+    assert "смену павильона 2" in extra_payment_response.json()["detail"].lower()

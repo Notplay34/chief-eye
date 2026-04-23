@@ -48,7 +48,6 @@ class OrderCreate(BaseModel):
     extra_amount: Decimal = Field(default=Decimal("0"), ge=0)
     plate_amount: Decimal = Field(default=Decimal("0"), ge=0)
     summa_dkp: Decimal = Field(default=Decimal("0"), ge=0)
-    employee_id: Optional[int] = None
     # Список документов для печати (прейскурант): сумма по ним считается автоматически
     documents: Optional[List[DocumentItem]] = None
 

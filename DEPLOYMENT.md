@@ -18,14 +18,18 @@
 ## 2. Базовая последовательность
 
 ```bash
-cd /opt/eye_w/backend
-python3.11 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
+cd /opt/eye_w
+bash deploy/setup_server.sh
 ```
 
-В `backend/.env` для production должны быть заданы:
+После этого проверить:
+
+```bash
+cd /opt/eye_w
+bash deploy/check_stack.sh
+```
+
+`backend/.env` для production должен содержать:
 
 ```env
 APP_ENV=production
@@ -47,8 +51,10 @@ Description=Eye-W Backend
 After=network.target postgresql.service
 
 [Service]
-User=root
+User=eye_w
+Group=eye_w
 WorkingDirectory=/opt/eye_w/backend
+EnvironmentFile=/opt/eye_w/backend/.env
 ExecStart=/opt/eye_w/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
 Restart=always
 
@@ -106,6 +112,7 @@ bash deploy/check_stack.sh
 
 Скрипт проверяет:
 
+- что сервис не запущен от `root`
 - `/health` напрямую и через nginx
 - логин суперпользователя
 - `/auth/me` напрямую и через nginx
@@ -114,16 +121,30 @@ bash deploy/check_stack.sh
 
 Подробный чеклист: [docs/SMOKE_TEST.md](/Users/NotPlay/Documents/dev/pavilion/docs/SMOKE_TEST.md)
 
-## 6. Обновление
+## 6. Бэкап и восстановление
 
 ```bash
 cd /opt/eye_w
-git pull
-systemctl restart eye_w
+bash deploy/backup_db.sh
+```
+
+Runbook: [docs/BACKUP_AND_RESTORE.md](/Users/NotPlay/Documents/dev/pavilion/docs/BACKUP_AND_RESTORE.md)
+
+## 7. Обновление
+
+```bash
+cd /opt/eye_w
+bash deploy/setup_server.sh
 bash deploy/check_stack.sh
 ```
 
-## 7. Если что-то не работает
+Пароль суперпользователя `setup_server.sh` больше не печатает в stdout. При необходимости смотреть на сервере:
+
+```bash
+grep '^SUPERUSER_PASSWORD=' /opt/eye_w/backend/.env
+```
+
+## 8. Если что-то не работает
 
 Проверять:
 

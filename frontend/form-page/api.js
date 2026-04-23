@@ -21,8 +21,6 @@
   };
 
   page.buildOrderPayload = function () {
-    var user = window.getUser();
-    var employeeId = user && user.id ? user.id : null;
     var needPlate = page.inputs.needPlate && page.inputs.needPlate.checked;
     var plateQuantity = needPlate ? page.getPlateQuantity() : 1;
     var inputs = page.inputs;
@@ -64,7 +62,6 @@
       extra_amount: 0,
       plate_amount: 0,
       summa_dkp: (inputs.hasSeller && inputs.hasSeller.checked && inputs.summaDkp) ? page.num(inputs.summaDkp.value) : 0,
-      employee_id: employeeId || null,
       documents: page.state.selectedDocuments.map(function (item) {
         return { template: item.template, price: page.num(item.price), label: item.label || item.template };
       })

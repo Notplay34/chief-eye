@@ -8,9 +8,11 @@ from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.database import Base, get_db
-from app.models import Employee
+from app.data.price_list import PRICE_LIST
+from app.models import DocumentPrice, Employee
 from app.models.employee import EmployeeRole
 from app.services.auth_service import hash_password
+from app.services.template_registry import supported_sellable_templates
 
 ADMIN_LOGIN = "admin"
 ADMIN_PASSWORD = "admin1234"
@@ -44,6 +46,18 @@ async def _prepare_database(database_url: str) -> tuple:
                 is_active=True,
             )
         )
+        supported_templates = supported_sellable_templates()
+        for index, item in enumerate(PRICE_LIST):
+            if item["template"] not in supported_templates:
+                continue
+            session.add(
+                DocumentPrice(
+                    template=item["template"],
+                    label=item["label"],
+                    price=item["price"],
+                    sort_order=index,
+                )
+            )
         await session.commit()
 
     return engine, session_maker

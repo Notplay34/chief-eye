@@ -3,10 +3,13 @@ from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth import RequireFormAccess, RequireOrdersListAccess, UserInfo
+from app.api.auth import RequireOrdersListAccess, UserInfo
 from app.core.database import get_db
 from app.models import Order
-from app.services.docx_service import render_docx, TEMPLATES_DIR
+from app.services.docx_service import render_docx
+from app.services.errors import ServiceError
+from app.services.order_access import ensure_can_print_template
+from app.services.template_registry import is_printable_template
 
 router = APIRouter(prefix="/orders", tags=["documents"])
 
@@ -18,7 +21,6 @@ ALLOWED_TEMPLATES = [
     "doverennost.docx",
     "mreo.docx",
     "number.docx",
-    "obiasnenie.docx",
     "prokuratura.docx",
     "zaiavlenie.docx",
     "zaiavlenie_na_nomera.docx",  # заявление на номера (для павильона 2)
@@ -26,7 +28,7 @@ ALLOWED_TEMPLATES = [
 
 
 def _template_allowed(name: str) -> bool:
-    return name in ALLOWED_TEMPLATES and (TEMPLATES_DIR / name).is_file()
+    return name in ALLOWED_TEMPLATES and is_printable_template(name)
 
 
 def _resolve_template(name: str) -> str:
@@ -51,6 +53,10 @@ async def get_order_document(
     order = result.scalar_one_or_none()
     if not order:
         raise HTTPException(status_code=404, detail="Заказ не найден")
+    try:
+        ensure_can_print_template(_user, order, template_name)
+    except ServiceError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
     try:
         data = render_docx(resolved, order.form_data)
     except FileNotFoundError as e:

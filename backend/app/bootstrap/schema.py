@@ -20,7 +20,44 @@ async def ensure_schema_compatibility(engine: AsyncEngine) -> None:
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='employees' AND column_name='password_hash') THEN
                     ALTER TABLE employees ADD COLUMN password_hash VARCHAR(255);
                 END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='employees' AND column_name='login_normalized') THEN
+                    ALTER TABLE employees ADD COLUMN login_normalized VARCHAR(64);
+                END IF;
             END $$;
+        """))
+        await conn.execute(text("""
+            UPDATE employees
+            SET login_normalized = NULLIF(lower(btrim(login)), '')
+            WHERE login IS NOT NULL
+              AND (
+                login_normalized IS NULL
+                OR login_normalized <> NULLIF(lower(btrim(login)), '')
+              );
+        """))
+        await conn.execute(text("""
+            DO $$
+            DECLARE
+                duplicate_logins TEXT;
+            BEGIN
+                SELECT string_agg(login_normalized, ', ')
+                INTO duplicate_logins
+                FROM (
+                    SELECT login_normalized
+                    FROM employees
+                    WHERE login_normalized IS NOT NULL
+                    GROUP BY login_normalized
+                    HAVING count(*) > 1
+                ) d;
+
+                IF duplicate_logins IS NOT NULL THEN
+                    RAISE EXCEPTION 'Найдены конфликтующие логины после нормализации: %', duplicate_logins;
+                END IF;
+            END $$;
+        """))
+        await conn.execute(text("""
+            CREATE UNIQUE INDEX IF NOT EXISTS ix_employees_login_normalized
+            ON employees (login_normalized)
+            WHERE login_normalized IS NOT NULL;
         """))
         await conn.execute(text("""
             DO $$
@@ -140,4 +177,3 @@ async def ensure_schema_compatibility(engine: AsyncEngine) -> None:
     except Exception as exc:
         if "already exists" not in str(exc).lower():
             logger.warning("Enum ROLE_MANAGER: %s", exc)
-

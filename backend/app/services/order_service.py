@@ -4,12 +4,13 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.price_list import get_label_by_template
-from app.models import CashRow, FormHistory, Order, OrderStatus, Payment, PaymentType, PlatePayout
+from app.models import CashRow, DocumentPrice, FormHistory, Order, OrderStatus, Payment, PaymentType, PlatePayout
 from app.schemas.order import OrderCreate
 from app.schemas.payment import PayOrderResponse
-from app.services.cash_service import current_shift_id
+from app.services.cash_service import get_current_shift
 from app.services.errors import ServiceError
 from app.services.order_status import can_transition
+from app.services.template_registry import is_sellable_template, supported_sellable_templates
 from app.services.warehouse_service import (
     finalize_stock_for_completed_order,
     plate_quantity_from_order,
@@ -21,7 +22,7 @@ _DKP_TEMPLATES = frozenset(("dkp.docx", "dkp_pieces.docx", "dkp_dar.docx"))
 _NUMBER_TEMPLATE = "number.docx"
 
 
-def _form_data_from_create(d: OrderCreate) -> dict:
+def _form_data_from_create(d: OrderCreate, canonical_documents: list[dict]) -> dict:
     out = {
         "client_fio": d.client_fio,
         "client_passport": d.client_passport,
@@ -55,24 +56,68 @@ def _form_data_from_create(d: OrderCreate) -> dict:
         "summa_dkp": str(d.summa_dkp),
         "plate_quantity": d.plate_quantity,
     }
-    if d.documents:
-        out["documents"] = [
-            {"template": x.template, "label": x.label or get_label_by_template(x.template), "price": str(x.price)}
-            for x in d.documents
-        ]
+    if canonical_documents:
+        out["documents"] = canonical_documents
     return out
 
 
-async def create_order(db: AsyncSession, data: OrderCreate) -> Order:
+async def _load_canonical_documents(db: AsyncSession, documents: list) -> list[dict]:
+    if not documents:
+        raise ServiceError("Заказ должен содержать хотя бы один документ", status_code=400)
+
+    templates = [document.template for document in documents]
+    unsupported = [template for template in templates if not is_sellable_template(template)]
+    supported_now = supported_sellable_templates()
+    unavailable = [template for template in templates if template not in supported_now]
+    if unsupported:
+        raise ServiceError(f"Недопустимые документы: {', '.join(sorted(set(unsupported)))}", status_code=400)
+    if unavailable:
+        raise ServiceError(f"Документы недоступны для печати: {', '.join(sorted(set(unavailable)))}", status_code=400)
+
+    result = await db.execute(select(DocumentPrice).where(DocumentPrice.template.in_(templates)))
+    price_rows = {row.template: row for row in result.scalars().all()}
+    missing = [template for template in templates if template not in price_rows]
+    if missing:
+        raise ServiceError(f"Документы отсутствуют в прайсе: {', '.join(sorted(set(missing)))}", status_code=400)
+
+    canonical_documents: list[dict] = []
+    for document in documents:
+        price_row = price_rows[document.template]
+        canonical_documents.append(
+            {
+                "template": price_row.template,
+                "label": price_row.label or get_label_by_template(price_row.template),
+                "price": str(price_row.price),
+            }
+        )
+    return canonical_documents
+
+
+def _validate_order_business_rules(data: OrderCreate, canonical_documents: list[dict]) -> None:
+    if not canonical_documents:
+        raise ServiceError("Заказ должен содержать хотя бы один документ", status_code=400)
+
+    templates = [document["template"] for document in canonical_documents]
+    has_plate_document = _NUMBER_TEMPLATE in templates
+    if data.need_plate and not has_plate_document:
+        raise ServiceError("Для заказа с номерами нужно добавить услугу изготовления номера", status_code=400)
+    if not data.need_plate and has_plate_document:
+        raise ServiceError("Документ изготовления номера требует включить режим заказа с номерами", status_code=400)
+
+    docs_total = sum((Decimal(str(document["price"])) for document in canonical_documents), Decimal("0"))
+    total = docs_total + data.state_duty
+    if total <= 0:
+        raise ServiceError("Пустой заказ создавать нельзя", status_code=400)
+
+
+async def create_order(db: AsyncSession, data: OrderCreate, employee_id: int) -> Order:
+    canonical_documents = await _load_canonical_documents(db, data.documents or [])
+    _validate_order_business_rules(data, canonical_documents)
+
     state_duty = data.state_duty
-    if data.documents:
-        income_p1 = sum(doc.price for doc in data.documents)
-        need_plate = any(doc.template == "number.docx" for doc in data.documents)
-        service_type = data.documents[0].template if data.documents else data.service_type
-    else:
-        income_p1 = data.extra_amount + (data.plate_amount if data.need_plate else Decimal("0"))
-        need_plate = data.need_plate
-        service_type = data.service_type
+    income_p1 = sum((Decimal(str(document["price"])) for document in canonical_documents), Decimal("0"))
+    need_plate = any(document["template"] == "number.docx" for document in canonical_documents)
+    service_type = canonical_documents[0]["template"]
     income_p2 = Decimal("0")
     total = state_duty + income_p1 + income_p2
 
@@ -84,8 +129,8 @@ async def create_order(db: AsyncSession, data: OrderCreate) -> Order:
         income_pavilion2=income_p2,
         need_plate=need_plate,
         service_type=service_type,
-        form_data=_form_data_from_create(data),
-        employee_id=data.employee_id,
+        form_data=_form_data_from_create(data, canonical_documents),
+        employee_id=employee_id,
     )
     db.add(order)
     await db.flush()
@@ -148,8 +193,14 @@ async def accept_order_payment(db: AsyncSession, order: Order, employee_id: int)
             status_code=400,
         )
 
-    shift_1 = await current_shift_id(db, 1)
-    shift_2 = await current_shift_id(db, 2)
+    shift_1 = await get_current_shift(db, 1)
+    shift_2 = await get_current_shift(db, 2)
+    if order.state_duty_amount > 0 or order.income_pavilion1 > 0:
+        if shift_1 is None:
+            raise ServiceError("Для приёма оплаты по павильону 1 откройте смену", status_code=400)
+    if order.income_pavilion2 > 0:
+        if shift_2 is None:
+            raise ServiceError("Для платежей павильона 2 откройте смену", status_code=400)
     if order.state_duty_amount > 0:
         db.add(
             Payment(
@@ -157,7 +208,7 @@ async def accept_order_payment(db: AsyncSession, order: Order, employee_id: int)
                 amount=order.state_duty_amount,
                 type=PaymentType.STATE_DUTY,
                 employee_id=employee_id,
-                shift_id=shift_1,
+                shift_id=shift_1.id,
             )
         )
     if order.income_pavilion1 > 0:
@@ -167,7 +218,7 @@ async def accept_order_payment(db: AsyncSession, order: Order, employee_id: int)
                 amount=order.income_pavilion1,
                 type=PaymentType.INCOME_PAVILION1,
                 employee_id=employee_id,
-                shift_id=shift_1,
+                shift_id=shift_1.id,
             )
         )
     if order.income_pavilion2 > 0:
@@ -177,7 +228,7 @@ async def accept_order_payment(db: AsyncSession, order: Order, employee_id: int)
                 amount=order.income_pavilion2,
                 type=PaymentType.INCOME_PAVILION2,
                 employee_id=employee_id,
-                shift_id=shift_2,
+                shift_id=shift_2.id,
             )
         )
 
@@ -226,14 +277,16 @@ async def record_plate_extra_payment(db: AsyncSession, order: Order, amount: Dec
     if not order.need_plate:
         raise ServiceError("У заказа нет номера для доплаты", status_code=400)
 
-    shift_2 = await current_shift_id(db, 2)
+    shift_2 = await get_current_shift(db, 2)
+    if shift_2 is None:
+        raise ServiceError("Для доплаты за номера откройте смену павильона 2", status_code=400)
     db.add(
         Payment(
             order_id=order.id,
             amount=amount,
             type=PaymentType.INCOME_PAVILION2,
             employee_id=employee_id,
-            shift_id=shift_2,
+            shift_id=shift_2.id,
         )
     )
     form_data = order.form_data or {}

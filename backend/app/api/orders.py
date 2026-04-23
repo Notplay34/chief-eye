@@ -22,6 +22,7 @@ from pydantic import BaseModel
 from app.schemas.order import OrderCreate, OrderResponse, OrderDetailResponse
 from app.schemas.payment import PayOrderResponse
 from app.services.errors import ServiceError
+from app.services.order_access import apply_orders_scope, ensure_can_access_order, ensure_can_access_plate_workflow
 from app.services.order_service import (
     accept_order_payment,
     build_plate_list,
@@ -43,9 +44,12 @@ def _raise_service_error(exc: ServiceError) -> None:
 async def post_order(
     data: OrderCreate,
     db: AsyncSession = Depends(get_db),
-    _user: UserInfo = Depends(RequireFormAccess),
+    user: UserInfo = Depends(RequireFormAccess),
 ):
-    order = await create_order(db, data)
+    try:
+        order = await create_order(db, data, user.id)
+    except ServiceError as exc:
+        _raise_service_error(exc)
     logger.info("Создан заказ id=%s public_id=%s", order.id, order.public_id)
     return OrderResponse(
         id=order.id,
@@ -64,14 +68,13 @@ async def post_order(
 @router.post("/{order_id}/pay", response_model=PayOrderResponse)
 async def pay_order(
     order_id: int,
-    employee_id: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
     user: UserInfo = Depends(RequireFormAccess),
 ):
-    emp_id = employee_id if employee_id is not None else user.id
     try:
         order = await get_order_or_error(db, order_id)
-        response = await accept_order_payment(db, order, emp_id)
+        ensure_can_access_order(user, order)
+        response = await accept_order_payment(db, order, user.id)
     except ServiceError as exc:
         _raise_service_error(exc)
     logger.info("Оплата принята по заказу id=%s, строка кассы добавлена", order.id)
@@ -105,6 +108,10 @@ async def list_orders(
         if pavilion == 2:
             need_plate = True
     q = select(Order).order_by(Order.created_at.desc()).limit(limit)
+    try:
+        q = apply_orders_scope(q, user, pavilion=pavilion)
+    except ServiceError as exc:
+        _raise_service_error(exc)
     if status is not None:
         q = q.where(Order.status == status)
     if need_plate is not None:
@@ -136,10 +143,11 @@ async def list_orders(
 async def get_order(
     order_id: int,
     db: AsyncSession = Depends(get_db),
-    _user: UserInfo = Depends(RequireOrdersListAccess),
+    user: UserInfo = Depends(RequireOrdersListAccess),
 ):
     try:
         order = await get_order_or_error(db, order_id)
+        ensure_can_access_order(user, order)
     except ServiceError as exc:
         _raise_service_error(exc)
     return OrderResponse(
@@ -199,11 +207,12 @@ class PayExtraBody(BaseModel):
 async def get_order_payments(
     order_id: int,
     db: AsyncSession = Depends(get_db),
-    _user: UserInfo = Depends(RequireOrdersListAccess),
+    user: UserInfo = Depends(RequireOrdersListAccess),
 ):
     """Список платежей по заказу (для расчёта total_paid и долга)."""
     try:
         order = await get_order_or_error(db, order_id)
+        ensure_can_access_order(user, order)
         return await get_order_payments_summary(db, order)
     except ServiceError as exc:
         _raise_service_error(exc)
@@ -219,6 +228,7 @@ async def pay_extra(
     """Доплата за номера (INCOME_PAVILION2)."""
     try:
         order = await get_order_or_error(db, order_id)
+        ensure_can_access_plate_workflow(_user, order)
         result = await record_plate_extra_payment(db, order, Decimal(str(body.amount)), _user.id)
     except ServiceError as exc:
         _raise_service_error(exc)
@@ -236,6 +246,7 @@ async def update_order_status(
     new_status = body.status
     try:
         order = await get_order_or_error(db, order_id)
+        ensure_can_access_plate_workflow(_user, order)
         return await update_order_status_service(db, order, new_status)
     except ServiceError as exc:
         _raise_service_error(exc)

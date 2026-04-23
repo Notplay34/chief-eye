@@ -4,10 +4,11 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.identity import normalize_login
 from app.core.logging_config import get_logger
 from app.core.permissions import allowed_pavilions, get_menu_items
 from app.models import Employee
@@ -95,12 +96,12 @@ async def login(
     form: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
 ):
-    username = (form.username or "").strip().lower()
+    username = normalize_login(form.username)
     if not username:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный логин или пароль")
     result = await db.execute(
         select(Employee).where(
-            func.lower(Employee.login) == username,
+            Employee.login_normalized == username,
             Employee.is_active == True,
         )
     )

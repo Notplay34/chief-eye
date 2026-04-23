@@ -11,7 +11,6 @@ PRICE_LIST = [
     {"template": "doverennost.docx", "label": "Доверенность", "price": Decimal("550")},
     {"template": "dkp_pieces.docx", "label": "ДКП запчасти", "price": Decimal("550")},
     {"template": "dkp_dar.docx", "label": "ДКП дарение", "price": Decimal("550")},
-    {"template": "obiasnenie.docx", "label": "Объяснение", "price": Decimal("0")},
     {"template": "mreo.docx", "label": "МРЭО (постановка/снятие)", "price": Decimal("550")},
     {"template": "prokuratura.docx", "label": "Прокуратура", "price": Decimal("550")},
     {"template": "number.docx", "label": "Изготовление номера", "price": Decimal("1500")},

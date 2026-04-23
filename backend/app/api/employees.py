@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth import RequireAdmin, RequireFormAccess, UserInfo
 from app.core.database import get_db
+from app.core.identity import normalize_login
 from app.models import Employee
 from app.models.employee import EmployeeRole
 from app.schemas.employee import EmployeeCreate, EmployeeResponse, EmployeeUpdate
@@ -47,15 +48,16 @@ async def create_employee(
     db: AsyncSession = Depends(get_db),
     _user: UserInfo = Depends(RequireAdmin),
 ):
-    if data.login:
-        r = await db.execute(select(Employee.id).where(Employee.login == data.login.strip()))
+    normalized_login = normalize_login(data.login)
+    if normalized_login:
+        r = await db.execute(select(Employee.id).where(Employee.login_normalized == normalized_login))
         if r.scalar_one_or_none() is not None:
             raise HTTPException(status_code=400, detail="Логин уже занят")
     emp = Employee(
         name=data.name,
         role=data.role,
         telegram_id=data.telegram_id,
-        login=data.login,
+        login=normalized_login,
         password_hash=hash_password(data.password) if data.password else None,
         is_active=True,
     )
@@ -83,7 +85,17 @@ async def update_employee(
     if data.telegram_id is not None:
         emp.telegram_id = data.telegram_id
     if data.login is not None:
-        emp.login = data.login if data.login.strip() else None
+        normalized_login = normalize_login(data.login)
+        if normalized_login:
+            duplicate = await db.execute(
+                select(Employee.id).where(
+                    Employee.login_normalized == normalized_login,
+                    Employee.id != employee_id,
+                )
+            )
+            if duplicate.scalar_one_or_none() is not None:
+                raise HTTPException(status_code=400, detail="Логин уже занят")
+        emp.login = normalized_login
     if data.password is not None and data.password.strip():
         emp.password_hash = hash_password(data.password)
     if data.is_active is not None:

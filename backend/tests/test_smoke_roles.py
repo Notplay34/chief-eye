@@ -106,7 +106,7 @@ def test_role_smoke_matrix(client: TestClient, auth_headers: dict[str, str]):
             "brand_model": "Lada Vesta",
             "state_duty": "500",
             "need_plate": False,
-            "documents": [{"template": "statement.docx", "label": "Заявление", "price": "1000"}],
+            "documents": [{"template": "zaiavlenie.docx", "label": "Заявление", "price": "1000"}],
             "extra_amount": "0",
             "plate_amount": "0",
             "summa_dkp": "0",
@@ -121,7 +121,7 @@ def test_role_smoke_matrix(client: TestClient, auth_headers: dict[str, str]):
             "brand_model": "Lada Vesta",
             "state_duty": "500",
             "need_plate": False,
-            "documents": [{"template": "statement.docx", "label": "Заявление", "price": "1000"}],
+            "documents": [{"template": "zaiavlenie.docx", "label": "Заявление", "price": "1000"}],
             "extra_amount": "0",
             "plate_amount": "0",
             "summa_dkp": "0",
@@ -131,6 +131,11 @@ def test_role_smoke_matrix(client: TestClient, auth_headers: dict[str, str]):
 
     assert client.get("/warehouse/plate-stock", headers=plate).status_code == 200
     assert client.get("/warehouse/plate-stock", headers=operator).status_code == 403
+    assert client.get(f"/orders/{operator_order.json()['id']}", headers=plate).status_code == 403
+    assert client.get(
+        f"/orders/{operator_order.json()['id']}/documents/zaiavlenie.docx",
+        headers=plate,
+    ).status_code == 403
     assert client.get("/employees?all=true", headers=admin).status_code == 200
     assert client.get("/employees?all=true", headers=manager).status_code == 200
     assert client.post(
@@ -138,3 +143,24 @@ def test_role_smoke_matrix(client: TestClient, auth_headers: dict[str, str]):
         json={"name": "Лишний", "role": "ROLE_OPERATOR", "login": "x1", "password": "x1234"},
         headers=manager,
     ).status_code == 403
+
+
+def test_employee_login_is_normalized_and_unique(client: TestClient, auth_headers: dict[str, str]):
+    first = client.post(
+        "/employees",
+        json={"name": "Admin 2", "role": "ROLE_OPERATOR", "login": "  MiXeD  ", "password": "test1234"},
+        headers=auth_headers,
+    )
+    assert first.status_code == 200, first.text
+    assert first.json()["login"] == "mixed"
+
+    duplicate = client.post(
+        "/employees",
+        json={"name": "Admin 3", "role": "ROLE_OPERATOR", "login": "mixed", "password": "test1234"},
+        headers=auth_headers,
+    )
+    assert duplicate.status_code == 400, duplicate.text
+    assert "занят" in duplicate.json()["detail"].lower()
+
+    login_response = client.post("/auth/login", data={"username": "  MIXED ", "password": "test1234"})
+    assert login_response.status_code == 200, login_response.text

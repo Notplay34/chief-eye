@@ -30,6 +30,9 @@ async def run_startup_tasks() -> None:
         try:
             await coro
         except Exception as exc:
+            if label == "Миграция схемы":
+                logger.error("%s: %s", label, exc)
+                raise
             logger.warning("%s: %s", label, exc)
 
 

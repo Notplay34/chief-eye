@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.auth import RequireAdmin, RequireFormAccess, UserInfo
 from app.core.database import get_db
 from app.models import DocumentPrice
+from app.services.template_registry import supported_sellable_templates
 
 router = APIRouter(prefix="/price-list", tags=["price-list"])
 
@@ -29,8 +30,11 @@ async def get_price_list(
     _user: UserInfo = Depends(RequireFormAccess),
 ):
     """Прейскурант: список документов с ценами (для формы и админки)."""
+    supported_templates = supported_sellable_templates()
     r = await db.execute(
-        select(DocumentPrice).order_by(DocumentPrice.sort_order, DocumentPrice.id)
+        select(DocumentPrice)
+        .where(DocumentPrice.template.in_(supported_templates))
+        .order_by(DocumentPrice.sort_order, DocumentPrice.id)
     )
     rows = r.scalars().all()
     return [_row_to_dict(row) for row in rows]
@@ -50,6 +54,10 @@ async def update_price_list(
     _user: UserInfo = Depends(RequireAdmin),
 ):
     """Обновить прейскурант (только админ). Передаётся полный список позиций."""
+    supported_templates = supported_sellable_templates()
+    invalid_templates = sorted({item.template for item in items if item.template not in supported_templates})
+    if invalid_templates:
+        raise HTTPException(status_code=400, detail=f"Недоступные шаблоны в прайсе: {', '.join(invalid_templates)}")
     sent_templates = {item.template for item in items}
     r = await db.execute(select(DocumentPrice))
     existing = {row.template: row for row in r.scalars().all()}

@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 def make_order_payload(*, need_plate: bool = False, plate_quantity: int = 1) -> dict:
     documents = [
-        {"template": "statement.docx", "label": "Заявление", "price": "1000"},
+        {"template": "zaiavlenie.docx", "label": "Заявление", "price": "1000"},
     ]
     if need_plate:
         documents.append({"template": "number.docx", "label": "Номера", "price": "2000"})
@@ -75,7 +75,7 @@ def test_payment_flow_creates_payments_and_cash_row(client: TestClient, auth_hea
     payments_response = client.get(f"/orders/{order['id']}/payments", headers=auth_headers)
     assert payments_response.status_code == 200, payments_response.text
     payments = payments_response.json()
-    assert payments["total_paid"] == 3500.0
+    assert payments["total_paid"] == 2550.0
     assert payments["debt"] == 0.0
     assert sorted(payment["type"] for payment in payments["payments"]) == [
         "INCOME_PAVILION1",
@@ -86,11 +86,50 @@ def test_payment_flow_creates_payments_and_cash_row(client: TestClient, auth_hea
     assert cash_rows_response.status_code == 200, cash_rows_response.text
     first_row = cash_rows_response.json()[0]
     assert first_row["client_name"] == "Иван Иванов"
-    assert first_row["application"] == 1000.0
+    assert first_row["application"] == 550.0
     assert first_row["state_duty"] == 500.0
-    assert first_row["plates"] == 2000.0
-    assert first_row["total"] == 3500.0
+    assert first_row["plates"] == 1500.0
+    assert first_row["total"] == 2550.0
 
     detail_response = client.get(f"/orders/{order['id']}/detail", headers=auth_headers)
     assert detail_response.status_code == 200, detail_response.text
     assert detail_response.json()["status"] == "PAID"
+
+
+def test_order_author_is_taken_from_jwt_not_payload(client: TestClient, auth_headers: dict[str, str]):
+    response = client.post(
+        "/orders",
+        json={**make_order_payload(), "employee_id": 999999},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200, response.text
+
+    detail_response = client.get(f"/orders/{response.json()['id']}/detail", headers=auth_headers)
+    assert detail_response.status_code == 200, detail_response.text
+    assert detail_response.json()["created_by_name"] == "Тестовый админ"
+
+
+def test_order_payment_requires_open_shift(client: TestClient, auth_headers: dict[str, str]):
+    create_response = client.post("/orders", json=make_order_payload(), headers=auth_headers)
+    assert create_response.status_code == 200, create_response.text
+
+    pay_response = client.post(f"/orders/{create_response.json()['id']}/pay", headers=auth_headers)
+    assert pay_response.status_code == 400, pay_response.text
+    assert "откройте смену" in pay_response.json()["detail"].lower()
+
+
+def test_empty_order_is_rejected(client: TestClient, auth_headers: dict[str, str]):
+    response = client.post(
+        "/orders",
+        json={
+            "client_fio": "Иван Иванов",
+            "brand_model": "Lada Vesta",
+            "state_duty": "0",
+            "need_plate": False,
+            "documents": [],
+            "summa_dkp": "0",
+        },
+        headers=auth_headers,
+    )
+    assert response.status_code == 400, response.text
+    assert "хотя бы один документ" in response.json()["detail"].lower()

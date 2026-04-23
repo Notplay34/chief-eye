@@ -5,11 +5,22 @@
 set -e
 cd "$(dirname "$0")/.."
 
+APP_USER="eye_w"
+APP_GROUP="$APP_USER"
+PROJECT_ROOT="/opt/eye_w"
+
 if ! command -v curl >/dev/null 2>&1; then
   echo "=== 0. Установка curl ==="
   apt-get update
   apt-get install -y curl
 fi
+
+echo "=== 0b. Системный пользователь приложения ==="
+if ! id -u "$APP_USER" >/dev/null 2>&1; then
+  useradd --system --create-home --home-dir /var/lib/"$APP_USER" --shell /usr/sbin/nologin "$APP_USER"
+  echo "Создан пользователь $APP_USER"
+fi
+chown -R "$APP_USER":"$APP_GROUP" "$PROJECT_ROOT"/backend "$PROJECT_ROOT"/frontend "$PROJECT_ROOT"/templates
 
 echo "=== 1. backend/.env ==="
 if [ ! -f backend/.env ]; then
@@ -84,24 +95,27 @@ fi
 
 echo "=== 3. Backend (systemd) ==="
 if [ ! -f /etc/systemd/system/eye_w.service ]; then
-  cat > /etc/systemd/system/eye_w.service << 'SVC'
+  true
+fi
+cat > /etc/systemd/system/eye_w.service << SVC
 [Unit]
 Description=Eye-W Backend
 After=network.target postgresql.service
 
 [Service]
-User=root
-WorkingDirectory=/opt/eye_w/backend
-ExecStart=/opt/eye_w/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+User=$APP_USER
+Group=$APP_GROUP
+WorkingDirectory=$PROJECT_ROOT/backend
+EnvironmentFile=$PROJECT_ROOT/backend/.env
+ExecStart=$PROJECT_ROOT/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
 Restart=always
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
 SVC
-  systemctl daemon-reload
-  systemctl enable eye_w
-  echo "Создан сервис eye_w.service"
-fi
+systemctl daemon-reload
+systemctl enable eye_w >/dev/null 2>&1 || true
 if systemctl restart eye_w 2>/dev/null; then
   echo "Сервис eye_w перезапущен"
 else
@@ -112,5 +126,6 @@ fi
 echo ""
 echo "Готово. Откройте сайт и войдите:"
 echo "  Логин: $(sed -n 's/^SUPERUSER_LOGIN=//p' backend/.env | head -n1)"
-echo "  Пароль: $(sed -n 's/^SUPERUSER_PASSWORD=//p' backend/.env | head -n1)"
-echo "После первого входа смените пароль."
+echo "  Пароль не выводится в stdout."
+echo "  Посмотреть его на сервере: grep '^SUPERUSER_PASSWORD=' $PROJECT_ROOT/backend/.env"
+echo "После первого входа смените пароль и настройте HTTPS отдельным этапом."
