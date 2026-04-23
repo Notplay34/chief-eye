@@ -1,58 +1,35 @@
 """API касс и смен: открытие/закрытие смены по павильонам; касса номеров (plate-rows)."""
 from decimal import Decimal
 from typing import Optional
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.logging_config import get_logger
 from app.api.auth import RequireCashAccess, RequirePlateAccess, UserInfo
-from app.models import CashShift, ShiftStatus, Payment, CashRow, PlateCashRow, PlatePayout
-from app.models.employee import EmployeeRole
+from app.models import CashRow, CashShift, PlateCashRow, PlatePayout, ShiftStatus
 from app.schemas.cash import (
     ShiftOpen, ShiftClose, ShiftResponse, ShiftCurrentResponse,
     CashRowCreate, CashRowUpdate, CashRowResponse,
+)
+from app.services.errors import ServiceError
+from app.services.cash_service import (
+    close_shift as close_shift_service,
+    get_current_shift_summary as get_current_shift_summary_service,
+    open_shift as open_shift_service,
+    pay_plate_payouts as pay_plate_payouts_service,
+    shift_to_dict,
 )
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/cash", tags=["cash"])
 
 
-def _shift_to_response(shift: CashShift) -> dict:
-    return {
-        "id": shift.id,
-        "pavilion": shift.pavilion,
-        "opened_by_id": shift.opened_by_id,
-        "opened_at": shift.opened_at.isoformat() if shift.opened_at else "",
-        "closed_at": shift.closed_at.isoformat() if shift.closed_at else None,
-        "closed_by_id": shift.closed_by_id,
-        "opening_balance": float(shift.opening_balance),
-        "closing_balance": float(shift.closing_balance) if shift.closing_balance is not None else None,
-        "status": shift.status.value,
-    }
-
-
-async def _get_current_shift(db: AsyncSession, pavilion: int) -> Optional[CashShift]:
-    q = select(CashShift).where(
-        CashShift.pavilion == pavilion,
-        CashShift.status == ShiftStatus.OPEN,
-    ).order_by(CashShift.opened_at.desc()).limit(1)
-    r = await db.execute(q)
-    return r.scalar_one_or_none()
-
-
-def _can_manage_pavilion(user: UserInfo, pavilion: int) -> bool:
-    try:
-        role = EmployeeRole(user.role)
-    except ValueError:
-        return False
-    if pavilion == 1:
-        return role in (EmployeeRole.ROLE_OPERATOR, EmployeeRole.ROLE_MANAGER, EmployeeRole.ROLE_ADMIN)
-    return role in (EmployeeRole.ROLE_PLATE_OPERATOR, EmployeeRole.ROLE_MANAGER, EmployeeRole.ROLE_ADMIN)
+def _raise_service_error(exc: ServiceError) -> None:
+    raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
 
 @router.post("/shifts", response_model=dict)
@@ -62,24 +39,12 @@ async def open_shift(
     user: UserInfo = Depends(RequireCashAccess),
 ):
     """Открыть смену по павильону. Павильон 1 — оператор/менеджер/админ, павильон 2 — оператор изготовления/менеджер/админ."""
-    if not _can_manage_pavilion(user, body.pavilion):
-        raise HTTPException(status_code=403, detail="Нет доступа к кассе этого павильона")
-    current = await _get_current_shift(db, body.pavilion)
-    if current:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Смена павильона {body.pavilion} уже открыта (id={current.id}). Сначала закройте её.",
-        )
-    shift = CashShift(
-        pavilion=body.pavilion,
-        opened_by_id=user.id,
-        opening_balance=body.opening_balance,
-        status=ShiftStatus.OPEN,
-    )
-    db.add(shift)
-    await db.flush()
-    logger.info("Открыта смена id=%s павильон=%s", shift.id, body.pavilion)
-    return {"id": shift.id, "pavilion": shift.pavilion, "opened_at": shift.opened_at.isoformat(), "status": "OPEN"}
+    try:
+        shift = await open_shift_service(db, user, body.pavilion, body.opening_balance)
+    except ServiceError as exc:
+        _raise_service_error(exc)
+    logger.info("Открыта смена павильон=%s", body.pavilion)
+    return shift
 
 
 @router.get("/shifts/current")
@@ -89,18 +54,10 @@ async def get_current_shift(
     user: UserInfo = Depends(RequireCashAccess),
 ):
     """Текущая открытая смена по павильону и сумма по ней."""
-    if not _can_manage_pavilion(user, pavilion):
-        raise HTTPException(status_code=403, detail="Нет доступа к кассе этого павильона")
-    shift = await _get_current_shift(db, pavilion)
-    if not shift:
-        return {"shift": None, "total_in_shift": 0}
-    q = select(func.coalesce(func.sum(Payment.amount), 0)).where(Payment.shift_id == shift.id)
-    r = await db.execute(q)
-    total = r.scalar_one() or Decimal("0")
-    return {
-        "shift": _shift_to_response(shift),
-        "total_in_shift": float(total),
-    }
+    try:
+        return await get_current_shift_summary_service(db, user, pavilion)
+    except ServiceError as exc:
+        _raise_service_error(exc)
 
 
 @router.get("/shifts", response_model=list)
@@ -122,7 +79,7 @@ async def list_shifts(
             pass
     r = await db.execute(q)
     shifts = r.scalars().all()
-    return [_shift_to_response(s) for s in shifts]
+    return [shift_to_dict(shift) for shift in shifts]
 
 
 @router.patch("/shifts/{shift_id}/close", response_model=dict)
@@ -133,23 +90,12 @@ async def close_shift(
   user: UserInfo = Depends(RequireCashAccess),
 ):
     """Закрыть смену (указать посчитанную наличность)."""
-    r = await db.execute(select(CashShift).where(CashShift.id == shift_id))
-    shift = r.scalar_one_or_none()
-    if not shift:
-        raise HTTPException(status_code=404, detail="Смена не найдена")
-    if shift.status != ShiftStatus.OPEN:
-        raise HTTPException(status_code=400, detail="Смена уже закрыта")
-    if not _can_manage_pavilion(user, shift.pavilion):
-        raise HTTPException(status_code=403, detail="Нет доступа к кассе этого павильона")
-    from datetime import datetime
-    shift.closed_at = datetime.utcnow()
-    shift.closed_by_id = user.id
-    shift.closing_balance = body.closing_balance
-    shift.status = ShiftStatus.CLOSED
-    db.add(shift)
-    await db.flush()
-    logger.info("Закрыта смена id=%s павильон=%s", shift.id, shift.pavilion)
-    return _shift_to_response(shift)
+    try:
+        shift = await close_shift_service(db, user, shift_id, body.closing_balance)
+    except ServiceError as exc:
+        _raise_service_error(exc)
+    logger.info("Закрыта смена id=%s", shift_id)
+    return shift
 
 
 # --- Таблица кассы (редактируемые строки: ФИО, заявление, госпошлина, ДКП, страховка, номера, итого) ---
@@ -376,43 +322,9 @@ async def pay_plate_payouts(
     - добавить по каждой записи строку в кассу номеров;
     - пометить записи как выплаченные.
     """
-    r = await db.execute(
-        select(PlatePayout).where(PlatePayout.paid_at.is_(None)).order_by(PlatePayout.created_at)
-    )
-    payouts = r.scalars().all()
-    if not payouts:
-        raise HTTPException(status_code=400, detail="Нет номеров к выдаче")
-
-    total: Decimal = sum((p.amount for p in payouts), Decimal("0"))
-    if total <= 0:
-        raise HTTPException(status_code=400, detail="Сумма к выдаче нулевая")
-
-    # Строка в кассе документов: Номера — выдача (отрицательная сумма)
-    cash_row = CashRow(
-        client_name="Номера — выдача",
-        application=Decimal("0"),
-        state_duty=Decimal("0"),
-        dkp=Decimal("0"),
-        insurance=Decimal("0"),
-        plates=-total,
-        total=-total,
-    )
-    db.add(cash_row)
-
-    now = datetime.utcnow()
-
-    # В кассу номеров — по человеку отдельная строка
-    for p in payouts:
-        db.add(
-            PlateCashRow(
-                client_name=p.client_name,
-                amount=p.amount,
-            )
-        )
-        p.paid_at = now
-        p.paid_by_id = user.id
-        db.add(p)
-
-    await db.flush()
-    logger.info("Выдача денег за номера: строк=%s сумма=%s", len(payouts), total)
-    return {"count": len(payouts), "total": float(total)}
+    try:
+        result = await pay_plate_payouts_service(db, user)
+    except ServiceError as exc:
+        _raise_service_error(exc)
+    logger.info("Выдача денег за номера: строк=%s сумма=%s", result["count"], result["total"])
+    return result
