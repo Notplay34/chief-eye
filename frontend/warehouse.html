@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script>if(!localStorage.getItem('eye_w_token'))window.location.replace('login.html');</script>
+  <script src="page-auth-guard.js"></script>
   <title>Склад заготовок</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -70,129 +70,6 @@
 
   <script src="auth.js"></script>
   <script src="header-common.js"></script>
-  <script>
-(function () {
-  var API = window.API_BASE_URL || '';
-  var fetchApi = window.fetchWithAuth || fetch;
-  if (!window.getToken || !window.getToken()) return;
-
-  var user = window.getUser();
-  var nameEl = document.getElementById('userName');
-  if (user && nameEl) nameEl.textContent = user.name || '';
-
-  function msg(t, isErr) {
-    var el = document.getElementById('warehouseMsg');
-    el.textContent = t || '';
-    el.className = 'warehouse-msg' + (isErr ? ' err' : ' ok');
-  }
-
-  function load() {
-    var hint = ' Проверьте nginx: в location добавьте warehouse (см. deploy/nginx-eye_w.conf), затем nginx -t && systemctl reload nginx.';
-    fetchApi(API + '/warehouse/plate-stock')
-      .then(function (r) {
-        return r.text().then(function (text) {
-          var t = (text || '').trim();
-          if (t.indexOf('<') === 0) {
-            throw new Error('Сервер вернул HTML вместо данных.' + hint);
-          }
-          if (!r.ok) {
-            try { var j = JSON.parse(t); throw new Error(j.detail || r.statusText); } catch (e) { if (e.message && e.message !== r.statusText) throw e; }
-            throw new Error(r.statusText || 'Ошибка ' + r.status);
-          }
-          try { return JSON.parse(t); } catch (_) {
-            throw new Error('Ответ не JSON.' + hint);
-          }
-        });
-      })
-      .then(function (d) {
-        document.getElementById('quantity').textContent = d.quantity;
-        document.getElementById('reserved').textContent = d.reserved;
-        document.getElementById('available').textContent = d.available;
-        document.getElementById('defectsMonth').textContent = d.defects_this_month != null ? d.defects_this_month : '—';
-        var breakdown = d.reserved_breakdown || [];
-        var el = document.getElementById('reservedBreakdown');
-        if (breakdown.length === 0) {
-          el.textContent = '';
-        } else {
-          var bySum = {};
-          breakdown.forEach(function (b) {
-            var sum = Math.round(b.total_amount);
-            bySum[sum] = (bySum[sum] || 0) + b.quantity;
-          });
-          el.textContent = Object.keys(bySum).sort(function (a, b) { return Number(b) - Number(a); }).map(function (sum) {
-            return sum + ' ₽ — ' + bySum[sum] + ' шт';
-          }).join(', ');
-        }
-      })
-      .catch(function (e) {
-        document.getElementById('quantity').textContent = '—';
-        document.getElementById('reserved').textContent = '—';
-        document.getElementById('available').textContent = '—';
-        document.getElementById('reservedBreakdown').textContent = '';
-        document.getElementById('defectsMonth').textContent = '—';
-        msg('Ошибка: ' + (e.message || ''), true);
-      });
-  }
-
-  document.getElementById('btnAdd').onclick = function () {
-    var inp = document.getElementById('addAmount');
-    var n = parseInt(inp.value, 10);
-    if (isNaN(n) || n < 1) {
-      msg('Введите число больше 0', true);
-      return;
-    }
-    fetchApi(API + '/warehouse/plate-stock/add', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: n })
-    })
-      .then(function (r) {
-        return r.text().then(function (text) {
-          var t = (text || '').trim();
-          if (t.indexOf('<') === 0) throw new Error('Сервер вернул HTML. Обновите nginx (добавьте warehouse в location).');
-          if (!r.ok) {
-            try { var j = JSON.parse(t); throw new Error(j.detail || r.statusText); } catch (e) { if (e.message && e.message !== r.statusText) throw e; }
-            throw new Error(r.statusText);
-          }
-          return t ? JSON.parse(t) : {};
-        });
-      })
-      .then(function () {
-        msg('Добавлено ' + n + ' шт.');
-        load();
-        setTimeout(function () { msg(''); }, 3000);
-      })
-      .catch(function (e) {
-        msg('Ошибка: ' + (e.message || ''), true);
-      });
-  };
-
-  document.getElementById('btnDefect').onclick = function () {
-    if (!confirm('Списать 1 шт как брак?')) return;
-    fetchApi(API + '/warehouse/plate-stock/defect', { method: 'POST' })
-      .then(function (r) {
-        return r.text().then(function (text) {
-          var t = (text || '').trim();
-          if (t.indexOf('<') === 0) throw new Error('Сервер вернул HTML.');
-          if (!r.ok) {
-            try { var j = JSON.parse(t); throw new Error(j.detail || r.statusText); } catch (e) { if (e.message && e.message !== r.statusText) throw e; }
-            throw new Error(r.statusText);
-          }
-          return t ? JSON.parse(t) : {};
-        });
-      })
-      .then(function () {
-        msg('Списано 1 шт (брак).');
-        load();
-        setTimeout(function () { msg(''); }, 3000);
-      })
-      .catch(function (e) {
-        msg('Ошибка: ' + (e.message || ''), true);
-      });
-  };
-
-  load();
-})();
-  </script>
+  <script src="warehouse-page.js"></script>
 </body>
 </html>
