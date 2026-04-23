@@ -9,7 +9,7 @@ python -m pytest tests/ -v
 ```
 
 - **test_health.py** — проверка `GET /health` (не требует БД).
-- **test_auth_and_orders.py** — логин, `/auth/me`, создание заказа и оплата. Требуют запущенную БД и суперпользователя (логин/пароль из `.env` или переменных `SUPERUSER_LOGIN`, `SUPERUSER_PASSWORD`). При отсутствии БД или неверных данных тесты с авторизацией помечаются как skipped.
+- **test_auth_and_orders.py** — логин, `/auth/me`, создание заказа и оплата. Требуют запущенную БД и явно заданные `SUPERUSER_LOGIN`, `SUPERUSER_PASSWORD`. При отсутствии БД или env-переменных тесты с авторизацией помечаются как skipped.
 
 Только health без БД:
 

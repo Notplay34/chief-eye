@@ -1,5 +1,5 @@
 #!/bin/bash
-# Всё для запуска на сервере: JWT_SECRET, nginx, перезапуск.
+# Всё для запуска на сервере: env, nginx, перезапуск.
 # Запускать из корня проекта: cd /opt/eye_w && bash deploy/setup_server.sh
 
 set -e
@@ -9,16 +9,41 @@ echo "=== 1. backend/.env ==="
 if [ ! -f backend/.env ]; then
   touch backend/.env
 fi
-if ! grep -q '^DATABASE_URL=' backend/.env 2>/dev/null; then
-  echo "DATABASE_URL=postgresql+asyncpg://eye_user:eye_pass@localhost:5432/eye_w" >> backend/.env
-  echo "Добавлен DATABASE_URL (при необходимости измените пароль)"
-fi
-if ! grep -q '^JWT_SECRET=' backend/.env 2>/dev/null; then
+
+set_env_if_missing_or_empty() {
+  KEY="$1"
+  VALUE="$2"
+  DESCRIPTION="$3"
+  CURRENT="$(sed -n "s/^${KEY}=//p" backend/.env | head -n1)"
+  if [ -z "$CURRENT" ]; then
+    if grep -q "^${KEY}=" backend/.env 2>/dev/null; then
+      sed -i "s|^${KEY}=.*|${KEY}=${VALUE}|" backend/.env
+    else
+      echo "${KEY}=${VALUE}" >> backend/.env
+    fi
+    echo "${DESCRIPTION}"
+  fi
+}
+
+set_env_if_missing_or_empty "DATABASE_URL" "postgresql+asyncpg://eye_user:eye_pass@localhost:5432/eye_w" "Добавлен DATABASE_URL (при необходимости измените пароль)"
+set_env_if_missing_or_empty "APP_ENV" "production" "Добавлен APP_ENV=production"
+
+SECRET_CURRENT="$(sed -n 's/^JWT_SECRET=//p' backend/.env | head -n1)"
+if [ -z "$SECRET_CURRENT" ]; then
   SECRET="eye_w_$(openssl rand -hex 24 2>/dev/null || echo "secret_$(date +%s)")"
-  echo "JWT_SECRET=$SECRET" >> backend/.env
-  echo "Добавлен JWT_SECRET в backend/.env"
+  set_env_if_missing_or_empty "JWT_SECRET" "$SECRET" "Добавлен JWT_SECRET в backend/.env"
 else
   echo "JWT_SECRET уже задан"
+fi
+
+set_env_if_missing_or_empty "CORS_ORIGINS" "http://localhost,http://127.0.0.1" "Добавлен CORS_ORIGINS (обновите под ваш домен)"
+set_env_if_missing_or_empty "SUPERUSER_LOGIN" "admin" "Добавлен SUPERUSER_LOGIN=admin"
+set_env_if_missing_or_empty "SUPERUSER_NAME" "Администратор" "Добавлен SUPERUSER_NAME=Администратор"
+
+SUPERPASS="$(sed -n 's/^SUPERUSER_PASSWORD=//p' backend/.env | head -n1)"
+if [ -z "$SUPERPASS" ]; then
+  SUPERPASS="$(openssl rand -base64 18 2>/dev/null | tr -d '\n' || echo "ChangeMe_$(date +%s)")"
+  set_env_if_missing_or_empty "SUPERUSER_PASSWORD" "$SUPERPASS" "Добавлен SUPERUSER_PASSWORD в backend/.env"
 fi
 
 echo "=== 2. Nginx ==="
@@ -32,7 +57,8 @@ echo "Nginx обновлён"
 
 if command -v curl >/dev/null 2>&1; then
   echo "=== 2b. Проверка: доходит ли токен до бэкенда через nginx ==="
-  TOKEN=$(curl -s -X POST http://127.0.0.1:8000/auth/login -d "username=sergey151&password=1wq21wq2" -H "Content-Type: application/x-www-form-urlencoded" 2>/dev/null | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
+  SUPERLOGIN="$(sed -n 's/^SUPERUSER_LOGIN=//p' backend/.env | head -n1)"
+  TOKEN=$(curl -s -X POST http://127.0.0.1:8000/auth/login -d "username=$SUPERLOGIN&password=$SUPERPASS" -H "Content-Type: application/x-www-form-urlencoded" 2>/dev/null | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
   if [ -n "$TOKEN" ]; then
     CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" http://127.0.0.1/auth/me 2>/dev/null)
     if [ "$CODE" = "200" ]; then
@@ -73,4 +99,7 @@ else
 fi
 
 echo ""
-echo "Готово. Откройте сайт и войдите: sergey151 / 1wq21wq2"
+echo "Готово. Откройте сайт и войдите:"
+echo "  Логин: $(sed -n 's/^SUPERUSER_LOGIN=//p' backend/.env | head -n1)"
+echo "  Пароль: $(sed -n 's/^SUPERUSER_PASSWORD=//p' backend/.env | head -n1)"
+echo "После первого входа смените пароль."

@@ -10,7 +10,7 @@
 
 - Создание таблиц по моделям SQLAlchemy: `employees`, `orders`, `payments`, `document_prices`, `plates` и др. (см. `app.models`). Выполняется при каждом старте приложения: `Base.metadata.create_all`.
 
-### ensure_columns_and_enum (при старте)
+### ensure_schema_compatibility (при старте)
 
 1. **employees:** колонки `login` (VARCHAR 64 UNIQUE), `password_hash` (VARCHAR 255) — если отсутствуют.
 2. **orders:** колонка `public_id` (VARCHAR 36 NOT NULL UNIQUE), заполнение uuid при отсутствии.
@@ -24,9 +24,23 @@
 10. **form_history:** создание таблицы (id, order_id, form_data, created_at).
 11. **Enum employeerole:** добавление значения `ROLE_MANAGER` — если ещё нет.
 
+### Сидирование при старте
+
+- `backend/app/bootstrap/seed.py`:
+  - создание суперпользователя по `SUPERUSER_*`, если логин ещё не существует;
+  - заполнение `document_prices` дефолтным прейскурантом, если таблица пуста.
+
 ### Последовательность при деплое
 
-На чистой БД сначала выполняется `create_all`, затем при первом запросе (lifespan) — все шаги `ensure_columns_and_enum`. Новые инсталляции не требуют ручного запуска миграций.
+На чистой БД при старте приложения выполняется:
+
+1. `Base.metadata.create_all`
+2. `ensure_schema_compatibility(...)`
+3. `ensure_superuser(...)`
+4. `seed_document_prices(...)`
+
+Оркестрация запуска вынесена в `backend/app/bootstrap/startup.py`.
+Новые инсталляции не требуют ручного запуска миграций.
 
 ---
 
@@ -34,7 +48,7 @@
 
 1. Добавьте описание в этот файл (дата, что сделано, в каком файле/функции).
 2. Реализуйте шаг идемпотентно (IF NOT EXISTS / проверка наличия колонки), чтобы повторный запуск не падал.
-3. При переименовании моделей или таблиц учитывайте, что в `main.py` есть и create_all, и отдельные CREATE TABLE — при смене имени модели обновите оба места или перейдите на единый источник истины (только модели + миграции).
+3. При переименовании моделей или таблиц учитывайте, что схема совместимости теперь живёт в `backend/app/bootstrap/schema.py`.
 
 ---
 
@@ -43,7 +57,7 @@
 ```markdown
 ### 2026-03-XX: таблица X
 
-- Файл: `app/main.py`, функция ensure_columns_and_enum (или новый скрипт deploy/migrate_XX.sql).
+- Файл: `backend/app/bootstrap/schema.py`, функция `ensure_schema_compatibility` (или новый скрипт `deploy/migrate_XX.sql`).
 - Описание: CREATE TABLE x (id SERIAL PRIMARY KEY, ...).
 - Идемпотентность: CREATE TABLE IF NOT EXISTS x ...
 ```

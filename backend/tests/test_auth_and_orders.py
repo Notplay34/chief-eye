@@ -3,14 +3,16 @@ import os
 
 import pytest
 
-# Логин/пароль из .env для теста (если нет — тесты с БД пропускаются)
-SUPERUSER_LOGIN = os.environ.get("SUPERUSER_LOGIN", "sergey151")
-SUPERUSER_PASSWORD = os.environ.get("SUPERUSER_PASSWORD", "1wq21wq2")
+# Логин/пароль из env для теста (если нет — тесты с БД пропускаются)
+SUPERUSER_LOGIN = os.environ.get("SUPERUSER_LOGIN")
+SUPERUSER_PASSWORD = os.environ.get("SUPERUSER_PASSWORD")
 
 
 @pytest.fixture
 def auth_headers(client):
     """Получить заголовок Authorization после логина суперпользователя."""
+    if not SUPERUSER_LOGIN or not SUPERUSER_PASSWORD:
+        pytest.skip("Не заданы SUPERUSER_LOGIN и SUPERUSER_PASSWORD")
     r = client.post(
         "/auth/login",
         data={"username": SUPERUSER_LOGIN, "password": SUPERUSER_PASSWORD},
@@ -25,6 +27,8 @@ def auth_headers(client):
 
 def test_login_returns_token(client):
     """POST /auth/login с верными данными возвращает access_token."""
+    if not SUPERUSER_LOGIN or not SUPERUSER_PASSWORD:
+        pytest.skip("Не заданы SUPERUSER_LOGIN и SUPERUSER_PASSWORD")
     r = client.post(
         "/auth/login",
         data={"username": SUPERUSER_LOGIN, "password": SUPERUSER_PASSWORD},
