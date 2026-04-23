@@ -1,11 +1,35 @@
 (function () {
-  // На всех внутренних страницах уже есть редирект по токену в HTML,
-  // поэтому здесь не блокируем работу хедера даже если requireAuth отсутствует
-  // или ведёт себя нестандартно.
+  var APP_HEADER_HTML = [
+    '<header class="header header--dashboard">',
+    '  <div class="header__row">',
+    '    <div class="header__brand">',
+    '      <h1 class="header__title">РегДок</h1>',
+    '    </div>',
+    '    <div class="header__actions">',
+    '      <div class="header__menu-wrap">',
+    '        <span class="header__user-name" id="headerUserName" title="Открыть меню">—</span>',
+    '        <button type="button" class="header__menu-btn" id="btnMenu" aria-label="Меню" title="Меню">⋮</button>',
+    '        <a href="login.html" class="header__logout-link" id="headerLogoutLink">Выйти</a>',
+    '        <div class="header__dropdown" id="menuDropdown" aria-hidden="true">',
+    '          <div class="header__dropdown-inner" id="menuDropdownInner"></div>',
+    '        </div>',
+    '      </div>',
+    '    </div>',
+    '  </div>',
+    '</header>'
+  ].join('');
 
-  var API = window.API_BASE_URL || '';
-  var fetchApi = window.fetchWithAuth || fetch;
   var me = window.getMe();
+
+  function ensureAppHeader() {
+    var mount = document.getElementById('appHeader');
+    if (mount) {
+      mount.innerHTML = APP_HEADER_HTML;
+      return;
+    }
+    if (document.querySelector('.header--dashboard')) return;
+    document.body.insertAdjacentHTML('afterbegin', APP_HEADER_HTML);
+  }
 
   function buildMeFromUser() {
     var user = window.getUser();
@@ -119,6 +143,7 @@
 
   function init() {
     function proceed() {
+      ensureAppHeader();
       if (!me) me = buildMeFromUser();
       renderHeader();
 
@@ -185,4 +210,3 @@
     init();
   }
 })();
-

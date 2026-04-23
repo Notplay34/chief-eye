@@ -11,24 +11,7 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="header header--dashboard">
-    <div class="header__row">
-      <div class="header__brand">
-        <h1 class="header__title">РегДок</h1>
-      </div>
-      <div class="header__actions">
-        <div class="header__menu-wrap">
-          <span class="header__user-name" id="headerUserName" title="Открыть меню">—</span>
-          <button type="button" class="header__menu-btn" id="btnMenu" aria-label="Меню" title="Меню">⋮</button>
-          <a href="login.html" class="header__logout-link" id="headerLogoutLink" onclick="window.clearAuth && window.clearAuth();">Выйти</a>
-          <div class="header__dropdown" id="menuDropdown" aria-hidden="true">
-            <div class="header__dropdown-inner" id="menuDropdownInner"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </header>
-
+  <div id="appHeader"></div>
   <div class="plate-cash-page">
     <header class="header">
       <div>
