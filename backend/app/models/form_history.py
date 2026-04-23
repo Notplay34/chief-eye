@@ -1,11 +1,13 @@
 """История заполнения формы: снимок form_data при нажатии «Деньги получены»."""
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import DateTime, ForeignKey, Integer
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+
+JSON_FIELD = JSON().with_variant(JSONB, "postgresql")
 
 
 class FormHistory(Base):
@@ -14,5 +16,5 @@ class FormHistory(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     order_id: Mapped[Optional[int]] = mapped_column(ForeignKey("orders.id"), nullable=True)
-    form_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    form_data: Mapped[Optional[dict]] = mapped_column(JSON_FIELD, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

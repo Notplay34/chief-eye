@@ -3,11 +3,13 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
-from sqlalchemy import String, Enum, Boolean, Numeric, DateTime, ForeignKey, Text
+from sqlalchemy import JSON, String, Enum, Boolean, Numeric, DateTime, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+JSON_FIELD = JSON().with_variant(JSONB, "postgresql")
 
 
 class OrderStatus(str, enum.Enum):
@@ -37,7 +39,7 @@ class Order(Base):
     income_pavilion2: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
     need_plate: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     service_type: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    form_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    form_data: Mapped[Optional[dict]] = mapped_column(JSON_FIELD, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
