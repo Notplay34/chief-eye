@@ -12,23 +12,18 @@
 </head>
 <body>
   <div id="appHeader"></div>
-  <div class="admin">
+  <div class="admin analytics-page" id="analyticsPage">
     <header class="header">
       <div>
-        <h1 class="header__title">Аналитика — Документы</h1>
-        <p class="header__subtitle">Раздел в разработке. Отчёты по документам появятся здесь позже.</p>
+        <h1 class="header__title" id="analyticsTitle">Аналитика — Документы</h1>
+        <p class="header__subtitle" id="analyticsSubtitle">Документы, госпошлина, услуги и сотрудники павильона 1.</p>
       </div>
     </header>
-
-    <section class="admin-block">
-      <p class="text-muted">
-        Функция аналитики по павильону 1 (документы) временно отключена. Сейчас раздел используется как заглушка.
-      </p>
-    </section>
+    <div id="analyticsApp"></div>
   </div>
 
   <script src="auth.js"></script>
   <script src="header-common.js"></script>
-  <script src="analytics-docs.js"></script>
+  <script src="analytics.js"></script>
 </body>
 </html>

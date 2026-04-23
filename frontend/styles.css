@@ -1544,3 +1544,181 @@ body {
   .nav-bar { margin-left: 0; }
   .app, .plate-page, .plate-cash-page, .cash-page, .warehouse-page, .admin, .users { padding: var(--space-4); }
 }
+
+/* -------------------------------------------------------------------------- */
+/* 23. Analytics                                                              */
+/* -------------------------------------------------------------------------- */
+.analytics-page {
+  max-width: 1440px;
+}
+
+.analytics-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: end;
+  margin-bottom: var(--space-5);
+}
+
+.analytics-filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 160px;
+}
+
+.analytics-filter span {
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+}
+
+.analytics-filter select,
+.analytics-filter input {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font: inherit;
+}
+
+.analytics-grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.analytics-grid--cards {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-bottom: var(--space-5);
+}
+
+.analytics-grid--main {
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr);
+  align-items: start;
+}
+
+.analytics-grid--quarters {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.analytics-stack {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.analytics-card,
+.analytics-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.analytics-card {
+  padding: var(--space-4);
+}
+
+.analytics-card--primary {
+  border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
+}
+
+.analytics-card__label {
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+  margin-bottom: var(--space-2);
+}
+
+.analytics-card__value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: var(--space-2);
+}
+
+.analytics-card__hint {
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+}
+
+.analytics-panel {
+  padding: var(--space-5);
+}
+
+.analytics-panel__header {
+  margin-bottom: var(--space-4);
+}
+
+.analytics-panel__header h2 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-body);
+}
+
+.analytics-panel__header p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+}
+
+.analytics-table-wrap {
+  overflow-x: auto;
+}
+
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-caption);
+}
+
+.analytics-table th,
+.analytics-table td {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.analytics-table th {
+  color: var(--color-text-muted);
+  font-weight: 600;
+  background: var(--color-surface-alt);
+}
+
+.analytics-status-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.analytics-status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+}
+
+.analytics-status-item span {
+  color: var(--color-text-muted);
+}
+
+.analytics-status-item strong {
+  font-size: 1.1rem;
+}
+
+.analytics-empty {
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.analytics-empty--error {
+  color: var(--color-danger);
+  border-color: color-mix(in srgb, var(--color-danger) 35%, var(--color-border));
+}
+
+@media (max-width: 1024px) {
+  .analytics-grid--main {
+    grid-template-columns: 1fr;
+  }
+}

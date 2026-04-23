@@ -1,6 +1,7 @@
 from decimal import Decimal
-from pydantic import BaseModel
 from typing import List
+
+from pydantic import BaseModel
 
 
 class BaseAnalyticsBlock(BaseModel):
@@ -62,3 +63,65 @@ class EmployeesAnalytics(BaseModel):
     period: str  # "day" | "week" | "month"
     total_revenue: Decimal
     employees: List[EmployeeStat]
+
+
+class AnalyticsPeriod(BaseModel):
+    kind: str
+    period: str
+    date_from: str
+    date_to: str
+    days: int
+    previous_date_from: str
+    previous_date_to: str
+
+
+class AnalyticsOverview(BaseModel):
+    orders_count: int
+    turnover_total: Decimal
+    income_total: Decimal
+    state_duty_total: Decimal
+    docs_income: Decimal
+    plates_income: Decimal
+    plate_extra_income: Decimal
+    average_check: Decimal
+    numbers_orders_count: int
+    numbers_units: int
+
+
+class AnalyticsStatusItem(BaseModel):
+    status: str
+    count: int
+
+
+class AnalyticsTrendItem(BaseModel):
+    period_key: str
+    label: str
+    orders_count: int
+    turnover_total: Decimal
+    income_total: Decimal
+
+
+class AnalyticsEmployeeItem(BaseModel):
+    employee_id: int
+    employee_name: str
+    orders_count: int
+    income_total: Decimal
+    average_check: Decimal
+    share_percent: Decimal
+
+
+class AnalyticsServiceItem(BaseModel):
+    label: str
+    count: int
+    revenue: Decimal
+
+
+class AnalyticsDashboard(BaseModel):
+    period: AnalyticsPeriod
+    overview: AnalyticsOverview
+    previous_overview: AnalyticsOverview
+    status_breakdown: List[AnalyticsStatusItem]
+    monthly_trend: List[AnalyticsTrendItem]
+    quarter_summary: List[AnalyticsTrendItem]
+    employee_stats: List[AnalyticsEmployeeItem]
+    top_services: List[AnalyticsServiceItem]
