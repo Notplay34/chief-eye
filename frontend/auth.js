@@ -62,6 +62,48 @@
       return res;
     });
   };
+  window.downloadBlobFile = function (blob, filename) {
+    var objectUrl = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = filename || 'document.docx';
+    link.target = '_blank';
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(function () {
+      URL.revokeObjectURL(objectUrl);
+      if (link.parentNode) link.parentNode.removeChild(link);
+    }, 2000);
+  };
+  window.fetchDocumentWithAuth = function (url, fallbackFilename) {
+    var headers = {};
+    var t = window.getToken();
+    if (t) headers.Authorization = 'Bearer ' + t;
+    return fetch(url, { headers: headers }).then(function (res) {
+      if (res.status === 401) {
+        window.clearAuth();
+        window.location.href = 'login.html';
+        return Promise.reject(new Error('Требуется авторизация'));
+      }
+      if (!res.ok) {
+        return res.text().then(function (text) {
+          try {
+            var data = JSON.parse(text);
+            return Promise.reject(new Error(data.detail || 'Не удалось открыть документ'));
+          } catch (_error) {
+            throw new Error('Не удалось открыть документ');
+          }
+        });
+      }
+      var disposition = res.headers.get('content-disposition') || '';
+      var match = disposition.match(/filename=\"?([^"]+)\"?/i);
+      var filename = (match && match[1]) || fallbackFilename || 'document.docx';
+      return res.blob().then(function (blob) {
+        window.downloadBlobFile(blob, filename);
+      });
+    });
+  };
   /** Загрузить /auth/me и сохранить в state; вернуть Promise<me> */
   window.loadMe = function () {
     var api = window.API_BASE_URL || '';

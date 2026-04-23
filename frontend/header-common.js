@@ -69,9 +69,10 @@
 
   function getGroupKey(item) {
     var href = item.href || '';
-    if (/index\.html|cash-shifts\.html/i.test(href)) return 'Подготовка документов';
-    if (/plate-operator\.html|plate-cash\.html|warehouse\.html/i.test(href)) return 'Номера';
-    return 'Админ';
+    if (/index\.html|plate-operator\.html|warehouse\.html/i.test(href)) return 'Работа';
+    if (/cash-shifts\.html|plate-cash\.html/i.test(href)) return 'Деньги';
+    if (/analytics|admin\.html|users\.html/i.test(href)) return 'Управление';
+    return 'Профиль';
   }
 
   function renderHeader() {
@@ -83,9 +84,10 @@
     inner.innerHTML = '';
 
     var groups = {
-      'Подготовка документов': [],
-      'Номера': [],
-      'Админ': [],
+      'Работа': [],
+      'Деньги': [],
+      'Управление': [],
+      'Профиль': [],
     };
 
     (me.menu_items || []).forEach(function (item) {
@@ -96,7 +98,8 @@
       groups[key].push(item);
     });
 
-    ['Подготовка документов', 'Номера', 'Админ'].forEach(function (key) {
+    var currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    ['Работа', 'Деньги', 'Управление', 'Профиль'].forEach(function (key) {
       var items = groups[key];
       if (!items || !items.length) return;
       var groupEl = document.createElement('div');
@@ -108,6 +111,7 @@
         var a = document.createElement('a');
         a.href = item.href || '#';
         a.textContent = item.label;
+        if (item.href && item.href === currentPage) a.classList.add('header__dropdown-link--active');
         a.setAttribute('data-action', item.action || '');
         a.setAttribute('data-id', item.id || '');
         a.addEventListener('click', function (e) {

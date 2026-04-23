@@ -119,16 +119,17 @@
 
     function getGroupKey(item) {
       var href = item.href || '';
-      if (/index\.html|cash-shifts\.html/i.test(href)) return 'Подготовка документов';
-      if (/plate-operator\.html|plate-cash\.html|warehouse\.html/i.test(href)) return 'Номера';
-      // всё остальное (admin, users, смена пароля, выход) — в админский блок
-      return 'Админ';
+      if (/index\.html|plate-operator\.html|warehouse\.html/i.test(href)) return 'Работа';
+      if (/cash-shifts\.html|plate-cash\.html/i.test(href)) return 'Деньги';
+      if (/analytics|admin\.html|users\.html/i.test(href)) return 'Управление';
+      return 'Профиль';
     }
 
     var groups = {
-      'Подготовка документов': [],
-      'Номера': [],
-      'Админ': [],
+      'Работа': [],
+      'Деньги': [],
+      'Управление': [],
+      'Профиль': [],
     };
 
     (me.menu_items || []).forEach(function (item) {
@@ -138,7 +139,8 @@
       groups[key].push(item);
     });
 
-    ['Подготовка документов', 'Номера', 'Админ'].forEach(function (key) {
+    var currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    ['Работа', 'Деньги', 'Управление', 'Профиль'].forEach(function (key) {
       var items = groups[key];
       if (!items || !items.length) return;
       var groupEl = document.createElement('div');
@@ -150,6 +152,7 @@
         var a = document.createElement('a');
         a.href = item.href || '#';
         a.textContent = item.label;
+        if (item.href && item.href === currentPage) a.classList.add('header__dropdown-link--active');
         a.setAttribute('data-action', item.action || '');
         a.setAttribute('data-id', item.id || '');
         a.addEventListener('click', function (e) {
@@ -273,11 +276,11 @@
         body.innerHTML = orders.map(function (o) {
           var clientEsc = escapeHtml((o.client || '—'));
           var plateAmt = o.plate_amount != null ? o.plate_amount : o.total_amount;
-          var issueBtn = CAN_ISSUE.indexOf(o.status) >= 0 ? '<button type="button" class="btn btn-sm btn--primary" data-order="' + o.id + '" data-status="COMPLETED" data-client="' + clientEsc + '" data-amount="' + (plateAmt || 0) + '">Выдано</button>' : '';
+          var issueBtn = CAN_ISSUE.indexOf(o.status) >= 0 ? '<button type="button" class="btn btn-sm btn--primary" data-order="' + o.id + '" data-status="COMPLETED" data-client="' + clientEsc + '" data-amount="' + (plateAmt || 0) + '">Выдано клиенту</button>' : '';
           var sep = (issueBtn && CAN_DELETE.indexOf(o.status) >= 0) ? ' ' : '';
           var deleteBtn = CAN_DELETE.indexOf(o.status) >= 0 ? '<button type="button" class="btn btn-sm btn--danger-like" data-order="' + o.id + '" data-status="PROBLEM" data-delete="1">Удалить</button>' : '';
           var payBtn = (o.debt || 0) > 0 ? '<button type="button" class="btn btn-sm btn--secondary" data-order="' + o.id + '" data-public-id="' + (o.public_id || o.id) + '" data-pay="1">Доплата</button>' : '';
-          var docLink = '<a href="#" class="doc-link" data-order-id="' + o.id + '" data-doc="number.docx">📄</a>';
+          var docLink = '<a href="#" class="doc-link" data-order-id="' + o.id + '" data-doc="zaiavlenie_na_nomera.docx">📄</a>';
           return '<tr><td>' + (o.public_id || o.id) + '</td><td>' + (o.client || '—') + '</td><td>' + formatMoney(o.plate_amount != null ? o.plate_amount : o.total_amount) + '</td><td>' + docLink + '</td><td><span class="status status-' + o.status + '">' + (STATUS_LABELS[o.status] || o.status) + '</span></td><td><div class="btn-group">' + issueBtn + sep + deleteBtn + payBtn + '</div></td></tr>';
         }).join('');
         bindPlateActions();
@@ -300,13 +303,7 @@
         if (isDelete && !confirm('Удалить заказ из списка? Статус будет «Проблема».')) return;
         fetchApi(API + '/orders/' + id + '/status', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: status }) })
           .then(function (r) { if (!r.ok) throw new Error('Ошибка'); return r.json(); })
-          .then(function () {
-            if (status === 'COMPLETED' && plateAmount > 0) {
-              return fetchApi(API + '/cash/plate-rows', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ client_name: clientName || '—', amount: plateAmount }) })
-                .then(function (pr) { if (!pr.ok) throw new Error('Касса'); return pr; })
-                .catch(function () { loadPlateList(); alert('Статус обновлён. Строку в кассу номеров добавьте вручную.'); });
-            }
-          })
+          .then(function () {})
           .then(function () { loadPlateList(); })
           .catch(function (e) { alert(e.message || 'Ошибка'); loadPlateList(); });
       });
@@ -324,12 +321,8 @@
       a.addEventListener('click', function (e) {
         e.preventDefault();
         var orderId = parseInt(a.getAttribute('data-order-id'), 10);
-        fetchApi(API + '/orders/' + orderId + '/documents/number.docx').then(function (r) {
-          if (!r.ok) throw new Error('Документ');
-          return r.blob();
-        }).then(function (blob) {
-          window.open(URL.createObjectURL(blob), '_blank');
-        }).catch(function () { alert('Не удалось открыть документ'); });
+        window.fetchDocumentWithAuth(API + '/orders/' + orderId + '/documents/zaiavlenie_na_nomera.docx', 'zaiavlenie_na_nomera.docx')
+          .catch(function () { alert('Не удалось открыть документ'); });
       });
     });
   }

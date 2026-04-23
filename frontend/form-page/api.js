@@ -205,12 +205,9 @@
     }
     templates.forEach(function (template) {
       var url = page.apiBaseUrl + '/orders/' + orderId + '/documents/' + encodeURIComponent(template);
-      page.fetchApi(url)
-        .then(function (r) { return r.blob(); })
-        .then(function (blob) {
-          var objectUrl = URL.createObjectURL(blob);
-          window.open(objectUrl, '_blank', 'noopener');
-        });
+      window.fetchDocumentWithAuth(url, template).catch(function (err) {
+        page.showError(err.message || 'Не удалось открыть документ');
+      });
     });
   };
 

@@ -12,6 +12,14 @@
   };
   var canIssue = ['PAID', 'PLATE_IN_PROGRESS', 'PLATE_READY'];
   var canDelete = ['PAID', 'PLATE_IN_PROGRESS', 'PLATE_READY'];
+  var msgEl = document.getElementById('pageMsg');
+
+  function showMessage(text, isError) {
+    if (!msgEl) return;
+    msgEl.textContent = text || '';
+    msgEl.style.display = text ? 'block' : 'none';
+    msgEl.className = 'plate-page__msg' + (isError ? ' plate-page__msg--error' : '');
+  }
 
   function fmt(value) {
     return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 0 }).format(value) + ' ₽';
@@ -44,7 +52,7 @@
           var clientEscaped = (order.client || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
           var plateAmount = order.plate_amount != null ? order.plate_amount : order.total_amount;
           var issueBtn = canIssue.indexOf(order.status) >= 0
-            ? '<button type="button" class="btn btn-sm btn--primary" data-order="' + order.id + '" data-status="COMPLETED" data-client="' + clientEscaped + '" data-amount="' + (plateAmount || 0) + '">Выдано</button>'
+            ? '<button type="button" class="btn btn-sm btn--primary" data-order="' + order.id + '" data-status="COMPLETED" data-client="' + clientEscaped + '" data-amount="' + (plateAmount || 0) + '">Выдано клиенту</button>'
             : '';
           var separator = (issueBtn && (canDelete.indexOf(order.status) >= 0 || (order.debt || 0) > 0))
             ? '<span class="btn-group__sep"></span>'
@@ -90,9 +98,12 @@
           .then(function (r) {
             if (!r.ok) return r.json().then(function (j) { throw new Error(j.detail || 'Ошибка'); });
             loadOrders();
+            if (status === 'COMPLETED') {
+              showMessage('Заказ отмечен как выданный. Сумма доступна в разделе «Касса номеров» в блоке «Ожидает зачисления».', false);
+            }
           })
           .catch(function (e) {
-            alert(e.message || 'Ошибка');
+            showMessage(e.message || 'Ошибка', true);
           });
       });
     });
@@ -113,17 +124,9 @@
         var orderId = parseInt(link.getAttribute('data-order-id'), 10);
         var template = link.getAttribute('data-doc') || 'number.docx';
         var url = api + '/orders/' + orderId + '/documents/' + encodeURIComponent(template);
-        fetchApi(url)
-          .then(function (r) {
-            if (!r.ok) throw new Error('Не удалось открыть документ');
-            return r.blob();
-          })
-          .then(function (blob) {
-            var objectUrl = URL.createObjectURL(blob);
-            window.open(objectUrl, '_blank', 'noopener');
-          })
+        window.fetchDocumentWithAuth(url, template)
           .catch(function (err) {
-            alert(err.message || 'Ошибка');
+            showMessage(err.message || 'Ошибка', true);
           });
       });
     });
