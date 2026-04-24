@@ -55,6 +55,8 @@
 
     return {
       client_fio: (inputs.clientFio && inputs.clientFio.value.trim()) || null,
+      client_birth_date: (inputs.clientBirthDate && inputs.clientBirthDate.value.trim()) || null,
+      client_birth_place: (inputs.clientBirthPlace && inputs.clientBirthPlace.value.trim()) || null,
       client_passport: clientPassport,
       client_passport_series: (inputs.clientPassportSeries && inputs.clientPassportSeries.value.trim()) || null,
       client_passport_number: (inputs.clientPassportNumber && inputs.clientPassportNumber.value.trim()) || null,
@@ -69,6 +71,7 @@
       client_inn: (inputs.clientInn && inputs.clientInn.value.trim()) || null,
       client_ogrn: (inputs.clientOgrn && inputs.clientOgrn.value.trim()) || null,
       seller_fio: (inputs.hasSeller && inputs.hasSeller.checked && inputs.sellerFio && inputs.sellerFio.value.trim()) ? inputs.sellerFio.value.trim() : null,
+      seller_birth_date: (inputs.hasSeller && inputs.hasSeller.checked && inputs.sellerBirthDate && inputs.sellerBirthDate.value.trim()) ? inputs.sellerBirthDate.value.trim() : null,
       seller_passport: (inputs.hasSeller && inputs.hasSeller.checked) ? sellerPassport : null,
       seller_passport_series: (inputs.hasSeller && inputs.hasSeller.checked && inputs.sellerPassportSeries && inputs.sellerPassportSeries.value.trim()) ? inputs.sellerPassportSeries.value.trim() : null,
       seller_passport_number: (inputs.hasSeller && inputs.hasSeller.checked && inputs.sellerPassportNumber && inputs.sellerPassportNumber.value.trim()) ? inputs.sellerPassportNumber.value.trim() : null,
@@ -77,6 +80,7 @@
       seller_passport_division_code: (inputs.hasSeller && inputs.hasSeller.checked && inputs.sellerPassportDivisionCode && inputs.sellerPassportDivisionCode.value.trim()) ? inputs.sellerPassportDivisionCode.value.trim() : null,
       seller_address: (inputs.hasSeller && inputs.hasSeller.checked && inputs.sellerAddress && inputs.sellerAddress.value.trim()) ? inputs.sellerAddress.value.trim() : null,
       trustee_fio: (inputs.hasTrustee && inputs.hasTrustee.checked && inputs.trusteeFio && inputs.trusteeFio.value.trim()) ? inputs.trusteeFio.value.trim() : null,
+      trustee_birth_date: (inputs.hasTrustee && inputs.hasTrustee.checked && inputs.trusteeBirthDate && inputs.trusteeBirthDate.value.trim()) ? inputs.trusteeBirthDate.value.trim() : null,
       trustee_passport: (inputs.hasTrustee && inputs.hasTrustee.checked) ? trusteePassport : null,
       trustee_passport_series: (inputs.hasTrustee && inputs.hasTrustee.checked && inputs.trusteePassportSeries && inputs.trusteePassportSeries.value.trim()) ? inputs.trusteePassportSeries.value.trim() : null,
       trustee_passport_number: (inputs.hasTrustee && inputs.hasTrustee.checked && inputs.trusteePassportNumber && inputs.trusteePassportNumber.value.trim()) ? inputs.trusteePassportNumber.value.trim() : null,
@@ -159,6 +163,8 @@
     var srts = page.splitVehicleDoc(formData.srts);
     var pts = page.splitVehicleDoc(formData.pts);
     page.setVal(inputs.clientFio, formData.client_fio);
+    page.setVal(inputs.clientBirthDate, formData.client_birth_date);
+    page.setVal(inputs.clientBirthPlace, formData.client_birth_place);
     page.setVal(inputs.clientPassportSeries, formData.client_passport_series || clientPassport.series);
     page.setVal(inputs.clientPassportNumber, formData.client_passport_number || clientPassport.number);
     page.setVal(inputs.clientPassportIssuedBy, formData.client_passport_issued_by);
@@ -172,6 +178,7 @@
     page.setVal(inputs.clientOgrn, formData.client_ogrn);
     page.setVal(inputs.hasSeller, !!(formData.seller_fio || formData.seller_passport || formData.seller_address));
     page.setVal(inputs.sellerFio, formData.seller_fio);
+    page.setVal(inputs.sellerBirthDate, formData.seller_birth_date);
     page.setVal(inputs.sellerPassportSeries, formData.seller_passport_series || sellerPassport.series);
     page.setVal(inputs.sellerPassportNumber, formData.seller_passport_number || sellerPassport.number);
     page.setVal(inputs.sellerPassportIssuedBy, formData.seller_passport_issued_by);
@@ -180,6 +187,7 @@
     page.setVal(inputs.sellerAddress, formData.seller_address);
     page.setVal(inputs.hasTrustee, !!(formData.trustee_fio || formData.trustee_passport || formData.trustee_basis));
     page.setVal(inputs.trusteeFio, formData.trustee_fio);
+    page.setVal(inputs.trusteeBirthDate, formData.trustee_birth_date);
     page.setVal(inputs.trusteePassportSeries, formData.trustee_passport_series || trusteePassport.series);
     page.setVal(inputs.trusteePassportNumber, formData.trustee_passport_number || trusteePassport.number);
     page.setVal(inputs.trusteePassportIssuedBy, formData.trustee_passport_issued_by);

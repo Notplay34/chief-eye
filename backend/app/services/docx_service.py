@@ -19,6 +19,10 @@ PLACEHOLDER_TO_FIELD = {
     "ФИО": "client_fio",
     "ФИО дов": "trustee_fio",
     "ФИО_подписант": "client_fio",
+    "Дата рождения": "client_birth_date",
+    "Дата рождения продавец": "seller_birth_date",
+    "Дата рождения дов": "trustee_birth_date",
+    "Место рождения": "client_birth_place",
     "Паспорт": "client_passport",
     "Паспорт серия": "client_passport_series",
     "Паспорт номер": "client_passport_number",
@@ -72,8 +76,8 @@ PLACEHOLDER_TO_FIELD = {
     "ОГРН": "client_ogrn",
     "Сумма госпошлины": "state_duty",
     "Подпись": "client_fio",
-    "Дата рождения": None,
-    "Место рождения": None,
+    "Подпись продавец": "seller_fio",
+    "Подпись дов": "trustee_fio",
     "Масса": None,
     "Мощность": None,
     "ОСАГО": None,
@@ -96,8 +100,12 @@ def _fio_initials(value: Optional[str]) -> str:
     parts = [part for part in str(value).split() if part]
     if len(parts) < 2:
         return str(value).strip()
+    suffix = ""
+    if len(parts) >= 3 and parts[-1].lower().replace("ё", "е") in {"оглы", "кызы"}:
+        suffix = " " + parts[-1].lower()
+        parts = parts[:-1]
     initials = "".join(f"{part[0]}." for part in parts[1:] if part)
-    return f"{parts[0]} {initials}".strip()
+    return f"{parts[0]} {initials}{suffix}".strip()
 
 
 def _full_passport(form_data: dict, prefix: str) -> str:
@@ -126,6 +134,12 @@ def _signature_fio(form_data: dict, template_name: Optional[str]) -> str:
     return _fio_initials(form_data.get("client_fio"))
 
 
+def _signer_full_fio(form_data: dict, template_name: Optional[str]) -> str:
+    if template_name in _REPRESENTATIVE_TEMPLATES and form_data.get("trustee_fio"):
+        return str(form_data.get("trustee_fio") or "").strip()
+    return str(form_data.get("client_fio") or "").strip()
+
+
 def _form_data_to_replace_map(
     form_data: Optional[dict],
     doc_date: Optional[date] = None,
@@ -140,8 +154,14 @@ def _form_data_to_replace_map(
         value = form_data.get(field_key) if field_key else None
         if placeholder in _PASSPORT_PLACEHOLDER_PREFIXES:
             value = _full_passport(form_data, _PASSPORT_PLACEHOLDER_PREFIXES[placeholder])
-        if placeholder in {"Подпись", "ФИО_подписант"}:
+        if placeholder == "Подпись":
             value = _signature_fio(form_data, template_name)
+        if placeholder == "Подпись продавец":
+            value = _fio_initials(form_data.get("seller_fio"))
+        if placeholder == "Подпись дов":
+            value = _fio_initials(form_data.get("trustee_fio"))
+        if placeholder == "ФИО_подписант":
+            value = _signer_full_fio(form_data, template_name)
         if value is None and placeholder == "Текущая_дата":
             value = doc_date.strftime("%d.%m.%Y")
         if value is None and placeholder == "Дата ДКП":

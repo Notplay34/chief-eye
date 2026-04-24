@@ -36,10 +36,12 @@
       var number = page.inputs[prefix + 'PassportNumber'];
       var code = page.inputs[prefix + 'PassportDivisionCode'];
       var issuedDate = page.inputs[prefix + 'PassportIssuedDate'];
+      var birthDate = page.inputs[prefix + 'BirthDate'];
       if (series) series.addEventListener('input', function () { page.limitDigits(series, 4); });
       if (number) number.addEventListener('input', function () { page.limitDigits(number, 6); });
       if (code) code.addEventListener('input', function () { code.value = page.formatDivisionCode(code.value); });
       if (issuedDate) issuedDate.addEventListener('input', function () { issuedDate.value = page.formatDateDigits(issuedDate.value); });
+      if (birthDate) birthDate.addEventListener('input', function () { birthDate.value = page.formatDateDigits(birthDate.value); });
     });
     if (page.inputs.clientPhone) {
       page.inputs.clientPhone.addEventListener('focus', function () {

@@ -71,6 +71,8 @@
     var passport = isLegal ? '—' : (page.composePassport('client') || '—');
     var address = (inputs.clientAddress && inputs.clientAddress.value.trim()) || '—';
     var phone = (inputs.clientPhone && inputs.clientPhone.value.trim()) || '—';
+    var birth = (inputs.clientBirthDate && inputs.clientBirthDate.value.trim()) || '';
+    var birthPlace = (inputs.clientBirthPlace && inputs.clientBirthPlace.value.trim()) || '';
     var seller = '—';
     if (inputs.hasSeller && inputs.hasSeller.checked && inputs.sellerFio && inputs.sellerFio.value.trim()) {
       seller = [
@@ -109,7 +111,7 @@
     if (preview.previewFio) {
       preview.previewFio.textContent = isLegal
         ? ((inputs.clientLegalName && inputs.clientLegalName.value.trim()) || '—')
-        : fio;
+        : [fio, birth, birthPlace].filter(Boolean).join(', ');
     }
     if (preview.previewPassport) {
       preview.previewPassport.textContent = isLegal

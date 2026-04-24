@@ -28,6 +28,8 @@ _NUMBER_TEMPLATE = "number.docx"
 def _form_data_from_create(d: OrderCreate, canonical_documents: list[dict]) -> dict:
     out = {
         "client_fio": d.client_fio,
+        "client_birth_date": d.client_birth_date,
+        "client_birth_place": d.client_birth_place,
         "client_passport": d.client_passport,
         "client_passport_series": d.client_passport_series,
         "client_passport_number": d.client_passport_number,
@@ -42,6 +44,7 @@ def _form_data_from_create(d: OrderCreate, canonical_documents: list[dict]) -> d
         "client_inn": d.client_inn,
         "client_ogrn": d.client_ogrn,
         "seller_fio": d.seller_fio,
+        "seller_birth_date": d.seller_birth_date,
         "seller_passport": d.seller_passport,
         "seller_passport_series": d.seller_passport_series,
         "seller_passport_number": d.seller_passport_number,
@@ -50,6 +53,7 @@ def _form_data_from_create(d: OrderCreate, canonical_documents: list[dict]) -> d
         "seller_passport_division_code": d.seller_passport_division_code,
         "seller_address": d.seller_address,
         "trustee_fio": d.trustee_fio,
+        "trustee_birth_date": d.trustee_birth_date,
         "trustee_passport": d.trustee_passport,
         "trustee_passport_series": d.trustee_passport_series,
         "trustee_passport_number": d.trustee_passport_number,

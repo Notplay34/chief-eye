@@ -18,6 +18,8 @@ class DocumentItem(BaseModel):
 class OrderCreate(BaseModel):
     """Данные формы оператора (раздел 13 PROJECT_CONTEXT)."""
     client_fio: Optional[str] = None
+    client_birth_date: Optional[str] = None
+    client_birth_place: Optional[str] = None
     client_passport: Optional[str] = None
     client_passport_series: Optional[str] = None
     client_passport_number: Optional[str] = None
@@ -32,6 +34,7 @@ class OrderCreate(BaseModel):
     client_inn: Optional[str] = None
     client_ogrn: Optional[str] = None
     seller_fio: Optional[str] = None
+    seller_birth_date: Optional[str] = None
     seller_passport: Optional[str] = None
     seller_passport_series: Optional[str] = None
     seller_passport_number: Optional[str] = None
@@ -40,6 +43,7 @@ class OrderCreate(BaseModel):
     seller_passport_division_code: Optional[str] = None
     seller_address: Optional[str] = None
     trustee_fio: Optional[str] = None
+    trustee_birth_date: Optional[str] = None
     trustee_passport: Optional[str] = None
     trustee_passport_series: Optional[str] = None
     trustee_passport_number: Optional[str] = None
@@ -81,6 +85,8 @@ class OrderCreate(BaseModel):
 
     @field_validator(
         "client_fio",
+        "client_birth_date",
+        "client_birth_place",
         "client_passport",
         "client_passport_series",
         "client_passport_number",
@@ -94,6 +100,7 @@ class OrderCreate(BaseModel):
         "client_inn",
         "client_ogrn",
         "seller_fio",
+        "seller_birth_date",
         "seller_passport",
         "seller_passport_series",
         "seller_passport_number",
@@ -102,6 +109,7 @@ class OrderCreate(BaseModel):
         "seller_passport_division_code",
         "seller_address",
         "trustee_fio",
+        "trustee_birth_date",
         "trustee_passport",
         "trustee_passport_series",
         "trustee_passport_number",
@@ -288,6 +296,17 @@ class OrderCreate(BaseModel):
     @classmethod
     def _validate_dkp_date(cls, value: Optional[str]) -> Optional[str]:
         return validate_dkp_date(value)
+
+    @field_validator("client_birth_date", "seller_birth_date", "trustee_birth_date")
+    @classmethod
+    def _validate_birth_date(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        try:
+            datetime.strptime(value, "%d.%m.%Y")
+        except ValueError as exc:
+            raise ValueError("Дата рождения должна быть в формате DD.MM.YYYY") from exc
+        return value
 
     @model_validator(mode="after")
     def _compose_split_documents(self):
