@@ -527,6 +527,93 @@
   color: #065f46;
 }
 
+.cash-crm__day-date {
+  margin-bottom: 10px;
+  font-size: 0.875rem;
+  color: #111827;
+  font-weight: 600;
+}
+
+.cash-crm__reconcile {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.cash-crm__reconcile-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.cash-crm__reconcile-row strong {
+  color: #111827;
+  text-align: right;
+}
+
+.cash-crm__day-status--reconciled {
+  color: #065f46 !important;
+}
+
+.cash-crm__day-status--difference,
+.cash-crm__diff--negative {
+  color: #b91c1c !important;
+}
+
+.cash-crm__diff--positive {
+  color: #0d6b5c !important;
+}
+
+.cash-crm__reconcile-label {
+  display: block;
+  margin: 12px 0 6px;
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.cash-crm__reconcile-input {
+  width: 100%;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  padding: 0 10px;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  background: #fff;
+}
+
+.cash-crm__reconcile-btn {
+  width: 100%;
+  height: 36px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 10px;
+  background: #111827;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cash-crm__reconcile-msg {
+  min-height: 16px;
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.cash-crm__reconcile-msg--ok {
+  color: #065f46;
+}
+
+.cash-crm__reconcile-msg--err {
+  color: #b91c1c;
+}
+
 /* ----- Responsive ----- */
 @media (max-width: 768px) {
   .cash-crm {

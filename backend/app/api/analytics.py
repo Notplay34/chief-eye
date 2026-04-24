@@ -117,24 +117,24 @@ async def analytics_export(
     dashboard = await get_analytics_dashboard(db, period=period, date_from=date_from, date_to=date_to, kind=kind)
     buffer = StringIO()
     writer = csv.writer(buffer)
-    writer.writerow(["section", "key", "value", "value2", "value3"])
+    writer.writerow(["Раздел", "Показатель", "Значение", "Дополнительно 1", "Дополнительно 2"])
 
     overview = dashboard["overview"]
     for key, value in overview.items():
-        writer.writerow(["overview", key, value, "", ""])
+        writer.writerow(["Сводка", key, value, "", ""])
 
     for row in dashboard["employee_stats"]:
         writer.writerow([
-            "employee_stats",
+            "Сотрудники",
             row.get("employee_name", ""),
-            row.get("orders_count", 0),
-            row.get("income_total", 0),
-            row.get("turnover_total", 0),
+            f"Заказов: {row.get('orders_count', 0)}",
+            f"Доход: {row.get('income_total', 0)}",
+            f"Средний чек: {row.get('average_check', 0)}",
         ])
 
     for row in dashboard["status_breakdown"]:
         writer.writerow([
-            "status_breakdown",
+            "Статусы",
             row.get("status", ""),
             row.get("count", 0),
             "",
@@ -143,7 +143,7 @@ async def analytics_export(
 
     for row in dashboard["monthly_trend"]:
         writer.writerow([
-            "monthly_trend",
+            "Динамика по месяцам",
             row.get("period_key", ""),
             row.get("orders_count", 0),
             row.get("income_total", 0),
@@ -152,7 +152,7 @@ async def analytics_export(
 
     filename = f"analytics_{kind}_{period}.csv"
     return Response(
-        content=buffer.getvalue(),
+        content="\ufeff" + buffer.getvalue(),
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

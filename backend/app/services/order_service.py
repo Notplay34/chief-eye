@@ -399,7 +399,11 @@ async def build_plate_list(db: AsyncSession, limit: int = 100) -> list[dict]:
     for order, total_paid in rows:
         form_data = order.form_data or {}
         client = form_data.get("client_fio") or form_data.get("client_legal_name") or "—"
-        plate_total = plate_amount_from_order(order) + Decimal(str(extra_by_order.get(order.id, 0)))
+        base_plate_amount = plate_amount_from_order(order)
+        plate_extra_paid = Decimal(str(extra_by_order.get(order.id, 0)))
+        plate_total = base_plate_amount + plate_extra_paid
+        plate_paid = base_plate_amount + plate_extra_paid if total_paid else Decimal("0")
+        plate_debt = max(Decimal("0"), plate_total - plate_paid)
         total_paid_float = float(total_paid or 0)
         output.append(
             {
@@ -412,7 +416,7 @@ async def build_plate_list(db: AsyncSession, limit: int = 100) -> list[dict]:
                 "client": client,
                 "brand_model": form_data.get("brand_model") or "",
                 "total_paid": total_paid_float,
-                "debt": float(order.total_amount) - total_paid_float,
+                "debt": float(plate_debt),
                 "created_at": order.created_at.isoformat() if order.created_at else "",
             }
         )
@@ -422,7 +426,18 @@ async def build_plate_list(db: AsyncSession, limit: int = 100) -> list[dict]:
 async def build_plate_order_detail(db: AsyncSession, order: Order) -> dict:
     payments = await get_order_payments_summary(db, order)
     form_data = order.form_data or {}
-    plate_total = plate_amount_from_order(order)
+    extra_sum = (
+        await db.execute(
+            select(func.coalesce(func.sum(Payment.amount), 0)).where(
+                Payment.order_id == order.id,
+                Payment.type == PaymentType.INCOME_PAVILION2,
+            )
+        )
+    ).scalar_one() or Decimal("0")
+    base_plate_amount = plate_amount_from_order(order)
+    plate_total = base_plate_amount + extra_sum
+    plate_paid = base_plate_amount + extra_sum if payments["total_paid"] else Decimal("0")
+    plate_debt = max(Decimal("0"), plate_total - plate_paid)
     client = (form_data.get("client_fio") or form_data.get("client_legal_name") or "").strip() or "—"
     return {
         "id": order.id,
@@ -431,7 +446,7 @@ async def build_plate_order_detail(db: AsyncSession, order: Order) -> dict:
         "client": client,
         "brand_model": form_data.get("brand_model") or "",
         "plate_amount": plate_total,
-        "debt": Decimal(str(payments["debt"])),
+        "debt": plate_debt,
         "plate_document": "zaiavlenie_na_nomera.docx",
         "created_at": order.created_at.isoformat() if order.created_at else "",
     }

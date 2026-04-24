@@ -1,4 +1,5 @@
 """API касс и смен: открытие/закрытие смены по павильонам; касса номеров (plate-rows)."""
+from datetime import date
 from decimal import Decimal
 from typing import Optional
 
@@ -18,9 +19,11 @@ from app.schemas.cash import (
 from app.services.errors import ServiceError
 from app.services.cash_service import (
     close_shift as close_shift_service,
+    get_cash_day_summary as get_cash_day_summary_service,
     get_current_shift_summary as get_current_shift_summary_service,
     open_shift as open_shift_service,
     pay_plate_payouts as pay_plate_payouts_service,
+    reconcile_cash_day as reconcile_cash_day_service,
     shift_to_dict,
 )
 
@@ -199,6 +202,47 @@ async def delete_cash_row(
 class PlateCashRowCreate(BaseModel):
     client_name: str = ""
     amount: float = 0
+
+
+class CashDayReconcileBody(BaseModel):
+    pavilion: int
+    business_date: Optional[date] = None
+    actual_balance: Decimal
+    note: Optional[str] = None
+
+
+@router.get("/days/current")
+async def get_current_cash_day(
+    pavilion: int = Query(..., ge=1, le=2),
+    business_date: Optional[date] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    user: UserInfo = Depends(RequireCashAccess),
+):
+    """Кассовый день: дневной итог по бумажной таблице и статус сверки."""
+    try:
+        return await get_cash_day_summary_service(db, user, pavilion, business_date)
+    except ServiceError as exc:
+        _raise_service_error(exc)
+
+
+@router.post("/days/reconcile")
+async def reconcile_cash_day(
+    body: CashDayReconcileBody,
+    db: AsyncSession = Depends(get_db),
+    user: UserInfo = Depends(RequireCashAccess),
+):
+    """Сверить кассовый день: ввести фактическую сумму и получить расхождение."""
+    try:
+        return await reconcile_cash_day_service(
+            db,
+            user,
+            body.pavilion,
+            body.actual_balance,
+            body.business_date,
+            body.note,
+        )
+    except ServiceError as exc:
+        _raise_service_error(exc)
 
 
 class PlateCashRowUpdate(BaseModel):

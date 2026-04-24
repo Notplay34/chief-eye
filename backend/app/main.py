@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,6 +18,7 @@ from app.api.warehouse import router as warehouse_router
 from app.api.form_history import router as form_history_router
 from app.api.audit import router as audit_router
 from app.config import settings
+from app.core.request_context import client_ip_var, request_id_var, user_agent_var
 
 setup_logging()
 logger = get_logger(__name__)
@@ -30,6 +32,28 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Павильоны МРЭО", version="1.0.0", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def request_context_middleware(request: Request, call_next):
+    forwarded_for = request.headers.get("x-forwarded-for")
+    client_ip = (forwarded_for.split(",")[0].strip() if forwarded_for else None) or (
+        request.client.host if request.client else None
+    )
+    request_id = request.headers.get("x-request-id") or str(uuid4())
+    tokens = [
+        request_id_var.set(request_id),
+        client_ip_var.set(client_ip),
+        user_agent_var.set(request.headers.get("user-agent")),
+    ]
+    try:
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+    finally:
+        request_id_var.reset(tokens[0])
+        client_ip_var.reset(tokens[1])
+        user_agent_var.reset(tokens[2])
 
 
 @app.exception_handler(Exception)

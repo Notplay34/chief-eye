@@ -66,6 +66,39 @@ def test_me_with_token_returns_current_user(client: TestClient, auth_headers: di
     assert len(data["menu_items"]) > 0
 
 
+def test_deactivated_user_token_is_rejected(client: TestClient, auth_headers: dict[str, str]):
+    created = client.post(
+        "/employees",
+        json={
+            "name": "Временный оператор",
+            "role": "ROLE_OPERATOR",
+            "login": "temporary",
+            "password": "temporary123",
+        },
+        headers=auth_headers,
+    )
+    assert created.status_code == 200, created.text
+
+    login_response = client.post("/auth/login", data={"username": "temporary", "password": "temporary123"})
+    assert login_response.status_code == 200, login_response.text
+    temporary_headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+    deleted = client.delete(f"/employees/{created.json()['id']}", headers=auth_headers)
+    assert deleted.status_code == 200, deleted.text
+
+    me_response = client.get("/auth/me", headers=temporary_headers)
+    assert me_response.status_code == 401, me_response.text
+
+
+def test_login_is_rate_limited_after_repeated_failures(client: TestClient):
+    for _ in range(5):
+        response = client.post("/auth/login", data={"username": "missing-user", "password": "wrong-password"})
+        assert response.status_code == 401, response.text
+
+    blocked = client.post("/auth/login", data={"username": "missing-user", "password": "wrong-password"})
+    assert blocked.status_code == 429, blocked.text
+
+
 def test_payment_flow_creates_payments_and_cash_row(client: TestClient, auth_headers: dict[str, str]):
     order = create_paid_order(client, auth_headers, need_plate=True)
 
@@ -118,6 +151,21 @@ def test_order_payment_creates_workday_cash_bucket_automatically(client: TestCli
     current_data = current_response.json()
     assert current_data["shift"]["status"] == "OPEN"
     assert current_data["total_in_shift"] == 1050.0
+
+    day_response = client.get("/cash/days/current", params={"pavilion": 1}, headers=auth_headers)
+    assert day_response.status_code == 200, day_response.text
+    assert day_response.json()["program_total"] == 1050.0
+    assert day_response.json()["status"] == "not_reconciled"
+
+    reconcile_response = client.post(
+        "/cash/days/reconcile",
+        json={"pavilion": 1, "actual_balance": "1000", "note": "Недостача 50"},
+        headers=auth_headers,
+    )
+    assert reconcile_response.status_code == 200, reconcile_response.text
+    reconciled = reconcile_response.json()
+    assert reconciled["status"] == "difference"
+    assert reconciled["difference"] == -50.0
 
 
 def test_empty_order_is_rejected(client: TestClient, auth_headers: dict[str, str]):

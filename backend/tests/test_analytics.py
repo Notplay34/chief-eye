@@ -119,7 +119,7 @@ def test_analytics_export_returns_csv(client: TestClient, auth_headers: dict[str
     assert response.status_code == 200, response.text
     assert response.headers["content-type"].startswith("text/csv")
     body = response.text
-    assert "section,key,value" in body
-    assert "overview,orders_count,1" in body
-    assert "employee_stats" in body
-    assert "monthly_trend" in body
+    assert "Раздел,Показатель,Значение" in body
+    assert "Сводка,orders_count,1" in body
+    assert "Сотрудники" in body
+    assert "Динамика по месяцам" in body

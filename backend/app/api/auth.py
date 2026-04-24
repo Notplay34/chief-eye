@@ -1,4 +1,5 @@
 """Веб-авторизация: логин по login+пароль, JWT, проверка ролей."""
+import time
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -24,6 +25,12 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer(auto_error=False)
 logger = get_logger(__name__)
 
+MIN_PASSWORD_LENGTH = 8
+LOGIN_RATE_WINDOW_SECONDS = 15 * 60
+LOGIN_RATE_MAX_FAILURES = 5
+LOGIN_RATE_LOCK_SECONDS = 5 * 60
+_login_failures: dict[str, list[float]] = {}
+
 
 class UserInfo(BaseModel):
     id: int
@@ -40,6 +47,7 @@ class LoginResponse(BaseModel):
 
 async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db: AsyncSession = Depends(get_db),
 ) -> Optional[UserInfo]:
     has_header = credentials is not None and credentials.scheme.lower() == "bearer"
     if not has_header:
@@ -50,11 +58,25 @@ async def get_current_user(
         logger.warning("auth/me: токен не прошёл проверку (неверный или истёк)")
         return None
     sub = payload["sub"]
+    try:
+        employee_id = int(sub)
+    except (TypeError, ValueError):
+        logger.warning("auth/me: некорректный subject в токене")
+        return None
+
+    result = await db.execute(
+        select(Employee).where(Employee.id == employee_id, Employee.is_active == True)
+    )
+    emp = result.scalar_one_or_none()
+    if not emp:
+        logger.warning("auth/me: пользователь из токена не найден или деактивирован")
+        return None
+
     return UserInfo(
-        id=int(sub) if isinstance(sub, str) else sub,
-        name=payload.get("name", ""),
-        role=payload.get("role", ""),
-        login=payload.get("login", ""),
+        id=emp.id,
+        name=emp.name,
+        role=emp.role.value,
+        login=emp.login or "",
     )
 
 
@@ -100,6 +122,24 @@ async def login(
     username = normalize_login(form.username)
     if not username:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный логин или пароль")
+    now = time.monotonic()
+    failures = [
+        timestamp
+        for timestamp in _login_failures.get(username, [])
+        if now - timestamp < LOGIN_RATE_WINDOW_SECONDS
+    ]
+    _login_failures[username] = failures
+    if len(failures) >= LOGIN_RATE_MAX_FAILURES and now - failures[-1] < LOGIN_RATE_LOCK_SECONDS:
+        await write_audit_log(
+            db,
+            user=None,
+            event_type="login_rate_limited",
+            entity_type="auth",
+            entity_id=None,
+            payload={"login": username},
+        )
+        raise HTTPException(status_code=429, detail="Слишком много попыток входа. Повторите позже.")
+
     result = await db.execute(
         select(Employee).where(
             Employee.login_normalized == username,
@@ -108,15 +148,36 @@ async def login(
     )
     emp = result.scalar_one_or_none()
     if not emp or not emp.password_hash:
+        failures.append(now)
+        _login_failures[username] = failures
+        await write_audit_log(
+            db,
+            user=None,
+            event_type="login_failed",
+            entity_type="auth",
+            entity_id=None,
+            payload={"login": username, "reason": "user_not_found_or_inactive"},
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Неверный логин или пароль",
         )
     if not verify_password(form.password, emp.password_hash):
+        failures.append(now)
+        _login_failures[username] = failures
+        await write_audit_log(
+            db,
+            user=None,
+            event_type="login_failed",
+            entity_type="auth",
+            entity_id=emp.id,
+            payload={"login": username, "reason": "bad_password"},
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Неверный логин или пароль",
         )
+    _login_failures.pop(username, None)
     token = create_access_token(
         subject=emp.id,
         role=emp.role.value,
@@ -185,8 +246,8 @@ async def change_password(
 ):
     """Смена пароля текущего пользователя (требуется старый пароль)."""
     from app.services.auth_service import hash_password
-    if not body.new_password or len(body.new_password) < 4:
-        raise HTTPException(status_code=400, detail="Новый пароль должен быть не менее 4 символов")
+    if not body.new_password or len(body.new_password) < MIN_PASSWORD_LENGTH:
+        raise HTTPException(status_code=400, detail=f"Новый пароль должен быть не менее {MIN_PASSWORD_LENGTH} символов")
     result = await db.execute(select(Employee).where(Employee.id == current_user.id))
     emp = result.scalar_one_or_none()
     if not emp or not emp.password_hash:

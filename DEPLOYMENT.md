@@ -101,6 +101,24 @@ nginx должен проксировать как минимум:
 - `/docs`
 - `/openapi.json`
 
+### HTTPS
+
+Для релиза сайт должен работать через HTTPS. Базовый вариант через certbot:
+
+```bash
+apt-get update
+apt-get install -y certbot python3-certbot-nginx
+certbot --nginx -d your-domain.example
+nginx -t
+systemctl reload nginx
+```
+
+После выпуска сертификата проверьте, что:
+
+- `http://your-domain.example` редиректит на `https://your-domain.example`;
+- `/auth/login` и `/auth/me` работают через nginx;
+- в `backend/.env` `CORS_ORIGINS` указывает на `https://your-domain.example`.
+
 ## 5. Автоматическая серверная проверка
 
 После выката выполнить:
@@ -137,6 +155,8 @@ cd /opt/eye_w
 bash deploy/setup_server.sh
 bash deploy/check_stack.sh
 ```
+
+`setup_server.sh` применяет Alembic-миграции перед перезапуском backend.
 
 Пароль суперпользователя `setup_server.sh` больше не печатает в stdout. При необходимости смотреть на сервере:
 

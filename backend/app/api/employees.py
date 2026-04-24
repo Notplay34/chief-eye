@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth import RequireAdmin, RequireFormAccess, UserInfo
+from app.api.auth import MIN_PASSWORD_LENGTH, RequireAdmin, RequireFormAccess, UserInfo
 from app.core.database import get_db
 from app.core.identity import normalize_login
 from app.models import Employee
@@ -50,6 +50,8 @@ async def create_employee(
     _user: UserInfo = Depends(RequireAdmin),
 ):
     normalized_login = normalize_login(data.login)
+    if normalized_login and (not data.password or len(data.password) < MIN_PASSWORD_LENGTH):
+        raise HTTPException(status_code=400, detail=f"Пароль должен быть не менее {MIN_PASSWORD_LENGTH} символов")
     if normalized_login:
         r = await db.execute(select(Employee.id).where(Employee.login_normalized == normalized_login))
         if r.scalar_one_or_none() is not None:
@@ -106,6 +108,8 @@ async def update_employee(
                 raise HTTPException(status_code=400, detail="Логин уже занят")
         emp.login = normalized_login
     if data.password is not None and data.password.strip():
+        if len(data.password) < MIN_PASSWORD_LENGTH:
+            raise HTTPException(status_code=400, detail=f"Пароль должен быть не менее {MIN_PASSWORD_LENGTH} символов")
         emp.password_hash = hash_password(data.password)
     if data.is_active is not None:
         emp.is_active = data.is_active

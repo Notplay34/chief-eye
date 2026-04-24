@@ -19,6 +19,7 @@
   }
 
   var rows = [];
+  var cashDay = null;
 
   function msg(text, type) {
     var el = document.getElementById('cashMsg');
@@ -153,6 +154,7 @@
           input.value = t === 0 ? '' : toInputValue(t);
           wrap.className = 'cash-crm__row-total ' + rowTotalClass(t);
           renderTotal();
+          loadCashDay();
           msg('Сохранено', 'ok');
         })
         .catch(function (e) {
@@ -235,6 +237,7 @@
             if (totalInput) totalInput.value = t === 0 ? '' : toInputValue(t);
           }
           renderTotal();
+          loadCashDay();
           msg('Сохранено', 'ok');
         })
         .catch(function (e) {
@@ -260,6 +263,93 @@
     wrap.classList.remove('cash-crm__total-value--negative', 'cash-crm__total-value--positive');
     if (total < 0) wrap.classList.add('cash-crm__total-value--negative');
     else if (total > 0) wrap.classList.add('cash-crm__total-value--positive');
+  }
+
+  function statusLabel(status) {
+    if (status === 'reconciled') return 'Сверен';
+    if (status === 'difference') return 'Есть расхождение';
+    return 'Не сверен';
+  }
+
+  function renderCashDay() {
+    if (!cashDay) return;
+    var dateEl = document.getElementById('cashDayDate');
+    var statusEl = document.getElementById('cashDayStatus');
+    var diffEl = document.getElementById('cashDayDiff');
+    var actualEl = document.getElementById('cashActualBalance');
+    if (dateEl) dateEl.textContent = dayLabel(cashDay.business_date) || 'Сегодня';
+    if (statusEl) {
+      statusEl.textContent = statusLabel(cashDay.status);
+      statusEl.className = 'cash-crm__day-status cash-crm__day-status--' + cashDay.status;
+    }
+    if (diffEl) {
+      diffEl.textContent = cashDay.difference === null || cashDay.difference === undefined
+        ? '—'
+        : formatNumOnly(cashDay.difference) + ' ₽';
+      diffEl.className = Number(cashDay.difference || 0) < 0 ? 'cash-crm__diff--negative' : 'cash-crm__diff--positive';
+    }
+    if (actualEl && cashDay.reconciliation) {
+      actualEl.value = toInputValue(cashDay.reconciliation.actual_balance);
+    }
+  }
+
+  function loadCashDay() {
+    return fetchApi(API + '/cash/days/current?pavilion=1')
+      .then(function (r) {
+        if (!r.ok) {
+          return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
+        }
+        return r.json();
+      })
+      .then(function (data) {
+        cashDay = data;
+        renderCashDay();
+      })
+      .catch(function (e) {
+        var el = document.getElementById('cashDayMsg');
+        if (el) {
+          el.textContent = 'Не удалось загрузить сверку дня: ' + (e.message || '');
+          el.className = 'cash-crm__reconcile-msg cash-crm__reconcile-msg--err';
+        }
+      });
+  }
+
+  function reconcileDay() {
+    var input = document.getElementById('cashActualBalance');
+    var msgEl = document.getElementById('cashDayMsg');
+    var actual = parseAmount(input && input.value);
+    if (actual < 0) {
+      if (msgEl) {
+        msgEl.textContent = 'Фактическая сумма не может быть отрицательной';
+        msgEl.className = 'cash-crm__reconcile-msg cash-crm__reconcile-msg--err';
+      }
+      return;
+    }
+    fetchApi(API + '/cash/days/reconcile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pavilion: 1, actual_balance: actual }),
+    })
+      .then(function (r) {
+        if (!r.ok) {
+          return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
+        }
+        return r.json();
+      })
+      .then(function (data) {
+        cashDay = data;
+        renderCashDay();
+        if (msgEl) {
+          msgEl.textContent = 'День сверен';
+          msgEl.className = 'cash-crm__reconcile-msg cash-crm__reconcile-msg--ok';
+        }
+      })
+      .catch(function (e) {
+        if (msgEl) {
+          msgEl.textContent = 'Ошибка сверки: ' + (e.message || '');
+          msgEl.className = 'cash-crm__reconcile-msg cash-crm__reconcile-msg--err';
+        }
+      });
   }
 
   function renderRow(row) {
@@ -298,6 +388,7 @@
           if (r.status === 204 || r.ok) {
             rows = rows.filter(function (x) { return x.id !== row.id; });
             render();
+            loadCashDay();
             msg('Строка удалена', 'ok');
           } else {
             return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
@@ -327,6 +418,7 @@
         'Суммы могут быть отрицательными — расходы из кассы.</div>';
       bodyEl.appendChild(placeholderRow);
       renderTotal();
+      loadCashDay();
       return;
     }
 
@@ -347,6 +439,7 @@
     });
 
     renderTotal();
+    loadCashDay();
   }
 
   function loadRows() {
@@ -418,6 +511,7 @@
       .then(function (newRow) {
         rows.unshift(newRow);
         render();
+        loadCashDay();
         msg('Строка добавлена. Можно ввести отрицательные суммы — расходы из кассы.', 'ok');
       })
       .catch(function (e) {
@@ -429,6 +523,8 @@
     loadRows();
     var btn = document.getElementById('btnAddRow');
     if (btn) btn.onclick = addRow;
+    var btnReconcile = document.getElementById('btnReconcileDay');
+    if (btnReconcile) btnReconcile.onclick = reconcileDay;
   }
 
   if (document.readyState === 'loading') {
@@ -437,4 +533,3 @@
     init();
   }
 })();
-

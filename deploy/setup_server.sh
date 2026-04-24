@@ -94,6 +94,17 @@ if command -v curl >/dev/null 2>&1; then
 fi
 
 echo "=== 3. Backend (systemd) ==="
+echo "=== 3a. Миграции БД ==="
+if [ -x "$PROJECT_ROOT/backend/.venv/bin/alembic" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  . "$PROJECT_ROOT/backend/.env"
+  set +a
+  (cd "$PROJECT_ROOT" && "$PROJECT_ROOT/backend/.venv/bin/alembic" upgrade head)
+else
+  echo "Alembic не найден в backend/.venv/bin/alembic — пропускаю миграции"
+fi
+
 if [ ! -f /etc/systemd/system/eye_w.service ]; then
   true
 fi

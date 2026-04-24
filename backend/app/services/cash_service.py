@@ -1,6 +1,6 @@
-"""Cash and shift domain logic."""
+"""Cash and shift/domain-day cash logic."""
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Optional
 
@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth import UserInfo
-from app.models import CashRow, CashShift, Payment, PlateCashRow, PlatePayout, ShiftStatus
+from app.models import CashDayReconciliation, CashRow, CashShift, Payment, PlateCashRow, PlatePayout, ShiftStatus
 from app.models.employee import EmployeeRole
 from app.services.audit_service import write_audit_log
 from app.services.errors import ServiceError
@@ -38,9 +38,140 @@ async def get_current_shift(db: AsyncSession, pavilion: int) -> Optional[CashShi
     return (await db.execute(query)).scalar_one_or_none()
 
 
+def _day_bounds(day: date) -> tuple[datetime, datetime]:
+    start = datetime.combine(day, time.min)
+    return start, start + timedelta(days=1)
+
+
 def _workday_bounds(now: datetime) -> tuple[datetime, datetime]:
     start = datetime(now.year, now.month, now.day)
     return start, start + timedelta(days=1)
+
+
+def _reconciliation_to_dict(row: CashDayReconciliation | None) -> Optional[dict]:
+    if row is None:
+        return None
+    return {
+        "id": row.id,
+        "pavilion": row.pavilion,
+        "business_date": row.business_date.isoformat(),
+        "program_total": float(row.program_total),
+        "actual_balance": float(row.actual_balance),
+        "difference": float(row.difference),
+        "reconciled_by_id": row.reconciled_by_id,
+        "reconciled_at": row.reconciled_at.isoformat() if row.reconciled_at else "",
+        "note": row.note,
+    }
+
+
+async def _cash_day_program_total(db: AsyncSession, pavilion: int, business_date: date) -> Decimal:
+    start, end = _day_bounds(business_date)
+    if pavilion == 1:
+        query = select(func.coalesce(func.sum(CashRow.total), 0)).where(
+            CashRow.created_at >= start,
+            CashRow.created_at < end,
+        )
+    elif pavilion == 2:
+        query = select(func.coalesce(func.sum(PlateCashRow.amount), 0)).where(
+            PlateCashRow.created_at >= start,
+            PlateCashRow.created_at < end,
+        )
+    else:
+        raise ServiceError("Павильон должен быть 1 или 2", status_code=400)
+    return (await db.execute(query)).scalar_one() or Decimal("0")
+
+
+async def get_cash_day_summary(db: AsyncSession, user: UserInfo, pavilion: int, business_date: Optional[date] = None) -> dict:
+    if not can_manage_pavilion_cash(user, pavilion):
+        raise ServiceError("Нет доступа к кассе этого павильона", status_code=403)
+
+    day = business_date or datetime.utcnow().date()
+    program_total = await _cash_day_program_total(db, pavilion, day)
+    reconciliation = (
+        await db.execute(
+            select(CashDayReconciliation).where(
+                CashDayReconciliation.pavilion == pavilion,
+                CashDayReconciliation.business_date == day,
+            )
+        )
+    ).scalar_one_or_none()
+    if reconciliation is None:
+        status = "not_reconciled"
+        difference = None
+    elif reconciliation.difference == 0:
+        status = "reconciled"
+        difference = Decimal("0")
+    else:
+        status = "difference"
+        difference = reconciliation.actual_balance - program_total
+
+    return {
+        "pavilion": pavilion,
+        "business_date": day.isoformat(),
+        "program_total": float(program_total),
+        "status": status,
+        "difference": float(difference) if difference is not None else None,
+        "reconciliation": _reconciliation_to_dict(reconciliation),
+    }
+
+
+async def reconcile_cash_day(
+    db: AsyncSession,
+    user: UserInfo,
+    pavilion: int,
+    actual_balance: Decimal,
+    business_date: Optional[date] = None,
+    note: Optional[str] = None,
+) -> dict:
+    if actual_balance < 0:
+        raise ServiceError("Фактическая сумма не может быть отрицательной", status_code=400)
+    if not can_manage_pavilion_cash(user, pavilion):
+        raise ServiceError("Нет доступа к кассе этого павильона", status_code=403)
+
+    day = business_date or datetime.utcnow().date()
+    program_total = await _cash_day_program_total(db, pavilion, day)
+    difference = actual_balance - program_total
+    result = await db.execute(
+        select(CashDayReconciliation).where(
+            CashDayReconciliation.pavilion == pavilion,
+            CashDayReconciliation.business_date == day,
+        )
+    )
+    row = result.scalar_one_or_none()
+    if row is None:
+        row = CashDayReconciliation(
+            pavilion=pavilion,
+            business_date=day,
+            program_total=program_total,
+            actual_balance=actual_balance,
+            difference=difference,
+            reconciled_by_id=user.id,
+            note=note,
+        )
+    else:
+        row.program_total = program_total
+        row.actual_balance = actual_balance
+        row.difference = difference
+        row.reconciled_by_id = user.id
+        row.reconciled_at = datetime.utcnow()
+        row.note = note
+    db.add(row)
+    await db.flush()
+    await write_audit_log(
+        db,
+        user=user,
+        event_type="cash_day_reconciled",
+        entity_type="cash_day",
+        entity_id=row.id,
+        payload={
+            "pavilion": pavilion,
+            "business_date": day.isoformat(),
+            "program_total": float(program_total),
+            "actual_balance": float(actual_balance),
+            "difference": float(difference),
+        },
+    )
+    return await get_cash_day_summary(db, user, pavilion, day)
 
 
 async def current_shift_id(db: AsyncSession, pavilion: int) -> Optional[int]:

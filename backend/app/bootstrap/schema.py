@@ -180,6 +180,20 @@ async def ensure_schema_compatibility(engine: AsyncEngine) -> None:
                 payload_json JSONB NOT NULL DEFAULT '{}'::jsonb
             );
         """))
+        await conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS cash_day_reconciliations (
+                id SERIAL PRIMARY KEY,
+                pavilion INTEGER NOT NULL,
+                business_date DATE NOT NULL,
+                program_total NUMERIC(12,2) NOT NULL DEFAULT 0,
+                actual_balance NUMERIC(12,2) NOT NULL DEFAULT 0,
+                difference NUMERIC(12,2) NOT NULL DEFAULT 0,
+                reconciled_by_id INTEGER NOT NULL REFERENCES employees(id),
+                reconciled_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+                note VARCHAR(500),
+                CONSTRAINT uq_cash_day_reconciliations_pavilion_date UNIQUE (pavilion, business_date)
+            );
+        """))
 
     try:
         async with engine.connect() as conn:
