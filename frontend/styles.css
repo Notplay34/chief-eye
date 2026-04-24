@@ -838,6 +838,16 @@ body {
 .document-group__row--passport .mini-field:nth-child(2) { grid-column: span 3; min-width: 7rem; }
 .document-group__row--passport .mini-field--issued-by { grid-column: span 7; }
 .document-group__row:not(.document-group__row--passport) .mini-field { grid-column: span 3; min-width: 9rem; }
+.document-group__row--passport .mini-field:nth-child(1),
+.document-group__row--passport .mini-field:nth-child(2),
+.document-group__row:not(.document-group__row--passport) .mini-field {
+  justify-self: start;
+  width: 100%;
+}
+
+.document-group__row--passport .mini-field:nth-child(1) { max-width: 7rem; }
+.document-group__row--passport .mini-field:nth-child(2) { max-width: 9rem; }
+.document-group__row:not(.document-group__row--passport) .mini-field { max-width: 11rem; }
 
 .mini-field {
   display: flex;
