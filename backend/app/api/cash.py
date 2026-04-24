@@ -5,7 +5,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -22,6 +22,7 @@ from app.services.cash_service import (
     get_cash_day_summary as get_cash_day_summary_service,
     get_current_shift_summary as get_current_shift_summary_service,
     get_state_duty_commission_summary as get_state_duty_commission_summary_service,
+    PLATE_PAYOUT_TRANSFER,
     open_shift as open_shift_service,
     pay_plate_payouts as pay_plate_payouts_service,
     reconcile_cash_day as reconcile_cash_day_service,
@@ -129,6 +130,7 @@ def _cash_row_to_dict(row: CashRow) -> dict:
         "total": float(row.total),
         "source_type": row.source_type,
         "source_date": row.source_date.isoformat() if row.source_date else None,
+        "source_batch": row.source_batch,
     }
 
 
@@ -212,6 +214,13 @@ async def delete_cash_row(
     row = r.scalar_one_or_none()
     if not row:
         raise HTTPException(status_code=404, detail="Строка не найдена")
+    if row.source_type == PLATE_PAYOUT_TRANSFER and row.source_batch:
+        await db.execute(
+            delete(PlateCashRow).where(
+                PlateCashRow.source_type == PLATE_PAYOUT_TRANSFER,
+                PlateCashRow.source_batch == row.source_batch,
+            )
+        )
     await db.delete(row)
     await db.flush()
 
@@ -303,6 +312,9 @@ def _plate_row_to_dict(row: PlateCashRow) -> dict:
         "created_at": row.created_at.isoformat() if row.created_at else None,
         "client_name": row.client_name or "",
         "amount": float(row.amount),
+        "source_type": row.source_type,
+        "source_date": row.source_date.isoformat() if row.source_date else None,
+        "source_batch": row.source_batch,
     }
 
 

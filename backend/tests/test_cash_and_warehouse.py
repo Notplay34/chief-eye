@@ -138,6 +138,14 @@ def test_paying_plate_payouts_moves_money_between_cash_tables(client: TestClient
     assert payout_rows[0]["plates"] == -1500.0
     assert payout_rows[0]["total"] == -1500.0
 
+    delete_response = client.delete(f"/cash/rows/{payout_rows[0]['id']}", headers=auth_headers)
+    assert delete_response.status_code == 204, delete_response.text
+
+    plate_rows_after_delete_response = client.get("/cash/plate-rows", headers=auth_headers)
+    assert plate_rows_after_delete_response.status_code == 200, plate_rows_after_delete_response.text
+    assert plate_rows_after_delete_response.json()["rows"] == []
+    assert plate_rows_after_delete_response.json()["total"] == 0.0
+
 
 def test_cash_rows_can_be_filtered_by_business_date(client: TestClient, auth_headers: dict[str, str]):
     create_paid_plate_order(client, auth_headers)

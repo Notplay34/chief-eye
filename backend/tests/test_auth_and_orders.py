@@ -218,6 +218,31 @@ def test_state_duty_settings_and_commission_withdrawal(client: TestClient, auth_
     assert commission_rows[0]["total"] == -225.0
 
 
+def test_state_duty_commission_summary_follows_cash_row_deletion(client: TestClient, auth_headers: dict[str, str]):
+    create_paid_order(client, auth_headers)
+
+    summary_response = client.get("/cash/state-duty-commissions", headers=auth_headers)
+    assert summary_response.status_code == 200, summary_response.text
+    assert summary_response.json()["commission_total"] == 150.0
+
+    cash_rows_response = client.get("/cash/rows", headers=auth_headers)
+    assert cash_rows_response.status_code == 200, cash_rows_response.text
+    state_duty_rows = [
+        row for row in cash_rows_response.json()
+        if row["client_name"] == "Иван Иванов" and row["state_duty"] == 650.0
+    ]
+    assert len(state_duty_rows) == 1
+
+    delete_response = client.delete(f"/cash/rows/{state_duty_rows[0]['id']}", headers=auth_headers)
+    assert delete_response.status_code == 204, delete_response.text
+
+    updated_summary_response = client.get("/cash/state-duty-commissions", headers=auth_headers)
+    assert updated_summary_response.status_code == 200, updated_summary_response.text
+    updated_summary = updated_summary_response.json()
+    assert updated_summary["commission_total"] == 0.0
+    assert updated_summary["can_withdraw"] is False
+
+
 def test_empty_order_is_rejected(client: TestClient, auth_headers: dict[str, str]):
     response = client.post(
         "/orders",

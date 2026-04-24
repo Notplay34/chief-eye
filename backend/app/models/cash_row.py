@@ -23,3 +23,4 @@ class CashRow(Base):
     total: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"), nullable=False)        # Итого
     source_type: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     source_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    source_batch: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)

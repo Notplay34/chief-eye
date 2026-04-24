@@ -279,6 +279,10 @@
     return url;
   }
 
+  function cashDayKey() {
+    return activeDate || todayKey();
+  }
+
   function renderStateDutyCommission(summary) {
     var totalEl = document.getElementById('stateDutyCommissionTotal');
     var btn = document.getElementById('btnWithdrawStateDutyCommission');
@@ -300,7 +304,7 @@
   }
 
   function loadCashDay() {
-    fetchApi(API + '/cash/state-duty-commissions?business_date=' + encodeURIComponent(todayKey()))
+    fetchApi(API + '/cash/state-duty-commissions?business_date=' + encodeURIComponent(cashDayKey()))
       .then(function (r) {
         if (!r.ok) {
           return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
@@ -323,7 +327,7 @@
     fetchApi(API + '/cash/state-duty-commissions/withdraw', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ business_date: todayKey() })
+      body: JSON.stringify({ business_date: cashDayKey() })
     })
       .then(function (r) {
         return r.json().then(function (json) {
@@ -382,6 +386,7 @@
           if (r.status === 204 || r.ok) {
             rows = rows.filter(function (x) { return x.id !== row.id; });
             render();
+            loadCashDay();
             msg('Строка удалена', 'ok');
           } else {
             return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });

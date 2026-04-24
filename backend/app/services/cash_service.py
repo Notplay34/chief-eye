@@ -3,18 +3,20 @@
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Optional
+from uuid import uuid4
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth import UserInfo
-from app.models import CashDayReconciliation, CashRow, CashShift, Order, Payment, PlateCashRow, PlatePayout, ShiftStatus
-from app.models.payment import PaymentType
+from app.models import CashDayReconciliation, CashRow, CashShift, Payment, PlateCashRow, PlatePayout, ShiftStatus
 from app.models.employee import EmployeeRole
 from app.services.audit_service import write_audit_log
 from app.services.errors import ServiceError
+from app.services.settings_service import SPECIAL_STATE_DUTY_BASE, get_state_duty_settings
 
 STATE_DUTY_COMMISSION_WITHDRAWAL = "STATE_DUTY_COMMISSION_WITHDRAWAL"
+PLATE_PAYOUT_TRANSFER = "PLATE_PAYOUT_TRANSFER"
 
 
 def _fio_initials(value: str | None) -> str:
@@ -60,9 +62,17 @@ def _day_bounds(day: date) -> tuple[datetime, datetime]:
     return start, start + timedelta(days=1)
 
 
-def _state_duty_commission_from_order(order: Order) -> Decimal:
-    form_data = order.form_data or {}
-    return Decimal(str(form_data.get("state_duty_commission") or 0))
+def _state_duty_commission_from_cash_amount(amount: Decimal, settings: dict[str, Decimal]) -> Decimal:
+    value = Decimal(str(amount or 0))
+    if value <= 0:
+        return Decimal("0")
+    special_cash = settings["special_2025_cash_amount"]
+    if value == special_cash:
+        return max(Decimal("0"), special_cash - SPECIAL_STATE_DUTY_BASE)
+    commission = settings["commission"]
+    if value > commission:
+        return commission
+    return Decimal("0")
 
 
 def _workday_bounds(now: datetime) -> tuple[datetime, datetime]:
@@ -147,18 +157,20 @@ async def get_state_duty_commission_summary(
 
     day = business_date or datetime.utcnow().date()
     start, end = _day_bounds(day)
-    paid_orders_query = (
-        select(Order)
-        .join(Payment, Payment.order_id == Order.id)
-        .where(
-            Payment.type == PaymentType.STATE_DUTY,
-            Payment.created_at >= start,
-            Payment.created_at < end,
+    settings = await get_state_duty_settings(db)
+    rows = (
+        await db.execute(
+            select(CashRow).where(
+                CashRow.created_at >= start,
+                CashRow.created_at < end,
+                CashRow.state_duty > 0,
+            )
         )
-        .distinct()
+    ).scalars().all()
+    total = sum(
+        (_state_duty_commission_from_cash_amount(row.state_duty, settings) for row in rows),
+        Decimal("0"),
     )
-    orders = (await db.execute(paid_orders_query)).scalars().all()
-    total = sum((_state_duty_commission_from_order(order) for order in orders), Decimal("0"))
     withdrawal = (
         await db.execute(
             select(CashRow).where(
@@ -398,6 +410,8 @@ async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
         if payout.client_name and payout.client_name.strip()
     ]
     cash_row_name = ", ".join(payout_names) if payout_names else "Номера — выдача"
+    now = datetime.utcnow()
+    batch_id = uuid4().hex
 
     db.add(
         CashRow(
@@ -408,12 +422,22 @@ async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
             insurance=Decimal("0"),
             plates=-total,
             total=-total,
+            source_type=PLATE_PAYOUT_TRANSFER,
+            source_date=now.date(),
+            source_batch=batch_id,
         )
     )
 
-    now = datetime.utcnow()
     for payout in payouts:
-        db.add(PlateCashRow(client_name=_fio_initials(payout.client_name), amount=payout.amount))
+        db.add(
+            PlateCashRow(
+                client_name=_fio_initials(payout.client_name),
+                amount=payout.amount,
+                source_type=PLATE_PAYOUT_TRANSFER,
+                source_date=now.date(),
+                source_batch=batch_id,
+            )
+        )
         payout.paid_at = now
         payout.paid_by_id = user.id
         db.add(payout)
