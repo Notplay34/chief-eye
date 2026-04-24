@@ -30,16 +30,27 @@
   };
 
   page.addSelectedDocument = function () {
-    if (!page.docSelect || !page.docSelect.value) return;
-    var template = page.docSelect.value;
-    var item = page.state.priceList.find(function (priceItem) { return priceItem.template === template; });
-    if (!item) return;
-    page.state.selectedDocuments.push({
-      template: item.template,
-      label: item.label || item.template,
-      price: item.price
+    if (!page.docSelect) return;
+    var checked = Array.prototype.slice.call(page.docSelect.querySelectorAll('input[type="checkbox"]:checked:not(:disabled)'));
+    if (!checked.length) return;
+    var existing = {};
+    page.state.selectedDocuments.forEach(function (item) {
+      existing[item.template] = true;
+    });
+    checked.forEach(function (input) {
+      var template = input.value;
+      if (!template || existing[template]) return;
+      var item = page.state.priceList.find(function (priceItem) { return priceItem.template === template; });
+      if (!item) return;
+      page.state.selectedDocuments.push({
+        template: item.template,
+        label: item.label || item.template,
+        price: item.price
+      });
+      existing[template] = true;
     });
     page.renderDocumentsList();
+    if (page.renderDocumentChecklist) page.renderDocumentChecklist();
     page.syncFromMainForm();
   };
 
@@ -231,6 +242,7 @@
     if (sellerBody) sellerBody.classList.toggle('form-section__body--closed', !(inputs.hasSeller && inputs.hasSeller.checked));
     if (trusteeBody) trusteeBody.classList.toggle('form-section__body--closed', !(inputs.hasTrustee && inputs.hasTrustee.checked));
     page.renderDocumentsList();
+    if (page.renderDocumentChecklist) page.renderDocumentChecklist();
     page.syncFromMainForm();
   };
 
@@ -291,16 +303,9 @@
       if (!response.ok) throw new Error(response.statusText);
       page.state.priceList = await response.json();
       if (!Array.isArray(page.state.priceList)) page.state.priceList = [];
-      if (page.docSelect) {
-        var options = page.state.priceList.filter(function (item) { return (item.template || '') !== 'number.docx'; });
-        page.docSelect.innerHTML = '<option value="">Выберите документ из списка</option>' + options.map(function (item) {
-          var price = typeof item.price === 'number' ? item.price : parseFloat(item.price);
-          var label = (item.label || item.template) + ' — ' + (isNaN(price) ? '0' : price) + ' ₽';
-          return '<option value="' + (item.template || '').replace(/"/g, '&quot;') + '">' + label.replace(/</g, '&lt;') + '</option>';
-        }).join('');
-      }
+      if (page.renderDocumentChecklist) page.renderDocumentChecklist();
     } catch (_) {
-      if (page.docSelect) page.docSelect.innerHTML = '<option value="">Не удалось загрузить прейскурант</option>';
+      if (page.docSelect) page.docSelect.innerHTML = '<span class="document-checklist__loading">Не удалось загрузить прейскурант</span>';
     }
   };
 

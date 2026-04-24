@@ -338,14 +338,13 @@
         <fieldset class="form-section">
           <legend class="form-section__title">Документы и оплата</legend>
           <div class="form-row form-row--add-doc">
-            <div class="field">
-              <label class="field__label" for="docSelect">Добавить документ</label>
-              <select id="docSelect" class="field__select">
-                <option value="">Выберите документ из списка</option>
-                <!-- заполняется из прейскуранта -->
-              </select>
+            <div class="field field--full">
+              <label class="field__label" for="docSelect">Добавить документы</label>
+              <div id="docSelect" class="document-checklist" role="group" aria-label="Документы из прейскуранта">
+                <span class="document-checklist__loading">Загрузка прейскуранта...</span>
+              </div>
             </div>
-            <button type="button" class="btn btn--add-doc" id="btnAddDoc">Добавить</button>
+            <button type="button" class="btn btn--add-doc" id="btnAddDoc">Добавить выбранные</button>
           </div>
           <div class="form-row amounts">
             <div class="field">

@@ -2,7 +2,7 @@ from io import BytesIO
 
 from docx import Document
 
-from app.services.docx_service import render_docx
+from app.services.docx_service import document_download_filename, render_docx
 
 
 def _docx_text(content: bytes) -> str:
@@ -77,6 +77,8 @@ def test_dkp_uses_full_seller_passport_without_replacing_seller_with_trustee():
     assert "СРТС:  99AA 123456, выдан РЭО ГИБДД ОМВД России по г. Михайловке, 12.03.2024" in text
     assert "ПТС: 78УУ 123456, выдан АО Электронный паспорт, 15.01.2021" in text
     assert "восемьсот пятьдесят тысяч рублей 00 копеек" in text
+    assert "передает продавцу полную вышеуказанную стоимость ТС" in text
+    assert "предает покупателю" not in text
 
 
 def test_dkp_pieces_includes_amount_words_and_clean_party_lines():
@@ -105,7 +107,7 @@ def test_vehicle_documents_include_issue_details_in_templates():
     text = _docx_text(render_docx("zaiavlenie.docx", _base_form_data()))
 
     assert "78УУ 123456, выдан АО Электронный паспорт, 15.01.2021" in text
-    assert "99AA 123456, выдан РЭО ГИБДД ОМВД России по г. Михайловке, 12.03.2024" in text
+    assert "СРТС 99AA 123456, выдан РЭО ГИБДД ОМВД России по г. Михайловке, 12.03.2024" in text
 
 
 def test_split_vehicle_documents_include_issue_details():
@@ -180,7 +182,30 @@ def test_zaiavlenie_adds_plate_replacement_action_when_needed():
 
     text = _docx_text(render_docx("zaiavlenie.docx", form_data))
 
-    assert "НЗ заменить" in text
+    assert "НЗ ЗАМЕНИТЬ" in text
+
+
+def test_zaiavlenie_does_not_copy_owner_address_to_representative_when_no_trustee():
+    form_data = _base_form_data()
+    form_data["trustee_fio"] = None
+    form_data["trustee_passport"] = None
+
+    text = _docx_text(render_docx("zaiavlenie.docx", form_data))
+
+    assert "ПРЕДСТАВИТЕЛЬ СОБСТВЕННИКА     Сидоров" not in text
+    assert "Телефон                +79991234567" not in text
+    representative_block = text.split("ПРЕДСТАВИТЕЛЬ СОБСТВЕННИКА", 1)[1].split("24.04.2026", 1)[0]
+    assert "г. Волгоград, ул. Ленина, д. 10" not in representative_block
+
+
+def test_zaiavlenie_dkp_field_starts_with_dkp_label():
+    text = _docx_text(render_docx("zaiavlenie.docx", _base_form_data()))
+
+    assert "Документ, удостоверяющий право собственности: ДКП, 23.04.2026, 850000" in text
+
+
+def test_download_filename_uses_russian_label_and_initials():
+    assert document_download_filename("DKP.docx", _base_form_data()) == "ДКП - Иванов И.И..docx"
 
 
 def test_partial_passport_details_do_not_create_extra_separators():

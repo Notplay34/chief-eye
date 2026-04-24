@@ -38,10 +38,10 @@ PLACEHOLDER_TO_FIELD = {
     "Паспорт дов когда выдан": "trustee_passport_issued_date",
     "Код подразделения дов": "trustee_passport_division_code",
     "Адрес": "client_address",
-    "Адрес дов": "client_address",
+    "Адрес дов": None,
     "Телефон": "client_phone",
     "Номер телефона": "client_phone",
-    "Номер телефона дов": "client_phone",
+    "Номер телефона дов": None,
     "ФИО продавец": "seller_fio",
     "Паспорт продавец": "seller_passport",
     "Паспорт продавец серия": "seller_passport_series",
@@ -95,6 +95,19 @@ _PASSPORT_PLACEHOLDER_PREFIXES = {
 
 _REPRESENTATIVE_TEMPLATES = frozenset({"zaiavlenie.docx"})
 _NUMBER_REPRESENTATIVE_TEMPLATES = frozenset({"number.docx"})
+
+_DOWNLOAD_LABELS = {
+    "akt_pp.docx": "Акт приема-передачи",
+    "DKP.docx": "ДКП",
+    "dkp_dar.docx": "Договор дарения",
+    "dkp_pieces.docx": "ДКП запчасти",
+    "doverennost.docx": "Доверенность",
+    "mreo.docx": "МРЭО",
+    "number.docx": "Заявление на номера",
+    "prokuratura.docx": "Прокуратура",
+    "zaiavlenie.docx": "Заявление",
+    "zaiavlenie_na_nomera.docx": "Заявление на номера",
+}
 
 _ONES = {
     0: "",
@@ -189,7 +202,7 @@ def _full_passport(form_data: dict, prefix: str) -> str:
     return ", ".join(part for part in parts if part)
 
 
-def _full_vehicle_doc(form_data: dict, prefix: str) -> str:
+def _full_vehicle_doc(form_data: dict, prefix: str, *, with_label: bool = False) -> str:
     doc_value = form_data.get(prefix)
     series = form_data.get(f"{prefix}_series")
     number = form_data.get(f"{prefix}_number")
@@ -203,7 +216,11 @@ def _full_vehicle_doc(form_data: dict, prefix: str) -> str:
         parts.append(f"выдан {str(issued_by).strip()}")
     if issued_date:
         parts.append(str(issued_date).strip())
-    return ", ".join(part for part in parts if part)
+    value = ", ".join(part for part in parts if part)
+    if with_label and value:
+        label = "СРТС" if prefix == "srts" else prefix.upper()
+        return f"{label} {value}"
+    return value
 
 
 def _plural_ru(number: int, forms: tuple[str, str, str]) -> str:
@@ -284,6 +301,28 @@ def _signer_full_fio(form_data: dict, template_name: Optional[str]) -> str:
     return str(form_data.get("client_fio") or "").strip()
 
 
+def _dkp_statement_value(form_data: dict) -> str:
+    parts = ["ДКП"]
+    if form_data.get("dkp_date"):
+        parts.append(str(form_data["dkp_date"]))
+    if form_data.get("summa_dkp"):
+        parts.append(str(form_data["summa_dkp"]))
+    if form_data.get("dkp_number"):
+        parts.append("№ " + str(form_data["dkp_number"]))
+    if len(parts) == 1 and form_data.get("dkp_summary"):
+        parts.append(str(form_data["dkp_summary"]))
+    return ", ".join(parts)
+
+
+def document_download_filename(template_name: str, form_data: Optional[dict]) -> str:
+    form_data = form_data or {}
+    label = _DOWNLOAD_LABELS.get(template_name, template_name.rsplit(".", 1)[0])
+    fio = form_data.get("client_fio") or form_data.get("client_legal_name") or ""
+    initials = _fio_initials(str(fio)) if fio else ""
+    suffix = f" - {initials}" if initials else ""
+    return f"{label}{suffix}.docx"
+
+
 def _form_data_to_replace_map(
     form_data: Optional[dict],
     doc_date: Optional[date] = None,
@@ -299,7 +338,7 @@ def _form_data_to_replace_map(
         if placeholder in _PASSPORT_PLACEHOLDER_PREFIXES:
             value = _full_passport(form_data, _PASSPORT_PLACEHOLDER_PREFIXES[placeholder])
         if placeholder == "СРТС":
-            value = _full_vehicle_doc(form_data, "srts")
+            value = _full_vehicle_doc(form_data, "srts", with_label=template_name == "zaiavlenie.docx")
         if placeholder == "ПТС":
             value = _full_vehicle_doc(form_data, "pts")
         if template_name in _NUMBER_REPRESENTATIVE_TEMPLATES:
@@ -315,20 +354,13 @@ def _form_data_to_replace_map(
         if placeholder == "ФИО_подписант":
             value = _signer_full_fio(form_data, template_name)
         if value is None and placeholder == "Действие":
-            value = "НЗ заменить" if form_data.get("need_plate") else ""
+            value = "НЗ ЗАМЕНИТЬ" if form_data.get("need_plate") else ""
         if value is None and placeholder == "Текущая_дата":
             value = doc_date.strftime("%d.%m.%Y")
         if value is None and placeholder == "Дата ДКП":
             value = doc_date.strftime("%d.%m.%Y")
-        if value is None and placeholder == "ДКП":
-            parts = []
-            if form_data.get("dkp_date"):
-                parts.append(str(form_data["dkp_date"]))
-            if form_data.get("summa_dkp"):
-                parts.append(str(form_data["summa_dkp"]))
-            if form_data.get("dkp_number"):
-                parts.append("№ " + str(form_data["dkp_number"]))
-            value = ", ".join(parts) if parts else ""
+        if placeholder == "ДКП" and (form_data.get("dkp_date") or form_data.get("summa_dkp") or form_data.get("dkp_number") or form_data.get("dkp_summary")):
+            value = _dkp_statement_value(form_data)
         if value is None:
             value = ""
         result[placeholder] = str(value)

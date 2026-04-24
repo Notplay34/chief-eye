@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from sqlalchemy import select
@@ -6,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.auth import RequireOrdersListAccess, UserInfo
 from app.core.database import get_db
 from app.models import Order
-from app.services.docx_service import TEMPLATES_DIR, render_docx
+from app.services.docx_service import TEMPLATES_DIR, document_download_filename, render_docx
 from app.services.errors import ServiceError
 from app.services.order_access import ensure_can_print_template
 from app.services.order_validation import validate_order_for_print
@@ -63,8 +65,10 @@ async def get_order_document(
         data = render_docx(resolved, order.form_data)
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    filename = document_download_filename(template_name, order.form_data)
+    encoded_filename = quote(filename)
     return Response(
         content=data,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        headers={"Content-Disposition": f'attachment; filename="{template_name}"'},
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"},
     )

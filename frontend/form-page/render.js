@@ -31,9 +31,38 @@
         var index = parseInt(btn.getAttribute('data-index'), 10);
         page.state.selectedDocuments.splice(index, 1);
         page.renderDocumentsList();
+        if (page.renderDocumentChecklist) page.renderDocumentChecklist();
         page.syncFromMainForm();
       });
     });
+  };
+
+  page.renderDocumentChecklist = function () {
+    if (!page.docSelect) return;
+    var selected = {};
+    page.state.selectedDocuments.forEach(function (item) {
+      if (!item.paymentOnly) selected[item.template] = true;
+    });
+    var options = (page.state.priceList || []).filter(function (item) {
+      return (item.template || '') !== 'number.docx';
+    });
+    if (!options.length) {
+      page.docSelect.innerHTML = '<span class="document-checklist__loading">Нет документов в прейскуранте</span>';
+      return;
+    }
+    page.docSelect.innerHTML = options.map(function (item) {
+      var template = String(item.template || '');
+      var safeTemplate = template.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+      var label = String(item.label || item.template || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      var price = page.num(item.price);
+      var isSelected = !!selected[template];
+      return '<label class="document-checklist__item' + (isSelected ? ' document-checklist__item--selected' : '') + '">' +
+        '<input type="checkbox" value="' + safeTemplate + '"' + (isSelected ? ' checked disabled' : '') + '>' +
+        '<span class="document-checklist__box"></span>' +
+        '<span class="document-checklist__name">' + label + '</span>' +
+        '<span class="document-checklist__price">' + page.formatMoney(price) + '</span>' +
+      '</label>';
+    }).join('');
   };
 
   page.updateSummary = function () {
@@ -212,6 +241,7 @@
     }
     if (page.inputs.plateQuantity) page.inputs.plateQuantity.disabled = !need;
     page.renderDocumentsList();
+    if (page.renderDocumentChecklist) page.renderDocumentChecklist();
     page.updateSummary();
     page.updatePreview();
   };

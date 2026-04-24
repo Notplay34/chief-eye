@@ -133,20 +133,13 @@
     page.setupTogglableSections();
     page.bindHistoryMenu();
     page.syncPlateToDocuments();
+    if (page.renderDocumentChecklist) page.renderDocumentChecklist();
     page.renderDocumentsList();
     page.syncFromMainForm();
     page.updateTime();
     setInterval(page.updateTime, 60000);
 
     if (page.btnAddDoc) page.btnAddDoc.addEventListener('click', page.addSelectedDocument);
-    if (page.docSelect) {
-      page.docSelect.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          page.addSelectedDocument();
-        }
-      });
-    }
     if (page.btnAcceptCash) page.btnAcceptCash.addEventListener('click', page.acceptCash);
     if (page.btnPrint) page.btnPrint.addEventListener('click', page.doPrint);
     page.loadFormHistory();

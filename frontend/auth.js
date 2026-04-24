@@ -97,8 +97,9 @@
         });
       }
       var disposition = res.headers.get('content-disposition') || '';
-      var match = disposition.match(/filename=\"?([^"]+)\"?/i);
-      var filename = (match && match[1]) || fallbackFilename || 'document.docx';
+      var utfMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+      var asciiMatch = disposition.match(/filename=\"?([^"]+)\"?/i);
+      var filename = (utfMatch && decodeURIComponent(utfMatch[1])) || (asciiMatch && asciiMatch[1]) || fallbackFilename || 'document.docx';
       return res.blob().then(function (blob) {
         window.downloadBlobFile(blob, filename);
       });

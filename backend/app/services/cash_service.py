@@ -167,10 +167,11 @@ async def get_state_duty_commission_summary(
             )
         )
     ).scalars().all()
-    total = sum(
+    commission_total = sum(
         (_state_duty_commission_from_cash_amount(row.state_duty, settings) for row in rows),
         Decimal("0"),
     )
+    state_duty_total = sum((Decimal(str(row.state_duty or 0)) for row in rows), Decimal("0"))
     withdrawal = (
         await db.execute(
             select(CashRow).where(
@@ -182,11 +183,13 @@ async def get_state_duty_commission_summary(
 
     return {
         "business_date": day.isoformat(),
-        "commission_total": float(total),
+        "commission_total": float(commission_total),
+        "state_duty_total": float(state_duty_total),
+        "withdrawal_total": float(state_duty_total),
         "withdrawn": withdrawal is not None,
         "withdrawn_row_id": withdrawal.id if withdrawal else None,
         "withdrawn_at": withdrawal.created_at.isoformat() if withdrawal and withdrawal.created_at else None,
-        "can_withdraw": total > 0 and withdrawal is None,
+        "can_withdraw": state_duty_total > 0 and withdrawal is None,
     }
 
 
@@ -199,12 +202,12 @@ async def withdraw_state_duty_commissions(
     day = date.fromisoformat(summary["business_date"])
     if summary["withdrawn"]:
         return summary
-    total = Decimal(str(summary["commission_total"]))
+    total = Decimal(str(summary.get("withdrawal_total") or summary.get("state_duty_total") or 0))
     if total <= 0:
-        raise ServiceError("За выбранный день нет комиссий госпошлин к списанию", status_code=400)
+        raise ServiceError("За выбранный день нет госпошлин к списанию", status_code=400)
 
     row = CashRow(
-        client_name=f"Комиссии госпошлин {day.strftime('%d.%m.%Y')}",
+        client_name=f"Госпошлины {day.strftime('%d.%m.%Y')}",
         application=Decimal("0"),
         state_duty=-total,
         dkp=Decimal("0"),

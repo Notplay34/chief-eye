@@ -197,6 +197,8 @@ def test_state_duty_settings_and_commission_withdrawal(client: TestClient, auth_
     assert summary_response.status_code == 200, summary_response.text
     summary = summary_response.json()
     assert summary["commission_total"] == 225.0
+    assert summary["state_duty_total"] == 2250.0
+    assert summary["withdrawal_total"] == 2250.0
     assert summary["can_withdraw"] is True
 
     withdraw_response = client.post("/cash/state-duty-commissions/withdraw", json={}, headers=auth_headers)
@@ -214,8 +216,8 @@ def test_state_duty_settings_and_commission_withdrawal(client: TestClient, auth_
         if row["source_type"] == "STATE_DUTY_COMMISSION_WITHDRAWAL"
     ]
     assert len(commission_rows) == 1
-    assert commission_rows[0]["state_duty"] == -225.0
-    assert commission_rows[0]["total"] == -225.0
+    assert commission_rows[0]["state_duty"] == -2250.0
+    assert commission_rows[0]["total"] == -2250.0
 
 
 def test_state_duty_commission_summary_follows_cash_row_deletion(client: TestClient, auth_headers: dict[str, str]):
@@ -224,6 +226,7 @@ def test_state_duty_commission_summary_follows_cash_row_deletion(client: TestCli
     summary_response = client.get("/cash/state-duty-commissions", headers=auth_headers)
     assert summary_response.status_code == 200, summary_response.text
     assert summary_response.json()["commission_total"] == 150.0
+    assert summary_response.json()["state_duty_total"] == 650.0
 
     cash_rows_response = client.get("/cash/rows", headers=auth_headers)
     assert cash_rows_response.status_code == 200, cash_rows_response.text
@@ -240,6 +243,7 @@ def test_state_duty_commission_summary_follows_cash_row_deletion(client: TestCli
     assert updated_summary_response.status_code == 200, updated_summary_response.text
     updated_summary = updated_summary_response.json()
     assert updated_summary["commission_total"] == 0.0
+    assert updated_summary["state_duty_total"] == 0.0
     assert updated_summary["can_withdraw"] is False
 
 

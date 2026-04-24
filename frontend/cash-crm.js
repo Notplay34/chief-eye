@@ -287,17 +287,17 @@
     var totalEl = document.getElementById('stateDutyCommissionTotal');
     var btn = document.getElementById('btnWithdrawStateDutyCommission');
     var msgEl = document.getElementById('stateDutyCommissionMsg');
-    if (totalEl) totalEl.textContent = formatNumOnly(summary.commission_total || 0) + ' ₽';
+    if (totalEl) totalEl.textContent = formatNumOnly(summary.withdrawal_total || summary.state_duty_total || 0) + ' ₽';
     if (btn) btn.disabled = !summary.can_withdraw;
     if (msgEl) {
       if (summary.withdrawn) {
-        msgEl.textContent = 'Комиссии за день уже списаны.';
+        msgEl.textContent = 'Госпошлины за день уже списаны.';
         msgEl.className = 'cash-duty-commission__msg cash-duty-commission__msg--ok';
-      } else if (Number(summary.commission_total || 0) <= 0) {
-        msgEl.textContent = 'Комиссий к списанию пока нет.';
+      } else if (Number(summary.withdrawal_total || summary.state_duty_total || 0) <= 0) {
+        msgEl.textContent = 'Госпошлин к списанию пока нет.';
         msgEl.className = 'cash-duty-commission__msg';
       } else {
-        msgEl.textContent = '';
+        msgEl.textContent = 'Комиссия для аналитики: ' + formatNumOnly(summary.commission_total || 0) + ' ₽';
         msgEl.className = 'cash-duty-commission__msg';
       }
     }
@@ -338,13 +338,13 @@
       .then(function (summary) {
         renderStateDutyCommission(summary);
         loadRows();
-        msg('Комиссии госпошлин списаны', 'ok');
+        msg('Госпошлины списаны', 'ok');
       })
       .catch(function (e) {
         if (btn) btn.disabled = false;
         var msgEl = document.getElementById('stateDutyCommissionMsg');
         if (msgEl) {
-          msgEl.textContent = e.message || 'Не удалось списать комиссии';
+          msgEl.textContent = e.message || 'Не удалось списать госпошлины';
           msgEl.className = 'cash-duty-commission__msg cash-duty-commission__msg--err';
         }
       });
