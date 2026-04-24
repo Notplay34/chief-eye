@@ -2,8 +2,31 @@
   var page = window.RegDocFormPage;
   if (!page) return;
 
+  function formatDetail(detail) {
+    if (!detail) return '';
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail)) {
+      return detail.map(function (item) {
+        if (!item) return '';
+        if (typeof item === 'string') return item;
+        var path = Array.isArray(item.loc) ? item.loc.filter(function (part) { return part !== 'body'; }).join('.') : '';
+        var msg = item.msg || item.detail || '';
+        return path ? (path + ': ' + msg) : msg;
+      }).filter(Boolean).join('\n');
+    }
+    if (typeof detail === 'object') {
+      return detail.detail || detail.message || JSON.stringify(detail);
+    }
+    return String(detail);
+  }
+
   page.showError = function (msg) {
-    alert('Ошибка: ' + msg);
+    alert('Ошибка: ' + formatDetail(msg));
+  };
+
+  page.extractError = async function (response) {
+    var payload = await response.json().catch(function () { return { detail: response.statusText }; });
+    throw new Error(formatDetail(payload && payload.detail) || response.statusText || 'Ошибка запроса');
   };
 
   page.addSelectedDocument = function () {
@@ -79,19 +102,13 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(page.buildOrderPayload())
       });
-      if (!resOrder.ok) {
-        var err = await resOrder.json().catch(function () { return { detail: resOrder.statusText }; });
-        throw new Error(err.detail || JSON.stringify(err));
-      }
+      if (!resOrder.ok) await page.extractError(resOrder);
       var order = await resOrder.json();
       var resPay = await page.fetchApi(page.apiBaseUrl + '/orders/' + order.id + '/pay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
-      if (!resPay.ok) {
-        var errPay = await resPay.json().catch(function () { return { detail: resPay.statusText }; });
-        throw new Error(errPay.detail || JSON.stringify(errPay));
-      }
+      if (!resPay.ok) await page.extractError(resPay);
       page.orderIdDisplay.textContent = 'Заказ: ' + (order.public_id || order.id);
       page.orderIdDisplay.style.fontWeight = '600';
       page.btnAcceptCash.textContent = 'Оплата принята';
