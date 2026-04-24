@@ -15,6 +15,22 @@
     return page.num(page.inputs.stateDuty && page.inputs.stateDuty.value);
   };
 
+  page.getStateDutyCalculation = function () {
+    var base = page.getStateDuty();
+    if (base <= 0) {
+      return { base: 0, commission: 0, cashAmount: 0 };
+    }
+    var settings = page.state.stateDutySettings || {};
+    var commission = Math.max(0, page.num(settings.commission != null ? settings.commission : 150));
+    var special = Math.max(2025, page.num(settings.special_2025_cash_amount != null ? settings.special_2025_cash_amount : 2200));
+    var cashAmount = base === 2025 ? special : base + commission;
+    return {
+      base: base,
+      commission: Math.max(0, cashAmount - base),
+      cashAmount: cashAmount
+    };
+  };
+
   page.getDocumentsTotal = function () {
     return page.state.selectedDocuments.reduce(function (sum, item) {
       return sum + page.num(item.price);
@@ -22,7 +38,7 @@
   };
 
   page.getTotal = function () {
-    return page.getStateDuty() + page.getDocumentsTotal();
+    return page.getStateDutyCalculation().cashAmount + page.getDocumentsTotal();
   };
 
   page.formatMoney = function (value) {

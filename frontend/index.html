@@ -343,6 +343,11 @@
             <div class="field">
               <label class="field__label" for="stateDuty">Госпошлина, ₽</label>
               <input type="number" id="stateDuty" class="field__input field__input--number" min="0" step="1" value="0" placeholder="0">
+              <div class="state-duty-note" id="stateDutyNote" hidden>
+                <span>В заявление: <strong id="stateDutyBaseHint">0 ₽</strong></span>
+                <span>В кассу с комиссией: <strong id="stateDutyCashHint">0 ₽</strong></span>
+                <span>Комиссия: <strong id="stateDutyCommissionHint">0 ₽</strong></span>
+              </div>
             </div>
             <div class="field field--plate">
               <div class="plate-option">
@@ -373,8 +378,16 @@
               <span class="summary__value summary__value--income" id="sumIncome">0 ₽</span>
             </div>
             <div class="summary__row">
-              <span class="summary__label">Госпошлина</span>
+              <span class="summary__label">Госпошлина в кассу</span>
               <span class="summary__value" id="sumStateDuty">0 ₽</span>
+            </div>
+            <div class="summary__row" id="sumStateDutyBaseRow" hidden>
+              <span class="summary__label">В заявлении</span>
+              <span class="summary__value" id="sumStateDutyBase">0 ₽</span>
+            </div>
+            <div class="summary__row" id="sumStateDutyCommissionRow" hidden>
+              <span class="summary__label">Комиссия госпошлины</span>
+              <span class="summary__value" id="sumStateDutyCommission">0 ₽</span>
             </div>
             <div class="summary__row" id="sumPlateRow" hidden>
               <span class="summary__label">Номера</span>

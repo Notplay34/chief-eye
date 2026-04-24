@@ -1,7 +1,8 @@
 """Строка кассы: ФИО и суммы по графам (заявление, госпошлина, ДКП, страховка, номера, итого)."""
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
-from sqlalchemy import DateTime, Numeric, String
+from typing import Optional
+from sqlalchemy import Date, DateTime, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -20,3 +21,5 @@ class CashRow(Base):
     insurance: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"), nullable=False)     # Страховка
     plates: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"), nullable=False)       # Номера
     total: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"), nullable=False)        # Итого
+    source_type: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    source_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)

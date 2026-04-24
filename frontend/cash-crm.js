@@ -264,6 +264,81 @@
     else if (total > 0) wrap.classList.add('cash-crm__total-value--positive');
   }
 
+  function todayKey() {
+    var d = new Date();
+    var y = d.getFullYear();
+    var m = d.getMonth() + 1;
+    var day = d.getDate();
+    return y + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
+  }
+
+  function renderStateDutyCommission(summary) {
+    var totalEl = document.getElementById('stateDutyCommissionTotal');
+    var btn = document.getElementById('btnWithdrawStateDutyCommission');
+    var msgEl = document.getElementById('stateDutyCommissionMsg');
+    if (totalEl) totalEl.textContent = formatNumOnly(summary.commission_total || 0) + ' ₽';
+    if (btn) btn.disabled = !summary.can_withdraw;
+    if (msgEl) {
+      if (summary.withdrawn) {
+        msgEl.textContent = 'Комиссии за день уже списаны.';
+        msgEl.className = 'cash-duty-commission__msg cash-duty-commission__msg--ok';
+      } else if (Number(summary.commission_total || 0) <= 0) {
+        msgEl.textContent = 'Комиссий к списанию пока нет.';
+        msgEl.className = 'cash-duty-commission__msg';
+      } else {
+        msgEl.textContent = '';
+        msgEl.className = 'cash-duty-commission__msg';
+      }
+    }
+  }
+
+  function loadCashDay() {
+    fetchApi(API + '/cash/state-duty-commissions?business_date=' + encodeURIComponent(todayKey()))
+      .then(function (r) {
+        if (!r.ok) {
+          return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
+        }
+        return r.json();
+      })
+      .then(renderStateDutyCommission)
+      .catch(function (e) {
+        var msgEl = document.getElementById('stateDutyCommissionMsg');
+        if (msgEl) {
+          msgEl.textContent = e.message || 'Ошибка загрузки комиссий';
+          msgEl.className = 'cash-duty-commission__msg cash-duty-commission__msg--err';
+        }
+      });
+  }
+
+  function withdrawStateDutyCommission() {
+    var btn = document.getElementById('btnWithdrawStateDutyCommission');
+    if (btn) btn.disabled = true;
+    fetchApi(API + '/cash/state-duty-commissions/withdraw', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ business_date: todayKey() })
+    })
+      .then(function (r) {
+        return r.json().then(function (json) {
+          if (!r.ok) throw new Error(json.detail || r.statusText);
+          return json;
+        });
+      })
+      .then(function (summary) {
+        renderStateDutyCommission(summary);
+        loadRows();
+        msg('Комиссии госпошлин списаны', 'ok');
+      })
+      .catch(function (e) {
+        if (btn) btn.disabled = false;
+        var msgEl = document.getElementById('stateDutyCommissionMsg');
+        if (msgEl) {
+          msgEl.textContent = e.message || 'Не удалось списать комиссии';
+          msgEl.className = 'cash-duty-commission__msg cash-duty-commission__msg--err';
+        }
+      });
+  }
+
   function renderRow(row) {
     var rowEl = document.createElement('div');
     rowEl.className = 'cash-crm__grid-row';
@@ -382,6 +457,7 @@
       .then(function (data) {
         rows = Array.isArray(data) ? data : [];
         render();
+        loadCashDay();
       })
       .catch(function (e) {
         var bodyEl = document.getElementById('cashBody');
@@ -431,6 +507,8 @@
     loadRows();
     var btn = document.getElementById('btnAddRow');
     if (btn) btn.onclick = addRow;
+    var dutyBtn = document.getElementById('btnWithdrawStateDutyCommission');
+    if (dutyBtn) dutyBtn.onclick = withdrawStateDutyCommission;
   }
 
   if (document.readyState === 'loading') {

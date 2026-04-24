@@ -299,4 +299,21 @@
       if (page.docSelect) page.docSelect.innerHTML = '<option value="">Не удалось загрузить прейскурант</option>';
     }
   };
+
+  page.loadStateDutySettings = async function () {
+    try {
+      var response = await page.fetchApi(page.apiBaseUrl + '/settings/state-duty');
+      if (!response.ok) throw new Error(response.statusText);
+      var settings = await response.json();
+      page.state.stateDutySettings = {
+        commission: page.num(settings.commission),
+        special_2025_cash_amount: page.num(settings.special_2025_cash_amount)
+      };
+    } catch (_) {
+      page.state.stateDutySettings = {
+        commission: 150,
+        special_2025_cash_amount: 2200
+      };
+    }
+  };
 })();

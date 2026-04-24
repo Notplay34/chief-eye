@@ -7,6 +7,9 @@
   var employeesEl = document.getElementById('employeesContent');
   var priceListEl = document.getElementById('priceListContent');
   var priceListMessage = document.getElementById('priceListMessage');
+  var stateDutyCommissionInput = document.getElementById('stateDutyCommission');
+  var stateDuty2025Input = document.getElementById('stateDuty2025CashAmount');
+  var stateDutySettingsMessage = document.getElementById('stateDutySettingsMessage');
   var orderStatusFilter = document.getElementById('orderStatusFilter');
 
   function showErr(el, msg) {
@@ -300,12 +303,61 @@
       });
   }
 
+  function loadStateDutySettings() {
+    if (!stateDutyCommissionInput || !stateDuty2025Input) return;
+    fetchApi(apiBase + '/settings/state-duty')
+      .then(function (r) {
+        if (!r.ok) throw new Error(r.statusText);
+        return r.json();
+      })
+      .then(function (settings) {
+        stateDutyCommissionInput.value = Number(settings.commission || 0);
+        stateDuty2025Input.value = Number(settings.special_2025_cash_amount || 2200);
+      })
+      .catch(function (e) {
+        if (stateDutySettingsMessage) stateDutySettingsMessage.textContent = e.message || 'Ошибка загрузки';
+      });
+  }
+
+  function saveStateDutySettings() {
+    if (!stateDutyCommissionInput || !stateDuty2025Input) return;
+    var payload = {
+      commission: Math.max(0, parseFloat(stateDutyCommissionInput.value) || 0),
+      special_2025_cash_amount: Math.max(2025, parseFloat(stateDuty2025Input.value) || 2025)
+    };
+    if (stateDutySettingsMessage) stateDutySettingsMessage.textContent = 'Сохранение…';
+    fetchApi(apiBase + '/settings/state-duty', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) {
+        return r.json().then(function (json) {
+          if (!r.ok) throw new Error(json.detail || r.statusText);
+          return json;
+        });
+      })
+      .then(function (settings) {
+        stateDutyCommissionInput.value = Number(settings.commission || 0);
+        stateDuty2025Input.value = Number(settings.special_2025_cash_amount || 2200);
+        if (stateDutySettingsMessage) stateDutySettingsMessage.textContent = 'Сохранено.';
+        setTimeout(function () {
+          if (stateDutySettingsMessage) stateDutySettingsMessage.textContent = '';
+        }, 3000);
+      })
+      .catch(function (e) {
+        if (stateDutySettingsMessage) stateDutySettingsMessage.textContent = '';
+        alert('Ошибка: ' + (e.message || 'Не удалось сохранить комиссию'));
+      });
+  }
+
   function refresh() {
     ordersEl.textContent = 'Загрузка…';
     employeesEl.textContent = 'Загрузка…';
     if (priceListEl) priceListEl.textContent = 'Загрузка…';
     loadOrders();
     loadEmployees();
+    loadStateDutySettings();
     loadPriceList();
   }
 
@@ -319,6 +371,7 @@
   document.getElementById('btnRefresh').addEventListener('click', refresh);
   document.getElementById('btnSavePriceList').addEventListener('click', savePriceList);
   document.getElementById('btnAddPriceRow').addEventListener('click', addPriceRow);
+  document.getElementById('btnSaveStateDutySettings').addEventListener('click', saveStateDutySettings);
 
   refresh();
 })();

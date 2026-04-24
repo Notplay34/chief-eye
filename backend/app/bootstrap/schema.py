@@ -110,7 +110,21 @@ async def ensure_schema_compatibility(engine: AsyncEngine) -> None:
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='cash_rows' AND column_name='created_at') THEN
                     ALTER TABLE cash_rows ADD COLUMN created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'utc');
                 END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='cash_rows' AND column_name='source_type') THEN
+                    ALTER TABLE cash_rows ADD COLUMN source_type VARCHAR(64);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='cash_rows' AND column_name='source_date') THEN
+                    ALTER TABLE cash_rows ADD COLUMN source_date DATE;
+                END IF;
             END $$;
+        """))
+        await conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS app_settings (
+                id SERIAL PRIMARY KEY,
+                setting_key VARCHAR(100) NOT NULL UNIQUE,
+                setting_value VARCHAR(255) NOT NULL,
+                updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'utc')
+            );
         """))
         await conn.execute(text("""
             CREATE TABLE IF NOT EXISTS plate_cash_rows (

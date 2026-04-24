@@ -8,10 +8,13 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth import UserInfo
-from app.models import CashDayReconciliation, CashRow, CashShift, Payment, PlateCashRow, PlatePayout, ShiftStatus
+from app.models import CashDayReconciliation, CashRow, CashShift, Order, Payment, PlateCashRow, PlatePayout, ShiftStatus
+from app.models.payment import PaymentType
 from app.models.employee import EmployeeRole
 from app.services.audit_service import write_audit_log
 from app.services.errors import ServiceError
+
+STATE_DUTY_COMMISSION_WITHDRAWAL = "STATE_DUTY_COMMISSION_WITHDRAWAL"
 
 
 def _fio_initials(value: str | None) -> str:
@@ -55,6 +58,11 @@ async def get_current_shift(db: AsyncSession, pavilion: int) -> Optional[CashShi
 def _day_bounds(day: date) -> tuple[datetime, datetime]:
     start = datetime.combine(day, time.min)
     return start, start + timedelta(days=1)
+
+
+def _state_duty_commission_from_order(order: Order) -> Decimal:
+    form_data = order.form_data or {}
+    return Decimal(str(form_data.get("state_duty_commission") or 0))
 
 
 def _workday_bounds(now: datetime) -> tuple[datetime, datetime]:
@@ -127,6 +135,84 @@ async def get_cash_day_summary(db: AsyncSession, user: UserInfo, pavilion: int, 
         "difference": float(difference) if difference is not None else None,
         "reconciliation": _reconciliation_to_dict(reconciliation),
     }
+
+
+async def get_state_duty_commission_summary(
+    db: AsyncSession,
+    user: UserInfo,
+    business_date: Optional[date] = None,
+) -> dict:
+    if not can_manage_pavilion_cash(user, 1):
+        raise ServiceError("Нет доступа к кассе этого павильона", status_code=403)
+
+    day = business_date or datetime.utcnow().date()
+    start, end = _day_bounds(day)
+    paid_orders_query = (
+        select(Order)
+        .join(Payment, Payment.order_id == Order.id)
+        .where(
+            Payment.type == PaymentType.STATE_DUTY,
+            Payment.created_at >= start,
+            Payment.created_at < end,
+        )
+        .distinct()
+    )
+    orders = (await db.execute(paid_orders_query)).scalars().all()
+    total = sum((_state_duty_commission_from_order(order) for order in orders), Decimal("0"))
+    withdrawal = (
+        await db.execute(
+            select(CashRow).where(
+                CashRow.source_type == STATE_DUTY_COMMISSION_WITHDRAWAL,
+                CashRow.source_date == day,
+            )
+        )
+    ).scalar_one_or_none()
+
+    return {
+        "business_date": day.isoformat(),
+        "commission_total": float(total),
+        "withdrawn": withdrawal is not None,
+        "withdrawn_row_id": withdrawal.id if withdrawal else None,
+        "withdrawn_at": withdrawal.created_at.isoformat() if withdrawal and withdrawal.created_at else None,
+        "can_withdraw": total > 0 and withdrawal is None,
+    }
+
+
+async def withdraw_state_duty_commissions(
+    db: AsyncSession,
+    user: UserInfo,
+    business_date: Optional[date] = None,
+) -> dict:
+    summary = await get_state_duty_commission_summary(db, user, business_date)
+    day = date.fromisoformat(summary["business_date"])
+    if summary["withdrawn"]:
+        return summary
+    total = Decimal(str(summary["commission_total"]))
+    if total <= 0:
+        raise ServiceError("За выбранный день нет комиссий госпошлин к списанию", status_code=400)
+
+    row = CashRow(
+        client_name=f"Комиссии госпошлин {day.strftime('%d.%m.%Y')}",
+        application=Decimal("0"),
+        state_duty=-total,
+        dkp=Decimal("0"),
+        insurance=Decimal("0"),
+        plates=Decimal("0"),
+        total=-total,
+        source_type=STATE_DUTY_COMMISSION_WITHDRAWAL,
+        source_date=day,
+    )
+    db.add(row)
+    await db.flush()
+    await write_audit_log(
+        db,
+        user=user,
+        event_type="state_duty_commissions_withdrawn",
+        entity_type="cash_row",
+        entity_id=row.id,
+        payload={"business_date": day.isoformat(), "amount": float(total)},
+    )
+    return await get_state_duty_commission_summary(db, user, day)
 
 
 async def reconcile_cash_day(

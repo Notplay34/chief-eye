@@ -13,6 +13,7 @@ from app.services.cash_service import ensure_workday_shift
 from app.services.errors import ServiceError
 from app.services.order_status import can_transition
 from app.services.order_validation import validate_create_order_data
+from app.services.settings_service import calculate_state_duty_for_order
 from app.services.template_registry import is_sellable_template, supported_sellable_templates
 from app.services.warehouse_service import (
     finalize_stock_for_completed_order,
@@ -25,7 +26,7 @@ _DKP_TEMPLATES = frozenset(("dkp.docx", "dkp_pieces.docx", "dkp_dar.docx"))
 _NUMBER_TEMPLATE = "number.docx"
 
 
-def _form_data_from_create(d: OrderCreate, canonical_documents: list[dict]) -> dict:
+def _form_data_from_create(d: OrderCreate, canonical_documents: list[dict], state_duty_calc: dict | None = None) -> dict:
     out = {
         "client_fio": d.client_fio,
         "client_birth_date": d.client_birth_date,
@@ -85,6 +86,9 @@ def _form_data_from_create(d: OrderCreate, canonical_documents: list[dict]) -> d
         "dkp_summary": d.dkp_summary,
         "summa_dkp": str(d.summa_dkp),
         "state_duty": str(d.state_duty),
+        "state_duty_base_amount": str((state_duty_calc or {}).get("base", d.state_duty)),
+        "state_duty_commission": str((state_duty_calc or {}).get("commission", Decimal("0"))),
+        "state_duty_cash_amount": str((state_duty_calc or {}).get("cash_amount", d.state_duty)),
         "plate_quantity": d.plate_quantity,
         "need_plate": d.need_plate,
         "plate_amount": str(d.plate_amount),
@@ -148,11 +152,13 @@ async def create_order(db: AsyncSession, data: OrderCreate, user: UserInfo) -> O
     validate_create_order_data(data, [document["template"] for document in canonical_documents])
 
     state_duty = data.state_duty
+    state_duty_calc = await calculate_state_duty_for_order(db, state_duty)
+    state_duty_cash = state_duty_calc["cash_amount"]
     income_p1 = sum((Decimal(str(document["price"])) for document in canonical_documents), Decimal("0"))
     need_plate = data.need_plate
     service_type = canonical_documents[0]["template"] if canonical_documents else _NUMBER_TEMPLATE
     income_p2 = data.plate_amount if need_plate else Decimal("0")
-    total = state_duty + income_p1 + income_p2
+    total = state_duty_cash + income_p1 + income_p2
 
     order = Order(
         status=OrderStatus.AWAITING_PAYMENT,
@@ -162,7 +168,7 @@ async def create_order(db: AsyncSession, data: OrderCreate, user: UserInfo) -> O
         income_pavilion2=income_p2,
         need_plate=need_plate,
         service_type=service_type,
-        form_data=_form_data_from_create(data, canonical_documents),
+        form_data=_form_data_from_create(data, canonical_documents, state_duty_calc),
         employee_id=user.id,
     )
     db.add(order)
@@ -222,7 +228,7 @@ def order_cash_row_amounts(order: Order) -> dict:
             plates += price
         else:
             application += price
-    state_duty = order.state_duty_amount or Decimal("0")
+    state_duty = Decimal(str(form_data.get("state_duty_cash_amount") or order.state_duty_amount or 0))
     plates += order.income_pavilion2 or Decimal("0")
     total = order.total_amount or Decimal("0")
     return {
@@ -246,11 +252,13 @@ async def accept_order_payment(db: AsyncSession, order: Order, user: UserInfo) -
     shift_1 = None
     if order.state_duty_amount > 0 or order.income_pavilion1 > 0 or order.income_pavilion2 > 0:
         shift_1 = await ensure_workday_shift(db, 1, user)
-    if order.state_duty_amount > 0:
+    form_data = order.form_data or {}
+    state_duty_payment_amount = Decimal(str(form_data.get("state_duty_cash_amount") or order.state_duty_amount or 0))
+    if state_duty_payment_amount > 0:
         db.add(
             Payment(
                 order_id=order.id,
-                amount=order.state_duty_amount,
+                amount=state_duty_payment_amount,
                 type=PaymentType.STATE_DUTY,
                 employee_id=user.id,
                 shift_id=shift_1.id,

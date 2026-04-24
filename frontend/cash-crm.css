@@ -514,6 +514,57 @@
   white-space: nowrap;
 }
 
+.cash-duty-commission {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid var(--color-border, #ded8cc);
+  border-radius: 8px;
+  background: var(--color-surface-alt, #f7f7f4);
+}
+
+.cash-duty-commission__label {
+  color: var(--color-text-muted, #6d7482);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cash-duty-commission__value {
+  color: var(--color-success, #0f766e);
+  font-size: 1.45rem;
+  font-weight: 800;
+  font-feature-settings: "tnum";
+}
+
+.cash-duty-commission__btn {
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--color-text, #1f2933);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cash-duty-commission__btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.cash-duty-commission__msg {
+  min-height: 18px;
+  margin: 0;
+  color: var(--color-text-muted, #6d7482);
+  font-size: 0.82rem;
+}
+
+.cash-duty-commission__msg--ok { color: var(--color-success, #0f766e); }
+.cash-duty-commission__msg--err { color: var(--color-danger, #b42318); }
+
 .cash-crm__total-value .cash-crm__amount-currency {
   font-weight: 600;
   margin-left: 2px;

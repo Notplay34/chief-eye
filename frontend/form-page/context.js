@@ -9,6 +9,10 @@
     fetchApi: window.fetchWithAuth || fetch,
     state: {
       priceList: [],
+      stateDutySettings: {
+        commission: 150,
+        special_2025_cash_amount: 2200
+      },
       selectedDocuments: [],
       historyItems: [],
       historyPage: 0,
@@ -85,11 +89,19 @@
     formHistoryLoading: el('formHistoryLoading'),
     summary: {
       sumStateDuty: el('sumStateDuty'),
+      sumStateDutyBase: el('sumStateDutyBase'),
+      sumStateDutyBaseRow: el('sumStateDutyBaseRow'),
+      sumStateDutyCommission: el('sumStateDutyCommission'),
+      sumStateDutyCommissionRow: el('sumStateDutyCommissionRow'),
       sumIncome: el('sumIncome'),
       sumPlate: el('sumPlate'),
       sumPlateRow: el('sumPlateRow'),
       sumTotal: el('sumTotal')
     },
+    stateDutyNote: el('stateDutyNote'),
+    stateDutyBaseHint: el('stateDutyBaseHint'),
+    stateDutyCashHint: el('stateDutyCashHint'),
+    stateDutyCommissionHint: el('stateDutyCommissionHint'),
     preview: {
       previewFio: el('previewFio'),
       previewPassport: el('previewPassport'),

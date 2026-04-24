@@ -53,6 +53,14 @@
         <div class="cash-crm__total-value" id="cashTotalCell">
           <span class="cash-crm__amount-num">0</span><span class="cash-crm__amount-currency"> ₽</span>
         </div>
+        <div class="cash-duty-commission" id="stateDutyCommissionPanel">
+          <div class="cash-duty-commission__label">Комиссии госпошлин за день</div>
+          <div class="cash-duty-commission__value" id="stateDutyCommissionTotal">0 ₽</div>
+          <button type="button" class="cash-duty-commission__btn" id="btnWithdrawStateDutyCommission" disabled>
+            Списать комиссии госпошлин
+          </button>
+          <p class="cash-duty-commission__msg" id="stateDutyCommissionMsg"></p>
+        </div>
         <button type="button" class="cash-payout__chip" id="btnPayoutToggle">
           Выдача в кассу номеров <span id="payoutTotalShort">0 ₽</span>
         </button>

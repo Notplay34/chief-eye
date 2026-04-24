@@ -14,6 +14,7 @@ from app.models.form_history import FormHistory
 from app.models.plate_payout import PlatePayout
 from app.models.audit_log import AuditLog
 from app.models.cash_day_reconciliation import CashDayReconciliation
+from app.models.app_setting import AppSetting
 
 __all__ = [
     "Base",
@@ -37,4 +38,5 @@ __all__ = [
     "PlatePayout",
     "AuditLog",
     "CashDayReconciliation",
+    "AppSetting",
 ]

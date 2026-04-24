@@ -68,7 +68,7 @@ def test_full_order_journey_exercises_documents_cash_plates_and_analytics(
     assert create_response.status_code == 200, create_response.text
     order = create_response.json()
     assert order["need_plate"] is True
-    assert _as_float(order["total_amount"]) == 5150.0
+    assert _as_float(order["total_amount"]) == 5300.0
 
     pay_response = client.post(f"/orders/{order['id']}/pay", headers=auth_headers)
     assert pay_response.status_code == 200, pay_response.text
@@ -100,7 +100,7 @@ def test_full_order_journey_exercises_documents_cash_plates_and_analytics(
     assert payments_response.status_code == 200, payments_response.text
     payments = payments_response.json()
     assert payments["debt"] == 0.0
-    assert payments["total_paid"] == 5150.0
+    assert payments["total_paid"] == 5300.0
 
     plate_list_response = client.get("/orders/plate-list", headers=auth_headers)
     assert plate_list_response.status_code == 200, plate_list_response.text
@@ -151,7 +151,7 @@ def test_full_order_journey_exercises_documents_cash_plates_and_analytics(
     cash_rows_response = client.get("/cash/rows", headers=auth_headers)
     assert cash_rows_response.status_code == 200, cash_rows_response.text
     cash_rows = cash_rows_response.json()
-    assert any(row["client_name"] == "Иванов Иван Иванович" and row["total"] == 5150.0 for row in cash_rows)
+    assert any(row["client_name"] == "Иванов Иван Иванович" and row["state_duty"] == 650.0 and row["total"] == 5300.0 for row in cash_rows)
     assert any(row["client_name"] == "Иванов Иван Иванович" and row["plates"] == 3000.0 for row in cash_rows)
     assert plate_cash_response.json()["rows"][0]["client_name"] == "Иванов И.И."
     assert any(row["client_name"] == "Иванов И.И." and row["plates"] == -3700.0 for row in cash_rows)

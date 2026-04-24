@@ -21,10 +21,12 @@ from app.services.cash_service import (
     close_shift as close_shift_service,
     get_cash_day_summary as get_cash_day_summary_service,
     get_current_shift_summary as get_current_shift_summary_service,
+    get_state_duty_commission_summary as get_state_duty_commission_summary_service,
     open_shift as open_shift_service,
     pay_plate_payouts as pay_plate_payouts_service,
     reconcile_cash_day as reconcile_cash_day_service,
     shift_to_dict,
+    withdraw_state_duty_commissions as withdraw_state_duty_commissions_service,
 )
 
 logger = get_logger(__name__)
@@ -114,6 +116,8 @@ def _cash_row_to_dict(row: CashRow) -> dict:
         "insurance": float(row.insurance),
         "plates": float(row.plates),
         "total": float(row.total),
+        "source_type": row.source_type,
+        "source_date": row.source_date.isoformat() if row.source_date else None,
     }
 
 
@@ -211,6 +215,10 @@ class CashDayReconcileBody(BaseModel):
     note: Optional[str] = None
 
 
+class StateDutyCommissionWithdrawBody(BaseModel):
+    business_date: Optional[date] = None
+
+
 @router.get("/days/current")
 async def get_current_cash_day(
     pavilion: int = Query(..., ge=1, le=2),
@@ -241,6 +249,30 @@ async def reconcile_cash_day(
             body.business_date,
             body.note,
         )
+    except ServiceError as exc:
+        _raise_service_error(exc)
+
+
+@router.get("/state-duty-commissions")
+async def get_state_duty_commissions(
+    business_date: Optional[date] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    user: UserInfo = Depends(RequireCashAccess),
+):
+    try:
+        return await get_state_duty_commission_summary_service(db, user, business_date)
+    except ServiceError as exc:
+        _raise_service_error(exc)
+
+
+@router.post("/state-duty-commissions/withdraw")
+async def withdraw_state_duty_commissions(
+    body: StateDutyCommissionWithdrawBody,
+    db: AsyncSession = Depends(get_db),
+    user: UserInfo = Depends(RequireCashAccess),
+):
+    try:
+        return await withdraw_state_duty_commissions_service(db, user, body.business_date)
     except ServiceError as exc:
         _raise_service_error(exc)
 

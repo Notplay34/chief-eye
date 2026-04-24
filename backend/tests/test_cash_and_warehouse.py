@@ -39,7 +39,7 @@ def test_cash_shift_lifecycle_tracks_total_in_shift(client: TestClient, auth_hea
     assert current_response.status_code == 200, current_response.text
     current_data = current_response.json()
     assert current_data["shift"]["status"] == "OPEN"
-    assert current_data["total_in_shift"] == 2550.0
+    assert current_data["total_in_shift"] == 2700.0
 
     close_response = client.patch(
         f"/cash/shifts/{current_data['shift']['id']}/close",

@@ -52,6 +52,23 @@
     <section id="sectionPriceList">
       <h2>Прейскурант</h2>
       <p class="text-muted" style="margin-bottom:0.75rem;">Меняйте название и цену, добавляйте и удаляйте позиции. Сохранённый прейскурант используется в форме заказа.</p>
+      <div class="settings-card settings-card--state-duty">
+        <h3>Комиссия госпошлины</h3>
+        <div class="settings-grid">
+          <label>
+            <span>Комиссия по умолчанию, ₽</span>
+            <input type="number" min="0" step="1" id="stateDutyCommission" value="150">
+          </label>
+          <label>
+            <span>Госпошлина 2025 ₽: сумма в кассу, ₽</span>
+            <input type="number" min="2025" step="1" id="stateDuty2025CashAmount" value="2200">
+          </label>
+        </div>
+        <p style="margin-top:0.75rem;">
+          <button type="button" class="btn" id="btnSaveStateDutySettings">Сохранить комиссию</button>
+          <span id="stateDutySettingsMessage" class="text-muted"></span>
+        </p>
+      </div>
       <div id="priceListContent" class="loading">Загрузка…</div>
       <p style="margin-top:0.75rem;">
         <button type="button" class="btn" id="btnAddPriceRow">Добавить позицию</button>

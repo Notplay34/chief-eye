@@ -126,7 +126,7 @@
   };
 
   page.init = async function () {
-    await page.loadPriceList();
+    await Promise.all([page.loadPriceList(), page.loadStateDutySettings()]);
     page.bindInputMasks();
     page.bindInputs();
     page.setupPlateCheckbox();

@@ -37,7 +37,8 @@
   };
 
   page.updateSummary = function () {
-    var duty = page.getStateDuty();
+    var dutyCalc = page.getStateDutyCalculation();
+    var duty = dutyCalc.cashAmount;
     var selectedDocuments = page.state.selectedDocuments;
     var plate = selectedDocuments.reduce(function (sum, item) {
       return item.template === 'number.docx' ? sum + page.num(item.price) : sum;
@@ -48,6 +49,14 @@
     }, 0);
     var total = page.getTotal();
     if (page.summary.sumStateDuty) page.summary.sumStateDuty.textContent = page.formatMoney(duty);
+    if (page.summary.sumStateDutyBase) page.summary.sumStateDutyBase.textContent = page.formatMoney(dutyCalc.base);
+    if (page.summary.sumStateDutyBaseRow) page.summary.sumStateDutyBaseRow.hidden = dutyCalc.base <= 0;
+    if (page.summary.sumStateDutyCommission) page.summary.sumStateDutyCommission.textContent = page.formatMoney(dutyCalc.commission);
+    if (page.summary.sumStateDutyCommissionRow) page.summary.sumStateDutyCommissionRow.hidden = dutyCalc.commission <= 0;
+    if (page.stateDutyNote) page.stateDutyNote.hidden = dutyCalc.base <= 0;
+    if (page.stateDutyBaseHint) page.stateDutyBaseHint.textContent = page.formatMoney(dutyCalc.base);
+    if (page.stateDutyCashHint) page.stateDutyCashHint.textContent = page.formatMoney(dutyCalc.cashAmount);
+    if (page.stateDutyCommissionHint) page.stateDutyCommissionHint.textContent = page.formatMoney(dutyCalc.commission);
     if (page.summary.sumIncome) page.summary.sumIncome.textContent = page.formatMoney(income);
     if (page.summary.sumPlate) page.summary.sumPlate.textContent = page.formatMoney(plate);
     if (page.summary.sumPlateRow) page.summary.sumPlateRow.hidden = plate <= 0;

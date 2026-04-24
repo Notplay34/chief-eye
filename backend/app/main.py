@@ -14,6 +14,7 @@ from app.api.analytics import router as analytics_router
 from app.api.auth import router as auth_router
 from app.api.cash import router as cash_router
 from app.api.price_list import router as price_list_router
+from app.api.settings import router as settings_router
 from app.api.warehouse import router as warehouse_router
 from app.api.form_history import router as form_history_router
 from app.api.audit import router as audit_router
@@ -85,6 +86,7 @@ app.include_router(orders_router)
 app.include_router(cash_router)
 app.include_router(documents_router)
 app.include_router(price_list_router)
+app.include_router(settings_router)
 app.include_router(analytics_router)
 app.include_router(auth_router)
 app.include_router(employees_router)
