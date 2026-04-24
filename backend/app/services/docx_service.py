@@ -80,8 +80,57 @@ PLACEHOLDER_TO_FIELD = {
     "Текущая_дата": None,
 }
 
+_PASSPORT_PLACEHOLDER_PREFIXES = {
+    "Паспорт": "client",
+    "Паспорт продавец": "seller",
+    "Паспорт дов": "trustee",
+}
 
-def _form_data_to_replace_map(form_data: Optional[dict], doc_date: Optional[date] = None) -> Dict[str, str]:
+_REPRESENTATIVE_TEMPLATES = frozenset({"zaiavlenie.docx"})
+
+
+def _fio_initials(value: Optional[str]) -> str:
+    """Возвращает расшифровку подписи в формате Фамилия И.О."""
+    if not value:
+        return ""
+    parts = [part for part in str(value).split() if part]
+    if len(parts) < 2:
+        return str(value).strip()
+    initials = "".join(f"{part[0]}." for part in parts[1:] if part)
+    return f"{parts[0]} {initials}".strip()
+
+
+def _full_passport(form_data: dict, prefix: str) -> str:
+    passport = form_data.get(f"{prefix}_passport")
+    series = form_data.get(f"{prefix}_passport_series")
+    number = form_data.get(f"{prefix}_passport_number")
+    if not passport and series and number:
+        passport = f"{series} {number}"
+
+    parts = [str(passport).strip()] if passport else []
+    issued_by = form_data.get(f"{prefix}_passport_issued_by")
+    issued_date = form_data.get(f"{prefix}_passport_issued_date")
+    division_code = form_data.get(f"{prefix}_passport_division_code")
+    if issued_by:
+        parts.append(f"выдан {str(issued_by).strip()}")
+    if issued_date:
+        parts.append(str(issued_date).strip())
+    if division_code:
+        parts.append(f"код подразделения {str(division_code).strip()}")
+    return ", ".join(part for part in parts if part)
+
+
+def _signature_fio(form_data: dict, template_name: Optional[str]) -> str:
+    if template_name in _REPRESENTATIVE_TEMPLATES and form_data.get("trustee_fio"):
+        return _fio_initials(form_data.get("trustee_fio"))
+    return _fio_initials(form_data.get("client_fio"))
+
+
+def _form_data_to_replace_map(
+    form_data: Optional[dict],
+    doc_date: Optional[date] = None,
+    template_name: Optional[str] = None,
+) -> Dict[str, str]:
     """Словарь подстановки: «{{ ключ }}» → значение."""
     if not form_data:
         form_data = {}
@@ -89,6 +138,10 @@ def _form_data_to_replace_map(form_data: Optional[dict], doc_date: Optional[date
     result = {}
     for placeholder, field_key in PLACEHOLDER_TO_FIELD.items():
         value = form_data.get(field_key) if field_key else None
+        if placeholder in _PASSPORT_PLACEHOLDER_PREFIXES:
+            value = _full_passport(form_data, _PASSPORT_PLACEHOLDER_PREFIXES[placeholder])
+        if placeholder in {"Подпись", "ФИО_подписант"}:
+            value = _signature_fio(form_data, template_name)
         if value is None and placeholder == "Текущая_дата":
             value = doc_date.strftime("%d.%m.%Y")
         if value is None and placeholder == "Дата ДКП":
@@ -127,7 +180,7 @@ def render_docx(template_name: str, form_data: Optional[dict], doc_date: Optiona
     if not path.is_file():
         raise FileNotFoundError(f"Шаблон не найден: {template_name}")
     doc = Document(str(path))
-    replace_map = _form_data_to_replace_map(form_data, doc_date)
+    replace_map = _form_data_to_replace_map(form_data, doc_date, template_name)
     for p in doc.paragraphs:
         _replace_in_paragraph(p, replace_map)
     for table in doc.tables:
