@@ -86,7 +86,7 @@ def test_full_order_journey_exercises_documents_cash_plates_and_analytics(
         "zaiavlenie.docx": ["Иванов Иван Иванович", "+79991234567", "XTA217230N0000001", "78 кВт / 106 л.с.", "1670 / 1235"],
         "DKP.docx": ["Иванов Иван Иванович", "Петров Пётр Петрович", "850000"],
         "doverennost.docx": ["Иванов Иван Иванович", "Сидоров Сидор Сидорович"],
-        "number.docx": ["Иванов Иван Иванович", "XTA217230N0000001"],
+        "number.docx": ["Сидоров Сидор Сидорович", "XTA217230N0000001"],
     }.items():
         document_response = client.get(f"/orders/{order['id']}/documents/{template_name}", headers=auth_headers)
         assert document_response.status_code == 200, document_response.text

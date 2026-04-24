@@ -92,6 +92,17 @@ _PASSPORT_PLACEHOLDER_PREFIXES = {
 }
 
 _REPRESENTATIVE_TEMPLATES = frozenset({"zaiavlenie.docx"})
+_NUMBER_REPRESENTATIVE_TEMPLATES = frozenset({"number.docx"})
+
+
+def _number_applicant_field(form_data: dict, placeholder: str) -> Optional[str]:
+    if not form_data.get("trustee_fio"):
+        return None
+    if placeholder == "ФИО":
+        return str(form_data.get("trustee_fio") or "").strip()
+    if placeholder == "Паспорт":
+        return _full_passport(form_data, "trustee")
+    return None
 
 
 def _fio_initials(value: Optional[str]) -> str:
@@ -130,13 +141,13 @@ def _full_passport(form_data: dict, prefix: str) -> str:
 
 
 def _signature_fio(form_data: dict, template_name: Optional[str]) -> str:
-    if template_name in _REPRESENTATIVE_TEMPLATES and form_data.get("trustee_fio"):
+    if template_name in _REPRESENTATIVE_TEMPLATES | _NUMBER_REPRESENTATIVE_TEMPLATES and form_data.get("trustee_fio"):
         return _fio_initials(form_data.get("trustee_fio"))
     return _fio_initials(form_data.get("client_fio"))
 
 
 def _signer_full_fio(form_data: dict, template_name: Optional[str]) -> str:
-    if template_name in _REPRESENTATIVE_TEMPLATES and form_data.get("trustee_fio"):
+    if template_name in _REPRESENTATIVE_TEMPLATES | _NUMBER_REPRESENTATIVE_TEMPLATES and form_data.get("trustee_fio"):
         return str(form_data.get("trustee_fio") or "").strip()
     return str(form_data.get("client_fio") or "").strip()
 
@@ -155,6 +166,8 @@ def _form_data_to_replace_map(
         value = form_data.get(field_key) if field_key else None
         if placeholder in _PASSPORT_PLACEHOLDER_PREFIXES:
             value = _full_passport(form_data, _PASSPORT_PLACEHOLDER_PREFIXES[placeholder])
+        if template_name in _NUMBER_REPRESENTATIVE_TEMPLATES:
+            value = _number_applicant_field(form_data, placeholder) or value
         if placeholder == "Подпись":
             value = _signature_fio(form_data, template_name)
         if placeholder == "Подпись продавец":

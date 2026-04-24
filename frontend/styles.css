@@ -1615,6 +1615,38 @@ body {
   flex-wrap: wrap;
 }
 
+.cash-date-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.cash-date-filter__input,
+.cash-date-filter__btn {
+  min-height: 38px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-caption);
+}
+
+.cash-date-filter__input {
+  padding: 0 var(--space-3);
+}
+
+.cash-date-filter__btn {
+  padding: 0 var(--space-3);
+  cursor: pointer;
+}
+
+.cash-date-filter__btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
 .plate-cash-table-wrap,
 .cash-table-wrap {
   overflow-x: auto;
@@ -1700,6 +1732,56 @@ body {
 }
 
 .amount-neg { color: var(--color-danger); }
+
+.plate-cash-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.plate-cash-table tbody tr:not(.day-sep) td {
+  background: var(--color-surface);
+}
+
+.plate-cash-table tbody tr:not(.day-sep):hover td {
+  background: var(--color-surface-alt);
+}
+
+.plate-cash-table input {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  padding: var(--space-2);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.plate-cash-table input:hover,
+.plate-cash-table input:focus {
+  outline: none;
+  border-color: var(--color-border);
+  background: var(--color-surface);
+}
+
+.plate-cash-table .col-amount input {
+  font-weight: 800;
+  font-feature-settings: "tnum";
+}
+
+.plate-cash-table .col-amount--positive input {
+  color: var(--color-primary);
+}
+
+.plate-cash-table .col-amount--negative input {
+  color: var(--color-danger);
+}
+
+.plate-cash-table .col-del button {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+}
 
 /* -------------------------------------------------------------------------- */
 /* 19. Warehouse                                                              */

@@ -21,6 +21,11 @@
     </header>
 
     <div class="plate-cash-toolbar plate-cash-toolbar--main">
+      <div class="cash-date-filter" aria-label="Фильтр кассы номеров по дате">
+        <input type="date" id="plateCashDateFilter" class="cash-date-filter__input">
+        <button type="button" class="cash-date-filter__btn" id="btnPlateCashToday">Сегодня</button>
+        <button type="button" class="cash-date-filter__btn" id="btnPlateCashAll">Все</button>
+      </div>
       <button type="button" class="btn btn--primary" id="btnAddRow">Добавить строку</button>
       <span id="plateCashMsg" class="plate-cash-msg"></span>
     </div>

@@ -4,6 +4,7 @@
   if (!window.getToken || !window.getToken()) return;
 
   var rows = [];
+  var activeDate = todayKey();
 
   function msg(text, isErr) {
     var el = document.getElementById('plateCashMsg');
@@ -13,7 +14,7 @@
   }
 
   function numVal(value) {
-    var parsed = parseFloat(String(value).replace(',', '.'));
+    var parsed = parseFloat(String(value).replace(/\s/g, '').replace('₽', '').replace(',', '.'));
     return isNaN(parsed) ? 0 : parsed;
   }
 
@@ -23,6 +24,13 @@
       maximumFractionDigits: 2
     }).format(value) + ' ₽';
     return value < 0 ? '<span class="amount-neg">' + text + '</span>' : text;
+  }
+
+  function moneyText(value) {
+    return new Intl.NumberFormat('ru-RU', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value) + ' ₽';
   }
 
   function patchRow(rowId, payload) {
@@ -58,6 +66,20 @@
     return y + '-' + (m < 10 ? '0' : '') + m + '-' + (d < 10 ? '0' : '') + d;
   }
 
+  function todayKey() {
+    var date = new Date();
+    var y = date.getFullYear();
+    var m = date.getMonth() + 1;
+    var d = date.getDate();
+    return y + '-' + (m < 10 ? '0' : '') + m + '-' + (d < 10 ? '0' : '') + d;
+  }
+
+  function rowsUrl() {
+    var url = api + '/cash/plate-rows';
+    if (activeDate) url += '?business_date=' + encodeURIComponent(activeDate);
+    return url;
+  }
+
   function dayLabel(key) {
     if (!key) return '';
     var parts = key.split('-');
@@ -72,10 +94,10 @@
 
   function makeInput(row, key, isNum) {
     var input = document.createElement('input');
-    input.type = isNum ? 'number' : 'text';
-    input.step = '0.01';
+    input.type = 'text';
+    if (isNum) input.setAttribute('inputmode', 'decimal');
     if (!isNum) input.placeholder = 'Фамилия';
-    input.value = isNum ? (row[key] != null ? Number(row[key]) : '') : (row[key] || '');
+    input.value = isNum ? (row[key] ? moneyText(numVal(row[key])).replace(' ₽', '') : '') : (row[key] || '');
     input.dataset.key = key;
     input.dataset.rowId = String(row.id);
     input.addEventListener('blur', function () {
@@ -89,9 +111,11 @@
 
       var payload = {};
       payload[field] = value;
+      if (isNum) this.value = value ? moneyText(value).replace(' ₽', '') : '';
       patchRow(id, payload)
         .then(function (updated) {
           updateRowInList(id, updated);
+          if (isNum) render();
           renderTotal();
           msg('Сохранено');
           setTimeout(function () { msg(''); }, 2000);
@@ -116,7 +140,7 @@
     tr.appendChild(tdName);
 
     var tdAmount = document.createElement('td');
-    tdAmount.className = 'col-amount';
+    tdAmount.className = 'col-amount ' + (numVal(row.amount) < 0 ? 'col-amount--negative' : numVal(row.amount) > 0 ? 'col-amount--positive' : 'col-amount--zero');
     tdAmount.appendChild(makeInput(row, 'amount', true));
     tr.appendChild(tdAmount);
 
@@ -172,7 +196,7 @@
 
   function load() {
     var hint = ' Проверьте, что backend запущен и nginx не отдаёт HTML.';
-    fetchApi(api + '/cash/plate-rows')
+    fetchApi(rowsUrl())
       .then(function (r) {
         return r.text().then(function (text) {
           var trimmed = (text || '').trim();
@@ -203,6 +227,27 @@
           '<tr><td colspan="3" class="plate-cash-msg err">Ошибка загрузки: ' + (e.message || '') + '</td></tr>';
       });
   }
+
+  var dateFilter = document.getElementById('plateCashDateFilter');
+  if (dateFilter) {
+    dateFilter.value = activeDate;
+    dateFilter.addEventListener('change', function () {
+      activeDate = this.value || '';
+      load();
+    });
+  }
+  var todayBtn = document.getElementById('btnPlateCashToday');
+  if (todayBtn) todayBtn.addEventListener('click', function () {
+    activeDate = todayKey();
+    if (dateFilter) dateFilter.value = activeDate;
+    load();
+  });
+  var allBtn = document.getElementById('btnPlateCashAll');
+  if (allBtn) allBtn.addEventListener('click', function () {
+    activeDate = '';
+    if (dateFilter) dateFilter.value = '';
+    load();
+  });
 
   document.getElementById('btnAddRow').addEventListener('click', function () {
     fetchApi(api + '/cash/plate-rows', {

@@ -91,9 +91,21 @@ def test_signature_placeholders_use_surname_and_initials():
         assert "Иванов И.И." in text
 
 
+def test_number_statement_uses_trustee_as_applicant_when_present():
+    form_data = _base_form_data()
+
+    text = _docx_text(render_docx("number.docx", form_data))
+
+    assert "Сидоров Сидор Сидорович" in text
+    assert "Иванов Иван Иванович" not in text
+    assert "1814 777777, выдан ГУ МВД России по Москве" in text
+    assert "Сидоров С.С." in text
+
+
 def test_signature_initials_keep_ogly_kyzy_as_patronymic_suffix():
     form_data = _base_form_data()
     form_data["client_fio"] = "Алиев Руслан Мамед оглы"
+    form_data["trustee_fio"] = None
 
     text = _docx_text(render_docx("number.docx", form_data))
 

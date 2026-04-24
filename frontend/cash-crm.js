@@ -19,6 +19,7 @@
   }
 
   var rows = [];
+  var activeDate = todayKey();
 
   function msg(text, type) {
     var el = document.getElementById('cashMsg');
@@ -272,6 +273,12 @@
     return y + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
   }
 
+  function rowsUrl() {
+    var url = API + '/cash/rows';
+    if (activeDate) url += '?business_date=' + encodeURIComponent(activeDate);
+    return url;
+  }
+
   function renderStateDutyCommission(summary) {
     var totalEl = document.getElementById('stateDutyCommissionTotal');
     var btn = document.getElementById('btnWithdrawStateDutyCommission');
@@ -428,7 +435,7 @@
 
   function loadRows() {
     var hint = ' Проверьте, что бэкенд запущен (systemctl restart eye_w).';
-    fetchApi(API + '/cash/rows')
+    fetchApi(rowsUrl())
       .then(function (r) {
         return r.text().then(function (text) {
           var t = (text || '').trim();
@@ -504,6 +511,26 @@
   }
 
   function init() {
+    var dateFilter = document.getElementById('cashDateFilter');
+    if (dateFilter) {
+      dateFilter.value = activeDate;
+      dateFilter.addEventListener('change', function () {
+        activeDate = this.value || '';
+        loadRows();
+      });
+    }
+    var todayBtn = document.getElementById('btnCashToday');
+    if (todayBtn) todayBtn.onclick = function () {
+      activeDate = todayKey();
+      if (dateFilter) dateFilter.value = activeDate;
+      loadRows();
+    };
+    var allBtn = document.getElementById('btnCashAll');
+    if (allBtn) allBtn.onclick = function () {
+      activeDate = '';
+      if (dateFilter) dateFilter.value = '';
+      loadRows();
+    };
     loadRows();
     var btn = document.getElementById('btnAddRow');
     if (btn) btn.onclick = addRow;

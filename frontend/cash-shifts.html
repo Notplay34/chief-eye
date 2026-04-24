@@ -20,6 +20,11 @@
         <p class="cash-crm__subtitle">ФИО, заявление, госпошлина, ДКП, страховка, номера — итого по строке пересчитывается автоматически</p>
       </div>
       <div class="cash-crm__header-actions">
+        <div class="cash-date-filter" aria-label="Фильтр кассы по дате">
+          <input type="date" id="cashDateFilter" class="cash-date-filter__input">
+          <button type="button" class="cash-date-filter__btn" id="btnCashToday">Сегодня</button>
+          <button type="button" class="cash-date-filter__btn" id="btnCashAll">Все</button>
+        </div>
         <button type="button" class="cash-crm__btn-add" id="btnAddRow">Добавить строку</button>
       </div>
     </div>

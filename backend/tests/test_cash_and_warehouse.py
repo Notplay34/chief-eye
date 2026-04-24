@@ -1,5 +1,7 @@
 """Критические сценарии по сменам, складу и выплатам за номера."""
 
+from datetime import date
+
 from fastapi.testclient import TestClient
 
 
@@ -135,6 +137,22 @@ def test_paying_plate_payouts_moves_money_between_cash_tables(client: TestClient
     assert len(payout_rows) == 1
     assert payout_rows[0]["plates"] == -1500.0
     assert payout_rows[0]["total"] == -1500.0
+
+
+def test_cash_rows_can_be_filtered_by_business_date(client: TestClient, auth_headers: dict[str, str]):
+    create_paid_plate_order(client, auth_headers)
+
+    all_cash_response = client.get("/cash/rows", headers=auth_headers)
+    assert all_cash_response.status_code == 200, all_cash_response.text
+    assert len(all_cash_response.json()) >= 1
+
+    today_response = client.get("/cash/rows", params={"business_date": date.today().isoformat()}, headers=auth_headers)
+    assert today_response.status_code == 200, today_response.text
+    assert len(today_response.json()) >= 1
+
+    old_response = client.get("/cash/rows", params={"business_date": "2020-01-01"}, headers=auth_headers)
+    assert old_response.status_code == 200, old_response.text
+    assert old_response.json() == []
 
 
 def test_plate_extra_payment_uses_workday_cash_bucket_automatically(client: TestClient, auth_headers: dict[str, str]):

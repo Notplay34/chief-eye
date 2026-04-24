@@ -1,5 +1,5 @@
 """API касс и смен: открытие/закрытие смены по павильонам; касса номеров (plate-rows)."""
-from datetime import date
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Optional
 
@@ -31,6 +31,17 @@ from app.services.cash_service import (
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/cash", tags=["cash"])
+
+
+def _apply_date_filters(query, model, business_date: Optional[date], date_from: Optional[date], date_to: Optional[date]):
+    if business_date is not None:
+        start = datetime.combine(business_date, time.min)
+        return query.where(model.created_at >= start, model.created_at < start + timedelta(days=1))
+    if date_from is not None:
+        query = query.where(model.created_at >= datetime.combine(date_from, time.min))
+    if date_to is not None:
+        query = query.where(model.created_at < datetime.combine(date_to, time.min) + timedelta(days=1))
+    return query
 
 
 def _raise_service_error(exc: ServiceError) -> None:
@@ -124,11 +135,15 @@ def _cash_row_to_dict(row: CashRow) -> dict:
 @router.get("/rows", response_model=list)
 async def list_cash_rows(
     limit: int = Query(500, ge=1, le=2000),
+    business_date: Optional[date] = Query(None),
+    date_from: Optional[date] = Query(None),
+    date_to: Optional[date] = Query(None),
     db: AsyncSession = Depends(get_db),
     user: UserInfo = Depends(RequireCashAccess),
 ):
     """Список строк таблицы кассы (последние сверху)."""
     q = select(CashRow).order_by(CashRow.created_at.desc()).limit(limit)
+    q = _apply_date_filters(q, CashRow, business_date, date_from, date_to)
     r = await db.execute(q)
     rows = r.scalars().all()
     return [_cash_row_to_dict(row) for row in rows]
@@ -294,11 +309,15 @@ def _plate_row_to_dict(row: PlateCashRow) -> dict:
 @router.get("/plate-rows")
 async def list_plate_cash_rows(
     limit: int = Query(500, ge=1, le=2000),
+    business_date: Optional[date] = Query(None),
+    date_from: Optional[date] = Query(None),
+    date_to: Optional[date] = Query(None),
     db: AsyncSession = Depends(get_db),
     user: UserInfo = Depends(RequirePlateAccess),
 ):
     """Список строк кассы номеров (последние сверху)."""
     q = select(PlateCashRow).order_by(PlateCashRow.created_at.desc()).limit(limit)
+    q = _apply_date_filters(q, PlateCashRow, business_date, date_from, date_to)
     r = await db.execute(q)
     rows = r.scalars().all()
     total = sum(float(row.amount) for row in rows)
