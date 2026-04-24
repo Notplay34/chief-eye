@@ -89,12 +89,14 @@
     formHistoryLoading: el('formHistoryLoading'),
     summary: {
       sumStateDuty: el('sumStateDuty'),
+      sumStateDutyRow: el('sumStateDutyRow'),
       sumStateDutyBase: el('sumStateDutyBase'),
       sumStateDutyBaseRow: el('sumStateDutyBaseRow'),
       sumStateDutyCommission: el('sumStateDutyCommission'),
       sumStateDutyCommissionRow: el('sumStateDutyCommissionRow'),
       sumIncome: el('sumIncome'),
       sumPlate: el('sumPlate'),
+      sumPlateLabel: el('sumPlateLabel'),
       sumPlateRow: el('sumPlateRow'),
       sumTotal: el('sumTotal')
     },

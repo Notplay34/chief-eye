@@ -1125,6 +1125,16 @@ body {
   padding: var(--space-2) 0;
   border-bottom: 1px solid var(--color-border);
 }
+.summary__row--stacked {
+  display: grid;
+  gap: var(--space-2);
+}
+.summary__row-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
 .summary__row:last-child { border-bottom: none; }
 .summary__row--total {
   margin-top: var(--space-2);
@@ -1136,6 +1146,21 @@ body {
 .summary__value--income { color: var(--color-income); }
 .summary__value--total { font-family: var(--font-serif); }
 .summary__hint { margin: var(--space-3) 0 0; font-size: 0.8rem; color: var(--color-text-muted); }
+
+.card--summary .documents-to-print {
+  margin: 0;
+}
+
+.card--summary .documents-to-print__item {
+  margin-bottom: var(--space-1);
+  padding: var(--space-2);
+  background: transparent;
+  border: 1px solid var(--color-border);
+}
+
+.card--summary .documents-to-print__item:last-child {
+  margin-bottom: 0;
+}
 
 .state-duty-note {
   display: grid;

@@ -373,34 +373,28 @@
         <section class="card card--summary" id="summaryCard">
           <h2 class="card__title">К оплате</h2>
           <div class="summary">
-            <div class="summary__row">
-              <span class="summary__label">Документы</span>
-              <span class="summary__value summary__value--income" id="sumIncome">0 ₽</span>
+            <div class="summary__row summary__row--stacked">
+              <div class="summary__row-main">
+                <span class="summary__label">Документы</span>
+                <span class="summary__value summary__value--income" id="sumIncome">0 ₽</span>
+              </div>
+              <div class="documents-to-print documents-to-print--summary" id="documentsToPrint">
+                <p class="documents-to-print__empty" id="documentsEmpty" hidden></p>
+                <ul class="documents-to-print__list" id="documentsList"></ul>
+              </div>
             </div>
-            <div class="summary__row">
-              <span class="summary__label">Госпошлина в кассу</span>
+            <div class="summary__row" id="sumStateDutyRow" hidden>
+              <span class="summary__label">Госпошлина</span>
               <span class="summary__value" id="sumStateDuty">0 ₽</span>
             </div>
-            <div class="summary__row" id="sumStateDutyBaseRow" hidden>
-              <span class="summary__label">В заявлении</span>
-              <span class="summary__value" id="sumStateDutyBase">0 ₽</span>
-            </div>
-            <div class="summary__row" id="sumStateDutyCommissionRow" hidden>
-              <span class="summary__label">Комиссия госпошлины</span>
-              <span class="summary__value" id="sumStateDutyCommission">0 ₽</span>
-            </div>
             <div class="summary__row" id="sumPlateRow" hidden>
-              <span class="summary__label">Номера</span>
+              <span class="summary__label" id="sumPlateLabel">Номера</span>
               <span class="summary__value" id="sumPlate">0 ₽</span>
             </div>
             <div class="summary__row summary__row--total">
               <span class="summary__label">Итого к оплате</span>
               <span class="summary__value summary__value--total" id="sumTotal">0 ₽</span>
             </div>
-          </div>
-          <div class="documents-to-print documents-to-print--summary" id="documentsToPrint">
-            <p class="documents-to-print__empty" id="documentsEmpty" hidden></p>
-            <ul class="documents-to-print__list" id="documentsList"></ul>
           </div>
           <div class="actions actions--stacked">
             <button type="button" class="btn btn--primary" id="btnAcceptCash" disabled>

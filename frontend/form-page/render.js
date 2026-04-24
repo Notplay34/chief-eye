@@ -43,12 +43,14 @@
     var plate = selectedDocuments.reduce(function (sum, item) {
       return item.template === 'number.docx' ? sum + page.num(item.price) : sum;
     }, 0);
+    var plateQuantity = page.inputs.needPlate && page.inputs.needPlate.checked ? page.getPlateQuantity() : 0;
     var income = selectedDocuments.reduce(function (sum, item) {
       if (page.isPlateZaiavlenie(item) || item.template === 'number.docx') return sum;
       return sum + page.num(item.price);
     }, 0);
     var total = page.getTotal();
     if (page.summary.sumStateDuty) page.summary.sumStateDuty.textContent = page.formatMoney(duty);
+    if (page.summary.sumStateDutyRow) page.summary.sumStateDutyRow.hidden = duty <= 0;
     if (page.summary.sumStateDutyBase) page.summary.sumStateDutyBase.textContent = page.formatMoney(dutyCalc.base);
     if (page.summary.sumStateDutyBaseRow) page.summary.sumStateDutyBaseRow.hidden = dutyCalc.base <= 0;
     if (page.summary.sumStateDutyCommission) page.summary.sumStateDutyCommission.textContent = page.formatMoney(dutyCalc.commission);
@@ -59,6 +61,7 @@
     if (page.stateDutyCommissionHint) page.stateDutyCommissionHint.textContent = page.formatMoney(dutyCalc.commission);
     if (page.summary.sumIncome) page.summary.sumIncome.textContent = page.formatMoney(income);
     if (page.summary.sumPlate) page.summary.sumPlate.textContent = page.formatMoney(plate);
+    if (page.summary.sumPlateLabel) page.summary.sumPlateLabel.textContent = plateQuantity > 0 ? ('Номера, ' + plateQuantity + ' шт') : 'Номера';
     if (page.summary.sumPlateRow) page.summary.sumPlateRow.hidden = plate <= 0;
     if (page.summary.sumTotal) page.summary.sumTotal.textContent = page.formatMoney(total);
 
