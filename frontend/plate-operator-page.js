@@ -25,6 +25,15 @@
     return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 0 }).format(value) + ' ₽';
   }
 
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function loadOrders() {
     fetchApi(api + '/orders/plate-list')
       .then(function (r) {
@@ -49,7 +58,13 @@
         table.style.display = 'table';
         orders.forEach(function (order, index) {
           var row = document.createElement('tr');
-          var clientEscaped = (order.client || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+          var clientEscaped = escapeHtml(order.client || '');
+          var clientLabel = order.client ? escapeHtml(order.client) : '—';
+          var brandModelLabel = order.brand_model ? escapeHtml(order.brand_model) : '—';
+          var statusValue = escapeHtml(order.status || '');
+          var statusLabel = escapeHtml(statusLabels[order.status] || order.status || '');
+          var publicId = escapeHtml(order.public_id || order.id);
+          var docTemplate = escapeHtml(order.plate_document || 'number.docx');
           var plateAmount = order.plate_amount != null ? order.plate_amount : order.total_amount;
           var issueBtn = canIssue.indexOf(order.status) >= 0
             ? '<button type="button" class="btn btn-sm btn--primary" data-order="' + order.id + '" data-status="COMPLETED" data-client="' + clientEscaped + '" data-amount="' + (plateAmount || 0) + '">Выдано клиенту</button>'
@@ -61,17 +76,16 @@
             ? '<button type="button" class="btn btn-sm btn--danger-like" data-order="' + order.id + '" data-status="PROBLEM" data-delete="1">Удалить</button>'
             : '';
           var payBtn = (order.debt || 0) > 0
-            ? '<button type="button" class="btn btn-sm btn--secondary" data-order="' + order.id + '" data-public-id="' + (order.public_id || order.id) + '" data-pay="1">Доплата</button>'
+            ? '<button type="button" class="btn btn-sm btn--secondary" data-order="' + order.id + '" data-public-id="' + publicId + '" data-pay="1">Доплата</button>'
             : '';
-          var docTemplate = order.plate_document || 'number.docx';
           var docLink = '<a href="#" class="doc-link" title="Заявление на номера" data-order-id="' + order.id + '" data-doc="' + docTemplate + '" aria-label="Заявление на номера">&#128196;</a>';
           row.innerHTML =
             '<td data-label="№">' + (index + 1) + '</td>' +
-            '<td data-label="Клиент">' + (order.client || '—') + '</td>' +
-            '<td data-label="Марка, модель">' + (order.brand_model || '—') + '</td>' +
+            '<td data-label="Клиент">' + clientLabel + '</td>' +
+            '<td data-label="Марка, модель">' + brandModelLabel + '</td>' +
             '<td data-label="Сумма">' + fmt(order.plate_amount != null ? order.plate_amount : order.total_amount) + '</td>' +
             '<td data-label="Заявление">' + docLink + '</td>' +
-            '<td data-label="Статус"><span class="status status-' + order.status + '">' + (statusLabels[order.status] || order.status) + '</span></td>' +
+            '<td data-label="Статус"><span class="status status-' + statusValue + '">' + statusLabel + '</span></td>' +
             '<td data-label="Действия" class="plate-table__actions"><div class="btn-group btn-group--row-actions">' + issueBtn + separator + deleteBtn + payBtn + '</div></td>';
           tbody.appendChild(row);
         });

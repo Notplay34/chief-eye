@@ -29,6 +29,15 @@
     msgEl.className = 'cash-payout__msg' + (isErr ? ' cash-payout__msg--err' : '');
   }
 
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function render(data) {
     var rows = (data && data.rows) || [];
     var total = data ? data.total || 0 : 0;
@@ -43,8 +52,8 @@
         var tr = document.createElement('tr');
         var date = r.created_at ? r.created_at.substring(0, 10).split('-').reverse().join('.') : '';
         tr.innerHTML =
-          '<td>' + date + '</td>' +
-          '<td>' + (r.client_name || '—') + '</td>' +
+          '<td>' + escapeHtml(date) + '</td>' +
+          '<td>' + (r.client_name ? escapeHtml(r.client_name) : '—') + '</td>' +
           '<td class="cash-payout__amount">' + formatMoney(r.amount) + '</td>';
         bodyEl.appendChild(tr);
       });
@@ -117,4 +126,3 @@
   });
   load();
 })();
-

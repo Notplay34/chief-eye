@@ -33,7 +33,8 @@ dist/
 build/
 coverage/
 *.log
+backups/
+*.dump
 
 # Frontend package artifacts
 node_modules/
-

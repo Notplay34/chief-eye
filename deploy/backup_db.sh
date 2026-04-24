@@ -6,7 +6,7 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="$PROJECT_ROOT/backend/.env"
-BACKUP_DIR="${BACKUP_DIR:-$PROJECT_ROOT/backups}"
+BACKUP_DIR="${BACKUP_DIR:-/var/backups/eye_w}"
 
 if [ ! -f "$ENV_FILE" ]; then
   echo "backend/.env не найден"
