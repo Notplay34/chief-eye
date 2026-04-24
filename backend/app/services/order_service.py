@@ -451,7 +451,7 @@ async def build_plate_order_detail(db: AsyncSession, order: Order) -> dict:
         "brand_model": form_data.get("brand_model") or "",
         "plate_amount": plate_total,
         "debt": plate_debt,
-        "plate_document": "zaiavlenie_na_nomera.docx",
+        "plate_document": "number.docx",
         "created_at": order.created_at.isoformat() if order.created_at else "",
     }
 

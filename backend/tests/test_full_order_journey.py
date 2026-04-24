@@ -85,7 +85,7 @@ def test_full_order_journey_exercises_documents_cash_plates_and_analytics(
         "zaiavlenie.docx": ["Иванов Иван Иванович", "+79991234567", "XTA217230N0000001"],
         "DKP.docx": ["Иванов Иван Иванович", "Петров Пётр Петрович", "850000"],
         "doverennost.docx": ["Иванов Иван Иванович", "Сидоров Сидор Сидорович"],
-        "zaiavlenie_na_nomera.docx": ["Иванов Иван Иванович", "A001AA34"],
+        "number.docx": ["Иванов Иван Иванович", "XTA217230N0000001"],
     }.items():
         document_response = client.get(f"/orders/{order['id']}/documents/{template_name}", headers=auth_headers)
         assert document_response.status_code == 200, document_response.text
@@ -154,7 +154,8 @@ def test_full_order_journey_exercises_documents_cash_plates_and_analytics(
     cash_rows = cash_rows_response.json()
     assert any(row["client_name"] == "Иванов Иван Иванович" and row["total"] == 3650.0 for row in cash_rows)
     assert any(row["client_name"] == "Иванов Иван Иванович" and row["plates"] == 700.0 for row in cash_rows)
-    assert any(row["client_name"] == "Иванов Иван Иванович" and row["plates"] == -2200.0 for row in cash_rows)
+    assert plate_cash_response.json()["rows"][0]["client_name"] == "Иванов И.И."
+    assert any(row["client_name"] == "Иванов И.И." and row["plates"] == -2200.0 for row in cash_rows)
 
     analytics_response = client.get("/analytics/dashboard?period=month&kind=all", headers=auth_headers)
     assert analytics_response.status_code == 200, analytics_response.text

@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 def make_plate_order_payload(*, plate_quantity: int = 1) -> dict:
     return {
-        "client_fio": "Пётр Петров",
+        "client_fio": "Петров Пётр Петрович",
         "brand_model": "Kia Rio",
         "state_duty": "500",
         "need_plate": True,
@@ -100,7 +100,7 @@ def test_plate_status_flow_updates_stock_and_payout_register(client: TestClient,
     assert payouts_response.status_code == 200, payouts_response.text
     payouts = payouts_response.json()
     assert payouts["total"] == 2200.0
-    assert payouts["rows"][0]["client_name"] == "Пётр Петров"
+    assert payouts["rows"][0]["client_name"] == "Петров Пётр Петрович"
 
 
 def test_paying_plate_payouts_moves_money_between_cash_tables(client: TestClient, auth_headers: dict[str, str]):
@@ -124,14 +124,14 @@ def test_paying_plate_payouts_moves_money_between_cash_tables(client: TestClient
     plate_rows_response = client.get("/cash/plate-rows", headers=auth_headers)
     assert plate_rows_response.status_code == 200, plate_rows_response.text
     assert plate_rows_response.json()["total"] == 1500.0
-    assert plate_rows_response.json()["rows"][0]["client_name"] == "Пётр Петров"
+    assert plate_rows_response.json()["rows"][0]["client_name"] == "Петров П.П."
 
     cash_rows_response = client.get("/cash/rows", headers=auth_headers)
     assert cash_rows_response.status_code == 200, cash_rows_response.text
     payout_rows = [
         row
         for row in cash_rows_response.json()
-        if row["client_name"] == "Пётр Петров" and row["plates"] == -1500.0
+        if row["client_name"] == "Петров П.П." and row["plates"] == -1500.0
     ]
     assert len(payout_rows) == 1
     assert payout_rows[0]["plates"] == -1500.0

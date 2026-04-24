@@ -358,5 +358,5 @@ class PlateOrderResponse(BaseModel):
     brand_model: Optional[str] = None
     plate_amount: Decimal
     debt: Decimal
-    plate_document: str = "zaiavlenie_na_nomera.docx"
+    plate_document: str = "number.docx"
     created_at: str

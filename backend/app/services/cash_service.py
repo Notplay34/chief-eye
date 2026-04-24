@@ -14,6 +14,20 @@ from app.services.audit_service import write_audit_log
 from app.services.errors import ServiceError
 
 
+def _fio_initials(value: str | None) -> str:
+    if not value:
+        return ""
+    parts = [part for part in str(value).split() if part]
+    if len(parts) < 2:
+        return str(value).strip()
+    suffix = ""
+    if len(parts) >= 3 and parts[-1].lower().replace("ё", "е") in {"оглы", "кызы"}:
+        suffix = " " + parts[-1].lower()
+        parts = parts[:-1]
+    initials = "".join(f"{part[0]}." for part in parts[1:] if part)
+    return f"{parts[0]} {initials}{suffix}".strip()
+
+
 def shift_to_dict(shift: CashShift) -> dict:
     return {
         "id": shift.id,
@@ -293,7 +307,7 @@ async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
         raise ServiceError("Сумма к выдаче нулевая", status_code=400)
 
     payout_names = [
-        payout.client_name.strip()
+        _fio_initials(payout.client_name)
         for payout in payouts
         if payout.client_name and payout.client_name.strip()
     ]
@@ -313,7 +327,7 @@ async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
 
     now = datetime.utcnow()
     for payout in payouts:
-        db.add(PlateCashRow(client_name=payout.client_name, amount=payout.amount))
+        db.add(PlateCashRow(client_name=_fio_initials(payout.client_name), amount=payout.amount))
         payout.paid_at = now
         payout.paid_by_id = user.id
         db.add(payout)

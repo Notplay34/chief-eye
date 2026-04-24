@@ -63,7 +63,8 @@
           var payBtn = (order.debt || 0) > 0
             ? '<button type="button" class="btn btn-sm btn--secondary" data-order="' + order.id + '" data-public-id="' + (order.public_id || order.id) + '" data-pay="1">Доплата</button>'
             : '';
-          var docLink = '<a href="#" class="doc-link" title="Заявление на номера" data-order-id="' + order.id + '" data-doc="zaiavlenie_na_nomera.docx" aria-label="Заявление на номера">&#128196;</a>';
+          var docTemplate = order.plate_document || 'number.docx';
+          var docLink = '<a href="#" class="doc-link" title="Заявление на номера" data-order-id="' + order.id + '" data-doc="' + docTemplate + '" aria-label="Заявление на номера">&#128196;</a>';
           row.innerHTML =
             '<td data-label="№">' + (index + 1) + '</td>' +
             '<td data-label="Клиент">' + (order.client || '—') + '</td>' +
