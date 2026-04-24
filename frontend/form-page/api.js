@@ -83,7 +83,7 @@
       trustee_passport_issued_by: (inputs.hasTrustee && inputs.hasTrustee.checked && inputs.trusteePassportIssuedBy && inputs.trusteePassportIssuedBy.value.trim()) ? inputs.trusteePassportIssuedBy.value.trim() : null,
       trustee_passport_issued_date: (inputs.hasTrustee && inputs.hasTrustee.checked && inputs.trusteePassportIssuedDate && inputs.trusteePassportIssuedDate.value.trim()) ? inputs.trusteePassportIssuedDate.value.trim() : null,
       trustee_passport_division_code: (inputs.hasTrustee && inputs.hasTrustee.checked && inputs.trusteePassportDivisionCode && inputs.trusteePassportDivisionCode.value.trim()) ? inputs.trusteePassportDivisionCode.value.trim() : null,
-      trustee_basis: (inputs.hasTrustee && inputs.hasTrustee.checked && inputs.trusteeBasis && inputs.trusteeBasis.value.trim()) ? inputs.trusteeBasis.value.trim() : null,
+      trustee_basis: null,
       vin: (inputs.vin && inputs.vin.value.trim()) || null,
       brand_model: (inputs.brandModel && inputs.brandModel.value.trim()) || null,
       vehicle_type: (inputs.vehicleType && inputs.vehicleType.value.trim()) || null,
@@ -165,7 +165,7 @@
     page.setVal(inputs.clientPassportIssuedDate, formData.client_passport_issued_date);
     page.setVal(inputs.clientPassportDivisionCode, formData.client_passport_division_code);
     page.setVal(inputs.clientAddress, formData.client_address);
-    page.setVal(inputs.clientPhone, formData.client_phone);
+    page.setVal(inputs.clientPhone, formData.client_phone ? page.formatPhone(formData.client_phone) : page.formatPhone(''));
     page.setVal(inputs.clientIsLegal, formData.client_is_legal);
     page.setVal(inputs.clientLegalName, formData.client_legal_name);
     page.setVal(inputs.clientInn, formData.client_inn);
@@ -185,7 +185,6 @@
     page.setVal(inputs.trusteePassportIssuedBy, formData.trustee_passport_issued_by);
     page.setVal(inputs.trusteePassportIssuedDate, formData.trustee_passport_issued_date);
     page.setVal(inputs.trusteePassportDivisionCode, formData.trustee_passport_division_code);
-    page.setVal(inputs.trusteeBasis, formData.trustee_basis);
     page.setVal(inputs.vin, formData.vin);
     page.setVal(inputs.brandModel, formData.brand_model);
     page.setVal(inputs.vehicleType, formData.vehicle_type);

@@ -751,13 +751,11 @@ body {
 .form-section--togglable .form-section__body {
   padding: 0 var(--space-4) var(--space-4);
   overflow: hidden;
-  transition: max-height 0.25s ease-out, opacity 0.2s ease;
-  max-height: 500px;
   opacity: 1;
 }
 
 .form-section--togglable .form-section__body--closed {
-  max-height: 0;
+  display: none;
   padding-top: 0;
   padding-bottom: 0;
   opacity: 0;
@@ -784,6 +782,71 @@ body {
 .form-grid--dkp { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
 .form-section__sub--dkp-single .field--dkp-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-4); }
 .form-section__sub--dkp-single .field--dkp-row .field--grow { flex: 1; min-width: 200px; }
+
+.document-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.document-group__title {
+  font-size: var(--text-caption);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.document-group__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.mini-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.field__input--series {
+  width: 6.5rem;
+}
+
+.field__input--doc-number {
+  width: 8rem;
+}
+
+.field__input--date {
+  width: 10rem;
+}
+
+.field__input--division {
+  width: 9rem;
+}
+
+.field__input--phone {
+  max-width: 18rem;
+}
+
+.vehicle-docs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+
+.vehicle-doc {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
 
 /* Toggle / checkbox */
 .toggle-label {

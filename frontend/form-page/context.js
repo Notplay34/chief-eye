@@ -43,7 +43,6 @@
       trusteePassportIssuedBy: el('trusteePassportIssuedBy'),
       trusteePassportIssuedDate: el('trusteePassportIssuedDate'),
       trusteePassportDivisionCode: el('trusteePassportDivisionCode'),
-      trusteeBasis: el('trusteeBasis'),
       vin: el('vin'),
       brandModel: el('brandModel'),
       vehicleType: el('vehicleType'),

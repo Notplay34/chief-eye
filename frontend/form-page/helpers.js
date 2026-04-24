@@ -51,12 +51,28 @@
     return digits;
   };
 
+  page.formatDateDigits = function (value) {
+    var digits = page.onlyDigits(value).slice(0, 8);
+    if (digits.length > 4) return digits.slice(0, 2) + '.' + digits.slice(2, 4) + '.' + digits.slice(4);
+    if (digits.length > 2) return digits.slice(0, 2) + '.' + digits.slice(2);
+    return digits;
+  };
+
+  page.todayRu = function () {
+    var now = new Date();
+    var dd = String(now.getDate()).padStart(2, '0');
+    var mm = String(now.getMonth() + 1).padStart(2, '0');
+    var yyyy = String(now.getFullYear());
+    return dd + '.' + mm + '.' + yyyy;
+  };
+
   page.formatPhone = function (value) {
     var digits = page.onlyDigits(value);
     if (digits.charAt(0) === '8') digits = '7' + digits.slice(1);
     if (digits.charAt(0) === '7') digits = digits.slice(1);
     digits = digits.slice(0, 10);
-    return '+7 ' + digits;
+    var padded = (digits + '__________').slice(0, 10);
+    return '+7 (' + padded.slice(0, 3) + ') ' + padded.slice(3, 6) + '-' + padded.slice(6, 8) + '-' + padded.slice(8, 10);
   };
 
   page.composePhone = function () {

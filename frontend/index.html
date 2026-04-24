@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="page-auth-guard.js"></script>
+  <script src="page-auth-guard.js?v=283-form"></script>
   <title>Подготовка документов</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=PT+Serif:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=283-form">
 </head>
 <body>
   <div class="app">
@@ -54,25 +54,30 @@
               <label class="field__label" for="clientFio">ФИО</label>
               <input type="text" id="clientFio" class="field__input" placeholder="Иванов Иван Иванович" autocomplete="off">
             </div>
-            <div class="field">
-              <label class="field__label" for="clientPassportSeries">Серия паспорта</label>
-              <input type="text" id="clientPassportSeries" class="field__input" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off">
-            </div>
-            <div class="field">
-              <label class="field__label" for="clientPassportNumber">Номер паспорта</label>
-              <input type="text" id="clientPassportNumber" class="field__input" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="off">
+            <div class="field field--full document-group">
+              <div class="document-group__title">Паспорт</div>
+              <div class="document-group__row document-group__row--passport">
+                <label class="mini-field">
+                  <span class="field__label">Серия</span>
+                  <input type="text" id="clientPassportSeries" class="field__input field__input--series" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off">
+                </label>
+                <label class="mini-field">
+                  <span class="field__label">Номер</span>
+                  <input type="text" id="clientPassportNumber" class="field__input field__input--doc-number" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="off">
+                </label>
+                <label class="mini-field mini-field--date">
+                  <span class="field__label">Когда выдан</span>
+                  <input type="text" id="clientPassportIssuedDate" class="field__input field__input--date" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.ГГГГ" autocomplete="off">
+                </label>
+                <label class="mini-field mini-field--code">
+                  <span class="field__label">Код подразделения</span>
+                  <input type="text" id="clientPassportDivisionCode" class="field__input field__input--division" inputmode="numeric" maxlength="7" placeholder="000-000" autocomplete="off">
+                </label>
+              </div>
             </div>
             <div class="field field--full">
               <label class="field__label" for="clientPassportIssuedBy">Кем выдан</label>
               <input type="text" id="clientPassportIssuedBy" class="field__input" placeholder="наименование подразделения" autocomplete="off">
-            </div>
-            <div class="field">
-              <label class="field__label" for="clientPassportIssuedDate">Когда выдан</label>
-              <input type="text" id="clientPassportIssuedDate" class="field__input" placeholder="ДД.ММ.ГГГГ" autocomplete="off">
-            </div>
-            <div class="field">
-              <label class="field__label" for="clientPassportDivisionCode">Код подразделения</label>
-              <input type="text" id="clientPassportDivisionCode" class="field__input" inputmode="numeric" maxlength="7" placeholder="000-000" autocomplete="off">
             </div>
           </div>
           <div class="form-grid" id="clientLegal" style="display:none">
@@ -96,7 +101,7 @@
             </div>
             <div class="field field--full">
               <label class="field__label" for="clientPhone">Телефон</label>
-              <input type="tel" id="clientPhone" class="field__input" inputmode="numeric" value="+7 " placeholder="+7 ___ ___-__-__" autocomplete="off">
+              <input type="tel" id="clientPhone" class="field__input field__input--phone" inputmode="numeric" value="+7 (___) ___-__-__" placeholder="+7 (___) ___-__-__" autocomplete="off">
             </div>
           </div>
         </fieldset>
@@ -115,25 +120,30 @@
                 <label class="field__label" for="sellerFio">ФИО продавца</label>
                 <input type="text" id="sellerFio" class="field__input" placeholder="Иванов Иван Иванович" autocomplete="off">
               </div>
-              <div class="field">
-                <label class="field__label" for="sellerPassportSeries">Серия паспорта</label>
-                <input type="text" id="sellerPassportSeries" class="field__input" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off">
-              </div>
-              <div class="field">
-                <label class="field__label" for="sellerPassportNumber">Номер паспорта</label>
-                <input type="text" id="sellerPassportNumber" class="field__input" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="off">
+              <div class="field field--full document-group">
+                <div class="document-group__title">Паспорт продавца</div>
+                <div class="document-group__row document-group__row--passport">
+                  <label class="mini-field">
+                    <span class="field__label">Серия</span>
+                    <input type="text" id="sellerPassportSeries" class="field__input field__input--series" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off">
+                  </label>
+                  <label class="mini-field">
+                    <span class="field__label">Номер</span>
+                    <input type="text" id="sellerPassportNumber" class="field__input field__input--doc-number" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="off">
+                  </label>
+                  <label class="mini-field mini-field--date">
+                    <span class="field__label">Когда выдан</span>
+                    <input type="text" id="sellerPassportIssuedDate" class="field__input field__input--date" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.ГГГГ" autocomplete="off">
+                  </label>
+                  <label class="mini-field mini-field--code">
+                    <span class="field__label">Код подразделения</span>
+                    <input type="text" id="sellerPassportDivisionCode" class="field__input field__input--division" inputmode="numeric" maxlength="7" placeholder="000-000" autocomplete="off">
+                  </label>
+                </div>
               </div>
               <div class="field field--full">
                 <label class="field__label" for="sellerPassportIssuedBy">Кем выдан</label>
                 <input type="text" id="sellerPassportIssuedBy" class="field__input" placeholder="наименование подразделения" autocomplete="off">
-              </div>
-              <div class="field">
-                <label class="field__label" for="sellerPassportIssuedDate">Когда выдан</label>
-                <input type="text" id="sellerPassportIssuedDate" class="field__input" placeholder="ДД.ММ.ГГГГ" autocomplete="off">
-              </div>
-              <div class="field">
-                <label class="field__label" for="sellerPassportDivisionCode">Код подразделения</label>
-                <input type="text" id="sellerPassportDivisionCode" class="field__input" inputmode="numeric" maxlength="7" placeholder="000-000" autocomplete="off">
               </div>
               <div class="field field--full">
                 <label class="field__label" for="sellerAddress">Адрес</label>
@@ -174,29 +184,30 @@
                 <label class="field__label" for="trusteeFio">ФИО доверенного лица</label>
                 <input type="text" id="trusteeFio" class="field__input" placeholder="ФИО" autocomplete="off">
               </div>
-              <div class="field">
-                <label class="field__label" for="trusteePassportSeries">Серия паспорта</label>
-                <input type="text" id="trusteePassportSeries" class="field__input" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off">
-              </div>
-              <div class="field">
-                <label class="field__label" for="trusteePassportNumber">Номер паспорта</label>
-                <input type="text" id="trusteePassportNumber" class="field__input" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="off">
+              <div class="field field--full document-group">
+                <div class="document-group__title">Паспорт доверенного лица</div>
+                <div class="document-group__row document-group__row--passport">
+                  <label class="mini-field">
+                    <span class="field__label">Серия</span>
+                    <input type="text" id="trusteePassportSeries" class="field__input field__input--series" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off">
+                  </label>
+                  <label class="mini-field">
+                    <span class="field__label">Номер</span>
+                    <input type="text" id="trusteePassportNumber" class="field__input field__input--doc-number" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="off">
+                  </label>
+                  <label class="mini-field mini-field--date">
+                    <span class="field__label">Когда выдан</span>
+                    <input type="text" id="trusteePassportIssuedDate" class="field__input field__input--date" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.ГГГГ" autocomplete="off">
+                  </label>
+                  <label class="mini-field mini-field--code">
+                    <span class="field__label">Код подразделения</span>
+                    <input type="text" id="trusteePassportDivisionCode" class="field__input field__input--division" inputmode="numeric" maxlength="7" placeholder="000-000" autocomplete="off">
+                  </label>
+                </div>
               </div>
               <div class="field field--full">
                 <label class="field__label" for="trusteePassportIssuedBy">Кем выдан</label>
                 <input type="text" id="trusteePassportIssuedBy" class="field__input" placeholder="наименование подразделения" autocomplete="off">
-              </div>
-              <div class="field">
-                <label class="field__label" for="trusteePassportIssuedDate">Когда выдан</label>
-                <input type="text" id="trusteePassportIssuedDate" class="field__input" placeholder="ДД.ММ.ГГГГ" autocomplete="off">
-              </div>
-              <div class="field">
-                <label class="field__label" for="trusteePassportDivisionCode">Код подразделения</label>
-                <input type="text" id="trusteePassportDivisionCode" class="field__input" inputmode="numeric" maxlength="7" placeholder="000-000" autocomplete="off">
-              </div>
-              <div class="field field--full">
-                <label class="field__label" for="trusteeBasis">По доверенности от (дата, номер)</label>
-                <input type="text" id="trusteeBasis" class="field__input" placeholder="например: № 123 от 01.01.2024" autocomplete="off">
               </div>
             </div>
           </div>
@@ -238,40 +249,52 @@
               <input type="text" id="color" class="field__input" placeholder="цвет" autocomplete="off">
             </div>
             <div class="field">
-              <label class="field__label" for="srtsSeries">СРТС серия</label>
-              <input type="text" id="srtsSeries" class="field__input" maxlength="4" placeholder="серия" autocomplete="off">
-            </div>
-            <div class="field">
-              <label class="field__label" for="srtsNumber">СРТС номер</label>
-              <input type="text" id="srtsNumber" class="field__input" maxlength="6" placeholder="номер" autocomplete="off">
-            </div>
-            <div class="field field--full">
-              <label class="field__label" for="srtsIssuedBy">СРТС кем выдан</label>
-              <input type="text" id="srtsIssuedBy" class="field__input" placeholder="орган выдачи" autocomplete="off">
-            </div>
-            <div class="field">
-              <label class="field__label" for="srtsIssuedDate">СРТС когда выдан</label>
-              <input type="text" id="srtsIssuedDate" class="field__input" placeholder="ДД.ММ.ГГГГ" autocomplete="off">
-            </div>
-            <div class="field">
               <label class="field__label" for="plateNumber">Гос. номер</label>
               <input type="text" id="plateNumber" class="field__input" placeholder="А123БВ77" autocomplete="off">
             </div>
-            <div class="field">
-              <label class="field__label" for="ptsSeries">ПТС серия</label>
-              <input type="text" id="ptsSeries" class="field__input" maxlength="4" placeholder="серия" autocomplete="off">
-            </div>
-            <div class="field">
-              <label class="field__label" for="ptsNumber">ПТС номер</label>
-              <input type="text" id="ptsNumber" class="field__input" maxlength="6" placeholder="номер" autocomplete="off">
-            </div>
-            <div class="field field--full">
-              <label class="field__label" for="ptsIssuedBy">ПТС кем выдан</label>
-              <input type="text" id="ptsIssuedBy" class="field__input" placeholder="орган выдачи" autocomplete="off">
-            </div>
-            <div class="field">
-              <label class="field__label" for="ptsIssuedDate">ПТС когда выдан</label>
-              <input type="text" id="ptsIssuedDate" class="field__input" placeholder="ДД.ММ.ГГГГ" autocomplete="off">
+            <div class="field field--full vehicle-docs">
+              <div class="vehicle-doc">
+                <div class="document-group__title">СРТС</div>
+                <div class="document-group__row">
+                  <label class="mini-field">
+                    <span class="field__label">Серия</span>
+                    <input type="text" id="srtsSeries" class="field__input field__input--series" maxlength="4" placeholder="серия" autocomplete="off">
+                  </label>
+                  <label class="mini-field">
+                    <span class="field__label">Номер</span>
+                    <input type="text" id="srtsNumber" class="field__input field__input--doc-number" maxlength="6" placeholder="номер" autocomplete="off">
+                  </label>
+                  <label class="mini-field mini-field--date">
+                    <span class="field__label">Когда выдан</span>
+                    <input type="text" id="srtsIssuedDate" class="field__input field__input--date" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.ГГГГ" autocomplete="off">
+                  </label>
+                </div>
+                <label class="field field--full">
+                  <span class="field__label">Кем выдан</span>
+                  <input type="text" id="srtsIssuedBy" class="field__input" placeholder="орган выдачи" autocomplete="off">
+                </label>
+              </div>
+              <div class="vehicle-doc">
+                <div class="document-group__title">ПТС</div>
+                <div class="document-group__row">
+                  <label class="mini-field">
+                    <span class="field__label">Серия</span>
+                    <input type="text" id="ptsSeries" class="field__input field__input--series" maxlength="4" placeholder="серия" autocomplete="off">
+                  </label>
+                  <label class="mini-field">
+                    <span class="field__label">Номер</span>
+                    <input type="text" id="ptsNumber" class="field__input field__input--doc-number" maxlength="6" placeholder="номер" autocomplete="off">
+                  </label>
+                  <label class="mini-field mini-field--date">
+                    <span class="field__label">Когда выдан</span>
+                    <input type="text" id="ptsIssuedDate" class="field__input field__input--date" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.ГГГГ" autocomplete="off">
+                  </label>
+                </div>
+                <label class="field field--full">
+                  <span class="field__label">Кем выдан</span>
+                  <input type="text" id="ptsIssuedBy" class="field__input" placeholder="орган выдачи" autocomplete="off">
+                </label>
+              </div>
             </div>
           </div>
           <div class="form-section__sub form-section__sub--dkp-single">
@@ -403,14 +426,14 @@
     </footer>
   </div>
 
-  <script src="auth.js"></script>
-  <script src="header-common.js"></script>
-  <script src="dashboard.js"></script>
-  <script src="form-page/context.js"></script>
-  <script src="form-page/helpers.js"></script>
-  <script src="form-page/render.js"></script>
-  <script src="form-page/api.js"></script>
-  <script src="form-page/init.js"></script>
-  <script src="app.js"></script>
+  <script src="auth.js?v=283-form"></script>
+  <script src="header-common.js?v=283-form"></script>
+  <script src="dashboard.js?v=283-form"></script>
+  <script src="form-page/context.js?v=283-form"></script>
+  <script src="form-page/helpers.js?v=283-form"></script>
+  <script src="form-page/render.js?v=283-form"></script>
+  <script src="form-page/api.js?v=283-form"></script>
+  <script src="form-page/init.js?v=283-form"></script>
+  <script src="app.js?v=283-form"></script>
 </body>
 </html>

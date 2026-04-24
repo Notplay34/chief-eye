@@ -69,8 +69,7 @@
     if (inputs.hasTrustee && inputs.hasTrustee.checked && inputs.trusteeFio && inputs.trusteeFio.value.trim()) {
       trustee = [
         inputs.trusteeFio.value.trim(),
-        page.composePassport('trustee'),
-        inputs.trusteeBasis && inputs.trusteeBasis.value.trim()
+        page.composePassport('trustee')
       ].filter(Boolean).join(' · ');
     }
     var vehicle = (inputs.vin && inputs.vin.value.trim()) || (inputs.brandModel && inputs.brandModel.value.trim())
@@ -196,7 +195,10 @@
     if (page.inputs.hasSeller && sellerBody) {
       sellerBody.classList.toggle('form-section__body--closed', !page.inputs.hasSeller.checked);
       page.inputs.hasSeller.addEventListener('change', function () {
-        sellerBody.classList.toggle('form-section__body--closed', !page.inputs.hasSeller.checked);
+        var enabled = page.inputs.hasSeller.checked;
+        sellerBody.classList.toggle('form-section__body--closed', !enabled);
+        if (page.inputs.dkpDate) page.inputs.dkpDate.value = enabled ? page.todayRu() : '';
+        page.syncFromMainForm();
       });
     }
     if (page.inputs.hasTrustee && trusteeBody) {

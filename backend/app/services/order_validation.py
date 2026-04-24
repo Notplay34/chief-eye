@@ -20,7 +20,6 @@ FIELD_LABELS = {
     "seller_address": "Адрес продавца",
     "trustee_fio": "ФИО доверенного лица",
     "trustee_passport": "Паспорт доверенного лица",
-    "trustee_basis": "Основание доверенности",
     "vin": "VIN",
     "brand_model": "Марка/модель",
     "vehicle_type": "Тип ТС",
@@ -66,7 +65,7 @@ TEMPLATE_REQUIRED_FIELDS = {
     },
     "doverennost.docx": {
         "client_fio", "client_passport", "client_address",
-        "trustee_fio", "trustee_passport", "trustee_basis",
+        "trustee_fio", "trustee_passport",
         "vin", "brand_model", "year", "plate_number",
     },
     "mreo.docx": {"client_fio", "client_passport", "client_address", "client_phone", "brand_model", "year"},
