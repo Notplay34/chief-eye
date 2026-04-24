@@ -18,6 +18,7 @@ from app.schemas.cash import (
 )
 from app.services.errors import ServiceError
 from app.services.cash_service import (
+    can_manage_pavilion_cash,
     close_shift as close_shift_service,
     get_cash_day_summary as get_cash_day_summary_service,
     get_current_shift_summary as get_current_shift_summary_service,
@@ -47,6 +48,11 @@ def _apply_date_filters(query, model, business_date: Optional[date], date_from: 
 
 def _raise_service_error(exc: ServiceError) -> None:
     raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+def _ensure_pavilion_cash_access(user: UserInfo, pavilion: int) -> None:
+    if not can_manage_pavilion_cash(user, pavilion):
+        raise HTTPException(status_code=403, detail="Нет доступа к кассе этого павильона")
 
 
 @router.post("/shifts", response_model=dict)
@@ -88,7 +94,13 @@ async def list_shifts(
     """Список смен (фильтр по павильону и статусу)."""
     q = select(CashShift).order_by(CashShift.opened_at.desc()).limit(limit)
     if pavilion is not None:
+        _ensure_pavilion_cash_access(user, pavilion)
         q = q.where(CashShift.pavilion == pavilion)
+    else:
+        allowed_pavilions = [p for p in (1, 2) if can_manage_pavilion_cash(user, p)]
+        if not allowed_pavilions:
+            raise HTTPException(status_code=403, detail="Нет доступа к кассам")
+        q = q.where(CashShift.pavilion.in_(allowed_pavilions))
     if status is not None:
         try:
             q = q.where(CashShift.status == ShiftStatus(status))
@@ -144,6 +156,7 @@ async def list_cash_rows(
     user: UserInfo = Depends(RequireCashAccess),
 ):
     """Список строк таблицы кассы (последние сверху)."""
+    _ensure_pavilion_cash_access(user, 1)
     q = select(CashRow).order_by(CashRow.created_at.desc()).limit(limit)
     q = _apply_date_filters(q, CashRow, business_date, date_from, date_to)
     r = await db.execute(q)
@@ -158,6 +171,7 @@ async def create_cash_row(
     user: UserInfo = Depends(RequireCashAccess),
 ):
     """Добавить строку в таблицу кассы."""
+    _ensure_pavilion_cash_access(user, 1)
     row = CashRow(
         client_name=body.client_name or "",
         application=body.application,
@@ -180,6 +194,7 @@ async def update_cash_row(
     user: UserInfo = Depends(RequireCashAccess),
 ):
     """Обновить ячейки строки кассы (передавать только изменённые поля)."""
+    _ensure_pavilion_cash_access(user, 1)
     r = await db.execute(select(CashRow).where(CashRow.id == row_id))
     row = r.scalar_one_or_none()
     if not row:
@@ -210,6 +225,7 @@ async def delete_cash_row(
     user: UserInfo = Depends(RequireCashAccess),
 ):
     """Удалить строку из таблицы кассы."""
+    _ensure_pavilion_cash_access(user, 1)
     r = await db.execute(select(CashRow).where(CashRow.id == row_id))
     row = r.scalar_one_or_none()
     if not row:
@@ -408,6 +424,7 @@ async def list_plate_payouts(
     user: UserInfo = Depends(RequireCashAccess),
 ):
     """Невыданные суммы за номера (для кассы павильона 1)."""
+    _ensure_pavilion_cash_access(user, 1)
     q = select(PlatePayout).where(PlatePayout.paid_at.is_(None)).order_by(PlatePayout.created_at)
     r = await db.execute(q)
     rows = r.scalars().all()
@@ -429,6 +446,7 @@ async def pay_plate_payouts(
     - добавить по каждой записи строку в кассу номеров;
     - пометить записи как выплаченные.
     """
+    _ensure_pavilion_cash_access(user, 1)
     try:
         result = await pay_plate_payouts_service(db, user)
     except ServiceError as exc:

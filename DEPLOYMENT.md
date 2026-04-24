@@ -152,11 +152,12 @@ Runbook: [docs/BACKUP_AND_RESTORE.md](/Users/NotPlay/Documents/dev/pavilion/docs
 
 ```bash
 cd /opt/eye_w
+bash deploy/backup_db.sh
 bash deploy/setup_server.sh
 bash deploy/check_stack.sh
 ```
 
-`setup_server.sh` применяет Alembic-миграции перед перезапуском backend.
+Для сервера с данными бэкап перед обновлением обязателен. `setup_server.sh` сначала безопасно проверяет/создаёт базовую схему БД, затем применяет Alembic-миграции и перезапускает backend.
 
 Пароль суперпользователя `setup_server.sh` больше не печатает в stdout. При необходимости смотреть на сервере:
 

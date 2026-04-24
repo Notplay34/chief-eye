@@ -99,6 +99,47 @@ def test_role_smoke_matrix(client: TestClient, auth_headers: dict[str, str]):
     assert client.get("/analytics/dashboard?period=month", headers=operator).status_code == 403
     assert client.get("/analytics/dashboard?period=month", headers=plate).status_code == 403
 
+    for headers in (admin, manager, operator):
+        assert client.post(
+            "/cash/rows",
+            json={"client_name": "Касса 1", "application": "100", "total": "100"},
+            headers=headers,
+        ).status_code == 200
+
+    cash_row = client.post(
+        "/cash/rows",
+        json={"client_name": "Закрытая строка", "application": "50", "total": "50"},
+        headers=admin,
+    )
+    assert cash_row.status_code == 200, cash_row.text
+    cash_row_id = cash_row.json()["id"]
+
+    assert client.get("/cash/rows", headers=plate).status_code == 403
+    assert client.post(
+        "/cash/rows",
+        json={"client_name": "Чужая касса", "application": "1", "total": "1"},
+        headers=plate,
+    ).status_code == 403
+    assert client.patch(
+        f"/cash/rows/{cash_row_id}",
+        json={"client_name": "Чужое изменение"},
+        headers=plate,
+    ).status_code == 403
+    assert client.delete(f"/cash/rows/{cash_row_id}", headers=plate).status_code == 403
+    assert client.get("/cash/plate-payouts", headers=plate).status_code == 403
+    assert client.post("/cash/plate-payouts/pay", headers=plate).status_code == 403
+    assert client.get("/cash/plate-rows", headers=plate).status_code == 200
+
+    assert client.post("/cash/shifts", json={"pavilion": 1, "opening_balance": "0"}, headers=admin).status_code == 200
+    assert client.post("/cash/shifts", json={"pavilion": 2, "opening_balance": "0"}, headers=plate).status_code == 200
+    assert client.get("/cash/shifts", params={"pavilion": 1}, headers=plate).status_code == 403
+    plate_shifts_p2 = client.get("/cash/shifts", params={"pavilion": 2}, headers=plate)
+    assert plate_shifts_p2.status_code == 200, plate_shifts_p2.text
+    assert {shift["pavilion"] for shift in plate_shifts_p2.json()} == {2}
+    plate_shifts_all = client.get("/cash/shifts", headers=plate)
+    assert plate_shifts_all.status_code == 200, plate_shifts_all.text
+    assert {shift["pavilion"] for shift in plate_shifts_all.json()} == {2}
+
     operator_order = client.post(
         "/orders",
         json={

@@ -101,7 +101,18 @@ else
   echo "pip не найден в $PROJECT_ROOT/backend/.venv/bin/pip — пропускаю обновление зависимостей"
 fi
 
-echo "=== 3b. Миграции БД ==="
+echo "=== 3b. Базовая схема БД ==="
+set -a
+# shellcheck disable=SC1091
+. "$PROJECT_ROOT/backend/.env"
+set +a
+if [ -x "$PROJECT_ROOT/backend/.venv/bin/python" ]; then
+  (cd "$PROJECT_ROOT/backend" && "$PROJECT_ROOT/backend/.venv/bin/python" -m app.bootstrap.create_schema)
+else
+  echo "python не найден в $PROJECT_ROOT/backend/.venv/bin/python — пропускаю bootstrap схемы"
+fi
+
+echo "=== 3c. Миграции БД ==="
 if [ -x "$PROJECT_ROOT/backend/.venv/bin/alembic" ]; then
   set -a
   # shellcheck disable=SC1091
