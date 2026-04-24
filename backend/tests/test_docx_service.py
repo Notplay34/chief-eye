@@ -51,8 +51,12 @@ def _base_form_data() -> dict:
         "body": "XTA217230N0000001",
         "color": "Белый",
         "srts": "99AA 123456",
+        "srts_issued_by": "РЭО ГИБДД ОМВД России по г. Михайловке",
+        "srts_issued_date": "12.03.2024",
         "plate_number": "A001AA34",
         "pts": "78УУ 123456",
+        "pts_issued_by": "АО Электронный паспорт",
+        "pts_issued_date": "15.01.2021",
         "dkp_date": "23.04.2026",
         "summa_dkp": "850000",
         "state_duty": "500",
@@ -70,6 +74,31 @@ def test_dkp_uses_full_seller_passport_without_replacing_seller_with_trustee():
         "1814 654321, выдан ОУФМС России по Волгоградской области, "
         "03.04.2021, код подразделения 340-002"
     ) in text
+    assert "СРТС:  99AA 123456, выдан РЭО ГИБДД ОМВД России по г. Михайловке, 12.03.2024" in text
+    assert "ПТС: 78УУ 123456, выдан АО Электронный паспорт, 15.01.2021" in text
+    assert "восемьсот пятьдесят тысяч рублей 00 копеек" in text
+
+
+def test_vehicle_documents_include_issue_details_in_templates():
+    text = _docx_text(render_docx("zaiavlenie.docx", _base_form_data()))
+
+    assert "78УУ 123456, выдан АО Электронный паспорт, 15.01.2021" in text
+    assert "99AA 123456, выдан РЭО ГИБДД ОМВД России по г. Михайловке, 12.03.2024" in text
+
+
+def test_split_vehicle_documents_include_issue_details():
+    form_data = _base_form_data()
+    form_data["srts"] = None
+    form_data["srts_series"] = "99AA"
+    form_data["srts_number"] = "123456"
+    form_data["pts"] = None
+    form_data["pts_series"] = "78УУ"
+    form_data["pts_number"] = "123456"
+
+    text = _docx_text(render_docx("akt_pp.docx", form_data))
+
+    assert "СРТС: 99AA 123456, выдан РЭО ГИБДД ОМВД России по г. Михайловке, 12.03.2024" in text
+    assert "ПТС: 78УУ 123456, выдан АО Электронный паспорт, 15.01.2021" in text
 
 
 def test_doverennost_uses_full_trustee_passport():

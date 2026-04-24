@@ -4,6 +4,7 @@
 Используется простая замена строк (шаблоны с пробелами в плейсхолдерах, напр. «ФИО продавец»).
 """
 from datetime import date
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from io import BytesIO
 from typing import Dict, Optional
@@ -69,6 +70,7 @@ PLACEHOLDER_TO_FIELD = {
     "ПТС кем выдан": "pts_issued_by",
     "ПТС когда выдан": "pts_issued_date",
     "Сумма ДКП": "summa_dkp",
+    "Сумма ДКП прописью": None,
     "Дата ДКП": "dkp_date",
     "Номер договора": "dkp_number",
     "ДКП": "dkp_summary",
@@ -93,6 +95,53 @@ _PASSPORT_PLACEHOLDER_PREFIXES = {
 
 _REPRESENTATIVE_TEMPLATES = frozenset({"zaiavlenie.docx"})
 _NUMBER_REPRESENTATIVE_TEMPLATES = frozenset({"number.docx"})
+
+_ONES = {
+    0: "",
+    1: "один",
+    2: "два",
+    3: "три",
+    4: "четыре",
+    5: "пять",
+    6: "шесть",
+    7: "семь",
+    8: "восемь",
+    9: "девять",
+}
+_ONES_FEMININE = {**_ONES, 1: "одна", 2: "две"}
+_TEENS = {
+    10: "десять",
+    11: "одиннадцать",
+    12: "двенадцать",
+    13: "тринадцать",
+    14: "четырнадцать",
+    15: "пятнадцать",
+    16: "шестнадцать",
+    17: "семнадцать",
+    18: "восемнадцать",
+    19: "девятнадцать",
+}
+_TENS = {
+    2: "двадцать",
+    3: "тридцать",
+    4: "сорок",
+    5: "пятьдесят",
+    6: "шестьдесят",
+    7: "семьдесят",
+    8: "восемьдесят",
+    9: "девяносто",
+}
+_HUNDREDS = {
+    1: "сто",
+    2: "двести",
+    3: "триста",
+    4: "четыреста",
+    5: "пятьсот",
+    6: "шестьсот",
+    7: "семьсот",
+    8: "восемьсот",
+    9: "девятьсот",
+}
 
 
 def _number_applicant_field(form_data: dict, placeholder: str) -> Optional[str]:
@@ -140,6 +189,89 @@ def _full_passport(form_data: dict, prefix: str) -> str:
     return ", ".join(part for part in parts if part)
 
 
+def _full_vehicle_doc(form_data: dict, prefix: str) -> str:
+    doc_value = form_data.get(prefix)
+    series = form_data.get(f"{prefix}_series")
+    number = form_data.get(f"{prefix}_number")
+    if not doc_value and series and number:
+        doc_value = f"{series} {number}"
+
+    parts = [str(doc_value).strip()] if doc_value else []
+    issued_by = form_data.get(f"{prefix}_issued_by")
+    issued_date = form_data.get(f"{prefix}_issued_date")
+    if issued_by:
+        parts.append(f"выдан {str(issued_by).strip()}")
+    if issued_date:
+        parts.append(str(issued_date).strip())
+    return ", ".join(part for part in parts if part)
+
+
+def _plural_ru(number: int, forms: tuple[str, str, str]) -> str:
+    n = abs(number) % 100
+    if 11 <= n <= 14:
+        return forms[2]
+    last = n % 10
+    if last == 1:
+        return forms[0]
+    if 2 <= last <= 4:
+        return forms[1]
+    return forms[2]
+
+
+def _triad_words(number: int, feminine: bool = False) -> list[str]:
+    words: list[str] = []
+    hundreds = number // 100
+    tens_units = number % 100
+    tens = tens_units // 10
+    units = tens_units % 10
+    if hundreds:
+        words.append(_HUNDREDS[hundreds])
+    if 10 <= tens_units <= 19:
+        words.append(_TEENS[tens_units])
+    else:
+        if tens:
+            words.append(_TENS[tens])
+        ones = _ONES_FEMININE if feminine else _ONES
+        if units:
+            words.append(ones[units])
+    return words
+
+
+def _integer_to_words_ru(number: int) -> str:
+    if number == 0:
+        return "ноль"
+    groups = [
+        (10**9, ("миллиард", "миллиарда", "миллиардов"), False),
+        (10**6, ("миллион", "миллиона", "миллионов"), False),
+        (10**3, ("тысяча", "тысячи", "тысяч"), True),
+        (1, ("", "", ""), False),
+    ]
+    words: list[str] = []
+    for divisor, forms, feminine in groups:
+        triad = number // divisor
+        number %= divisor
+        if not triad:
+            continue
+        words.extend(_triad_words(triad, feminine=feminine))
+        if divisor > 1:
+            words.append(_plural_ru(triad, forms))
+    return " ".join(words)
+
+
+def _money_words_ru(value: object) -> str:
+    try:
+        amount = Decimal(str(value or 0)).quantize(Decimal("0.01"))
+    except (InvalidOperation, ValueError):
+        return ""
+    if amount < 0:
+        return ""
+    rubles = int(amount)
+    kopecks = int((amount - Decimal(rubles)) * 100)
+    ruble_word = _plural_ru(rubles, ("рубль", "рубля", "рублей"))
+    kopeck_word = _plural_ru(kopecks, ("копейка", "копейки", "копеек"))
+    return f"{_integer_to_words_ru(rubles)} {ruble_word} {kopecks:02d} {kopeck_word}"
+
+
 def _signature_fio(form_data: dict, template_name: Optional[str]) -> str:
     if template_name in _REPRESENTATIVE_TEMPLATES | _NUMBER_REPRESENTATIVE_TEMPLATES and form_data.get("trustee_fio"):
         return _fio_initials(form_data.get("trustee_fio"))
@@ -166,8 +298,14 @@ def _form_data_to_replace_map(
         value = form_data.get(field_key) if field_key else None
         if placeholder in _PASSPORT_PLACEHOLDER_PREFIXES:
             value = _full_passport(form_data, _PASSPORT_PLACEHOLDER_PREFIXES[placeholder])
+        if placeholder == "СРТС":
+            value = _full_vehicle_doc(form_data, "srts")
+        if placeholder == "ПТС":
+            value = _full_vehicle_doc(form_data, "pts")
         if template_name in _NUMBER_REPRESENTATIVE_TEMPLATES:
             value = _number_applicant_field(form_data, placeholder) or value
+        if placeholder == "Сумма ДКП прописью":
+            value = _money_words_ru(form_data.get("summa_dkp"))
         if placeholder == "Подпись":
             value = _signature_fio(form_data, template_name)
         if placeholder == "Подпись продавец":
