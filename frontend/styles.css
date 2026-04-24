@@ -834,9 +834,16 @@ body {
   gap: var(--space-3);
 }
 
-.document-group__row--passport .mini-field:nth-child(1) { grid-column: span 2; min-width: 5.75rem; }
-.document-group__row--passport .mini-field:nth-child(2) { grid-column: span 3; min-width: 7rem; }
-.document-group__row--passport .mini-field--issued-by { grid-column: span 7; }
+.document-group__row--passport {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2) var(--space-3);
+}
+
+.document-group__row--passport .mini-field:nth-child(1) { flex: 0 0 6.5rem; min-width: 6.5rem; }
+.document-group__row--passport .mini-field:nth-child(2) { flex: 0 0 8rem; min-width: 8rem; }
+.document-group__row--passport .mini-field--issued-by { flex: 1 1 24rem; }
 .document-group__row:not(.document-group__row--passport) .mini-field { grid-column: span 3; min-width: 9rem; }
 .document-group__row--passport .mini-field:nth-child(1),
 .document-group__row--passport .mini-field:nth-child(2),
@@ -845,8 +852,8 @@ body {
   width: 100%;
 }
 
-.document-group__row--passport .mini-field:nth-child(1) { max-width: 7rem; }
-.document-group__row--passport .mini-field:nth-child(2) { max-width: 9rem; }
+.document-group__row--passport .mini-field:nth-child(1) { max-width: 6.5rem; }
+.document-group__row--passport .mini-field:nth-child(2) { max-width: 8rem; }
 .document-group__row:not(.document-group__row--passport) .mini-field { max-width: 11rem; }
 
 .mini-field {
@@ -881,18 +888,29 @@ body {
 
 .vehicle-docs {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: var(--space-5);
 }
 
 .vehicle-doc {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
   padding: var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
+}
+
+.vehicle-doc .document-group__row {
+  grid-template-columns: 7rem 8.5rem 10.5rem;
+  gap: var(--space-4);
+}
+
+.vehicle-doc .document-group__row .mini-field {
+  grid-column: auto;
+  min-width: 0;
+  max-width: none;
 }
 
 /* Toggle / checkbox */
@@ -1931,6 +1949,10 @@ body {
 
 @media (max-width: 768px) {
   .form-grid { grid-template-columns: 1fr; }
+  .vehicle-docs { grid-template-columns: 1fr; }
+  .vehicle-doc .document-group__row {
+    grid-template-columns: 7rem 8.5rem 10.5rem;
+  }
   .document-group__row,
   .document-group__row--passport {
     grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -1950,6 +1972,12 @@ body {
 }
 
 @media (max-width: 480px) {
+  .vehicle-doc .document-group__row {
+    grid-template-columns: 1fr;
+  }
+  .vehicle-doc .document-group__row .mini-field {
+    grid-column: 1 / -1;
+  }
   .document-group__row--passport .mini-field:nth-child(1),
   .document-group__row--passport .mini-field:nth-child(2),
   .document-group__row--passport .mini-field--issued-by,
