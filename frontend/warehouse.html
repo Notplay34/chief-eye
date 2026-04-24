@@ -20,18 +20,28 @@
       </div>
     </header>
 
-    <div class="warehouse-card">
+    <div class="warehouse-card warehouse-card--stock">
       <h2>Остаток на складе</h2>
-      <div class="warehouse-stat" id="quantity">—</div>
-      <div class="warehouse-stat-label">Всего заготовок</div>
-      <div class="warehouse-stat" id="reserved" style="font-size:1.25rem; margin-top:0.75rem;">—</div>
-      <div class="warehouse-stat-label">Зарезервировано (невыданные заказы)</div>
-      <div id="reservedBreakdown" class="warehouse-breakdown"></div>
-      <div class="warehouse-stat" id="available" style="font-size:1.25rem; margin-top:0.75rem;">—</div>
-      <div class="warehouse-stat-label">Доступно для новых заказов</div>
+      <div class="warehouse-warning" id="warehouseWarning" hidden></div>
+      <div class="warehouse-kpi-grid">
+        <div class="warehouse-kpi">
+          <div class="warehouse-stat" id="quantity">—</div>
+          <div class="warehouse-stat-label">Всего заготовок</div>
+        </div>
+        <div class="warehouse-kpi warehouse-kpi--reserved">
+          <div class="warehouse-stat" id="reserved">—</div>
+          <div class="warehouse-stat-label">Зарезервировано</div>
+          <div id="reservedBreakdown" class="warehouse-breakdown"></div>
+        </div>
+        <div class="warehouse-kpi warehouse-kpi--available">
+          <div class="warehouse-stat" id="available">—</div>
+          <div class="warehouse-stat-label">Доступно для новых заказов</div>
+        </div>
+      </div>
     </div>
 
-    <div class="warehouse-card">
+    <div class="warehouse-grid">
+    <div class="warehouse-card warehouse-card--operation">
       <h2>Пополнить склад</h2>
       <div class="warehouse-row">
         <input type="number" id="addAmount" min="1" value="10" placeholder="Кол-во">
@@ -40,14 +50,15 @@
       <p id="warehouseMsg" class="warehouse-msg"></p>
     </div>
 
-    <div class="warehouse-card">
+    <div class="warehouse-card warehouse-card--operation warehouse-card--danger-zone">
       <h2>Списание</h2>
-      <div class="warehouse-stat" id="defectsMonth" style="font-size:1.25rem;">—</div>
+      <div class="warehouse-stat warehouse-stat--sm" id="defectsMonth">—</div>
       <div class="warehouse-stat-label">Браков за месяц</div>
       <p class="warehouse-stat-label" style="margin:0.75rem 0 0.5rem;">При нажатии «Выдано» в павильоне 2 заказ списывается со склада. Брак — списать 1 шт из остатка.</p>
       <div class="warehouse-row">
         <button type="button" class="btn btn--secondary" id="btnDefect">Добавить брак (−1 шт)</button>
       </div>
+    </div>
     </div>
   </div>
 

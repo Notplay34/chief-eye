@@ -380,7 +380,7 @@
     btnDel.type = 'button';
     btnDel.className = 'cash-crm__btn-del';
     btnDel.title = 'Удалить строку';
-    btnDel.innerHTML = '🗑';
+    btnDel.textContent = '×';
     btnDel.onclick = function () {
       if (!confirm('Удалить строку из кассы?')) return;
       fetchApi(API + '/cash/rows/' + row.id, { method: 'DELETE' })

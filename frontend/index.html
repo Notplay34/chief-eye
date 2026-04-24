@@ -351,49 +351,51 @@
         </fieldset>
       </section>
 
-      <!-- Автозаполняемый блок: итоги и действия -->
-      <section class="card card--summary" id="summaryCard">
-        <h2 class="card__title">Итого и оплата</h2>
-        <div class="summary">
-          <div class="summary__row">
-            <span class="summary__label">Госпошлина</span>
-            <span class="summary__value" id="sumStateDuty">0 ₽</span>
+      <aside class="work-sidebar" aria-label="Итоги заказа">
+        <!-- Автозаполняемый блок: итоги и действия -->
+        <section class="card card--summary" id="summaryCard">
+          <h2 class="card__title">Итого и оплата</h2>
+          <div class="summary">
+            <div class="summary__row">
+              <span class="summary__label">Госпошлина</span>
+              <span class="summary__value" id="sumStateDuty">0 ₽</span>
+            </div>
+            <div class="summary__row">
+              <span class="summary__label">Доход павильона</span>
+              <span class="summary__value summary__value--income" id="sumIncome">0 ₽</span>
+            </div>
+            <div class="summary__row summary__row--total">
+              <span class="summary__label">К оплате</span>
+              <span class="summary__value summary__value--total" id="sumTotal">0 ₽</span>
+            </div>
           </div>
-          <div class="summary__row">
-            <span class="summary__label">Доход павильона</span>
-            <span class="summary__value summary__value--income" id="sumIncome">0 ₽</span>
+          <div class="actions actions--stacked">
+            <button type="button" class="btn btn--primary" id="btnAcceptCash" disabled>
+              Принять наличные
+            </button>
+            <button type="button" class="btn btn--secondary" id="btnPrint" disabled>
+              Печать документов
+            </button>
           </div>
-          <div class="summary__row summary__row--total">
-            <span class="summary__label">К оплате</span>
-            <span class="summary__value summary__value--total" id="sumTotal">0 ₽</span>
-          </div>
-        </div>
-        <div class="actions">
-          <button type="button" class="btn btn--primary" id="btnAcceptCash" disabled>
-            Принять наличные
-          </button>
-          <button type="button" class="btn btn--secondary" id="btnPrint" disabled>
-            Печать документов
-          </button>
-        </div>
-        <p class="summary__hint">Сумма считается автоматически из полей выше</p>
-      </section>
+          <p class="summary__hint">Сумма считается автоматически из полей выше</p>
+        </section>
 
-      <section class="card card--preview" id="previewCard">
-        <h2 class="card__title">Сводка для документов</h2>
-        <div class="preview" id="documentPreview">
-          <p class="preview__line"><strong>ФИО:</strong> <span id="previewFio">—</span></p>
-          <p class="preview__line"><strong>Паспорт:</strong> <span id="previewPassport">—</span></p>
-          <p class="preview__line"><strong>Адрес:</strong> <span id="previewAddress">—</span></p>
-          <p class="preview__line"><strong>Телефон:</strong> <span id="previewPhone">—</span></p>
-          <p class="preview__line"><strong>Продавец:</strong> <span id="previewSeller">—</span></p>
-          <p class="preview__line"><strong>Доверенное лицо:</strong> <span id="previewTrustee">—</span></p>
-          <p class="preview__line"><strong>VIN / Марка:</strong> <span id="previewVehicle">—</span></p>
-          <p class="preview__line"><strong>ДКП (договор):</strong> <span id="previewDkp">—</span></p>
-          <p class="preview__line"><strong>Документы:</strong> <span id="previewService">—</span></p>
-          <p class="preview__line"><strong>К оплате:</strong> <span id="previewTotal">0 ₽</span></p>
-        </div>
-      </section>
+        <section class="card card--preview" id="previewCard">
+          <h2 class="card__title">Сводка для документов</h2>
+          <div class="preview" id="documentPreview">
+            <p class="preview__line"><strong>ФИО:</strong> <span id="previewFio">—</span></p>
+            <p class="preview__line"><strong>Паспорт:</strong> <span id="previewPassport">—</span></p>
+            <p class="preview__line"><strong>Адрес:</strong> <span id="previewAddress">—</span></p>
+            <p class="preview__line"><strong>Телефон:</strong> <span id="previewPhone">—</span></p>
+            <p class="preview__line"><strong>Продавец:</strong> <span id="previewSeller">—</span></p>
+            <p class="preview__line"><strong>Доверенное лицо:</strong> <span id="previewTrustee">—</span></p>
+            <p class="preview__line"><strong>VIN / Марка:</strong> <span id="previewVehicle">—</span></p>
+            <p class="preview__line"><strong>ДКП (договор):</strong> <span id="previewDkp">—</span></p>
+            <p class="preview__line"><strong>Документы:</strong> <span id="previewService">—</span></p>
+            <p class="preview__line"><strong>К оплате:</strong> <span id="previewTotal">0 ₽</span></p>
+          </div>
+        </section>
+      </aside>
       </div>
 
       <!-- Контент павильона 2: заказы с номерами -->

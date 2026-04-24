@@ -65,13 +65,13 @@
             : '';
           var docLink = '<a href="#" class="doc-link" title="Заявление на номера" data-order-id="' + order.id + '" data-doc="zaiavlenie_na_nomera.docx" aria-label="Заявление на номера">&#128196;</a>';
           row.innerHTML =
-            '<td>' + (index + 1) + '</td>' +
-            '<td>' + (order.client || '—') + '</td>' +
-            '<td>' + (order.brand_model || '—') + '</td>' +
-            '<td>' + fmt(order.plate_amount != null ? order.plate_amount : order.total_amount) + '</td>' +
-            '<td>' + docLink + '</td>' +
-            '<td><span class="status status-' + order.status + '">' + (statusLabels[order.status] || order.status) + '</span></td>' +
-            '<td><div class="btn-group">' + issueBtn + separator + deleteBtn + payBtn + '</div></td>';
+            '<td data-label="№">' + (index + 1) + '</td>' +
+            '<td data-label="Клиент">' + (order.client || '—') + '</td>' +
+            '<td data-label="Марка, модель">' + (order.brand_model || '—') + '</td>' +
+            '<td data-label="Сумма">' + fmt(order.plate_amount != null ? order.plate_amount : order.total_amount) + '</td>' +
+            '<td data-label="Заявление">' + docLink + '</td>' +
+            '<td data-label="Статус"><span class="status status-' + order.status + '">' + (statusLabels[order.status] || order.status) + '</span></td>' +
+            '<td data-label="Действия" class="plate-table__actions"><div class="btn-group btn-group--row-actions">' + issueBtn + separator + deleteBtn + payBtn + '</div></td>';
           tbody.appendChild(row);
         });
       })

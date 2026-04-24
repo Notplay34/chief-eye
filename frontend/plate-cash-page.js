@@ -29,13 +29,19 @@
   function renderPending(data) {
     var body = document.getElementById('platePendingBody');
     var totalEl = document.getElementById('platePendingTotal');
+    var acceptBtn = document.getElementById('btnAcceptPending');
+    var panel = document.getElementById('plateCashPendingPanel');
     var total = data && data.total ? data.total : 0;
     pendingRows = (data && data.rows) || [];
     if (!body || !totalEl) return;
     body.innerHTML = '';
     if (!pendingRows.length) {
       body.innerHTML = '<tr><td colspan="3" class="cash-payout__empty">Нет сумм, ожидающих зачисления.</td></tr>';
+      if (acceptBtn) acceptBtn.disabled = true;
+      if (panel) panel.classList.add('plate-cash-kpi--empty');
     } else {
+      if (acceptBtn) acceptBtn.disabled = false;
+      if (panel) panel.classList.remove('plate-cash-kpi--empty');
       pendingRows.forEach(function (row) {
         var date = row.created_at ? row.created_at.substring(0, 10).split('-').reverse().join('.') : '';
         var tr = document.createElement('tr');

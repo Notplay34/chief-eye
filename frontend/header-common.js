@@ -9,7 +9,6 @@
     '      <div class="header__menu-wrap">',
     '        <span class="header__user-name" id="headerUserName" title="Открыть меню">—</span>',
     '        <button type="button" class="header__menu-btn" id="btnMenu" aria-label="Меню" title="Меню">⋮</button>',
-    '        <a href="login.html" class="header__logout-link" id="headerLogoutLink">Выйти</a>',
     '        <div class="header__dropdown" id="menuDropdown" aria-hidden="true">',
     '          <div class="header__dropdown-inner" id="menuDropdownInner"></div>',
     '        </div>',

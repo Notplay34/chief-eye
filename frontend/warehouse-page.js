@@ -43,6 +43,25 @@
         document.getElementById('reserved').textContent = data.reserved;
         document.getElementById('available').textContent = data.available;
         document.getElementById('defectsMonth').textContent = data.defects_this_month != null ? data.defects_this_month : '—';
+        var warningEl = document.getElementById('warehouseWarning');
+        var stockCard = document.querySelector('.warehouse-card--stock');
+        var available = Number(data.available || 0);
+        var reserved = Number(data.reserved || 0);
+        if (warningEl) {
+          if (available <= 0 && reserved > 0) {
+            warningEl.hidden = false;
+            warningEl.textContent = 'Все заготовки зарезервированы. Новые заказы на номера требуют пополнения склада.';
+            if (stockCard) stockCard.classList.add('warehouse-card--warning');
+          } else if (available <= 0) {
+            warningEl.hidden = false;
+            warningEl.textContent = 'Доступных заготовок нет. Пополните склад перед новыми заказами.';
+            if (stockCard) stockCard.classList.add('warehouse-card--warning');
+          } else {
+            warningEl.hidden = true;
+            warningEl.textContent = '';
+            if (stockCard) stockCard.classList.remove('warehouse-card--warning');
+          }
+        }
 
         var breakdown = data.reserved_breakdown || [];
         var breakdownEl = document.getElementById('reservedBreakdown');
@@ -67,6 +86,11 @@
         document.getElementById('available').textContent = '—';
         document.getElementById('reservedBreakdown').textContent = '';
         document.getElementById('defectsMonth').textContent = '—';
+        var warningEl = document.getElementById('warehouseWarning');
+        if (warningEl) {
+          warningEl.hidden = false;
+          warningEl.textContent = 'Не удалось загрузить состояние склада.';
+        }
         msg('Ошибка: ' + (e.message || ''), true);
       });
   }

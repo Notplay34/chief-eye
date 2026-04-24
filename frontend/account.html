@@ -12,7 +12,7 @@
 </head>
 <body>
   <div id="appHeader"></div>
-  <div class="account">
+  <div class="account account--hub">
     <nav class="account__sidebar">
       <div class="menu-group">
         <div class="menu-group__title">Подготовка документов</div>
@@ -41,8 +41,14 @@
       </div>
     </nav>
     <main class="account__content">
-      <h1>Меню</h1>
-      <p id="userInfo">Выберите раздел слева.</p>
+      <div class="account__hero">
+        <p class="account__eyebrow">Профиль и навигация</p>
+        <h1>Рабочий центр</h1>
+        <p id="userInfo">Выберите раздел слева.</p>
+      </div>
+      <div class="account__note">
+        Основная навигация доступна в меню шапки. Эта страница оставлена как спокойный центр разделов и смены пароля.
+      </div>
     </main>
   </div>
   <div id="modalChangePassword" class="modal" aria-hidden="true">

@@ -50,12 +50,24 @@
       .replace(/'/g, '&#39;');
   }
 
+  function statusLabel(status) {
+    return {
+      CREATED: 'Создан',
+      PENDING_PAYMENT: 'Ожидает оплаты',
+      PAID: 'Оплачен',
+      PLATE_IN_PROGRESS: 'Номера в работе',
+      PLATE_READY: 'Номера готовы',
+      COMPLETED: 'Завершён',
+      PROBLEM: 'Проблема'
+    }[status] || status;
+  }
+
   function deltaText(current, previous, mode) {
     var curr = Number(current || 0);
     var prev = Number(previous || 0);
     var diff = curr - prev;
     if (!prev && !curr) return 'без изменений';
-    if (!prev) return 'новый объём';
+    if (!prev) return curr ? 'первый период с данными' : 'без данных в прошлом периоде';
     var ratio = (diff / prev) * 100;
     var sign = diff > 0 ? '+' : '';
     if (mode === 'money') return sign + formatMoney(diff) + ' к прошлому периоду';
@@ -76,7 +88,7 @@
   function renderOverview(overview, previous) {
     var cards = [
       card('Доход', formatMoney(overview.income_total), deltaText(overview.income_total, previous.income_total, 'money'), 'primary'),
-      card('Оборот', formatMoney(overview.turnover_total), deltaText(overview.turnover_total, previous.turnover_total, 'money')),
+      card('Оборот', formatMoney(overview.turnover_total), deltaText(overview.turnover_total, previous.turnover_total, 'money'), 'turnover'),
       card('Заказы', String(overview.orders_count || 0), deltaText(overview.orders_count, previous.orders_count, 'count')),
       card('Средний чек', formatMoney(overview.average_check), deltaText(overview.average_check, previous.average_check, 'money')),
     ];
@@ -114,7 +126,7 @@
       statuses.map(function (item) {
         return [
           '<div class="analytics-status-item">',
-          '  <span>', escapeHtml(item.status), '</span>',
+          '  <span>', escapeHtml(statusLabel(item.status)), '</span>',
           '  <strong>', escapeHtml(item.count), '</strong>',
           '</div>',
         ].join('');

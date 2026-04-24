@@ -54,6 +54,15 @@
     }[role] || role;
   }
 
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function fallbackCopy(text) {
     var ta = document.createElement('textarea');
     ta.value = text;
@@ -91,7 +100,7 @@
         var rows = list.map(function (employee) {
           var trClass = employee.is_active ? '' : ' class="inactive"';
           var loginCell = employee.login
-            ? '<span class="copy-link" data-login="' + employee.login.replace(/"/g, '&quot;') + '" title="Копировать логин">' + employee.login + '</span>'
+            ? '<span class="copy-link" data-login="' + escapeHtml(employee.login) + '" title="Копировать логин">' + escapeHtml(employee.login) + '</span>'
             : '—';
           var actions = '<div class="table-actions">';
           actions += '<button type="button" class="btn btn-sm btn-edit" data-id="' + employee.id + '">Изменить</button>';
@@ -102,7 +111,7 @@
             actions += '<button type="button" class="btn btn-sm btn-restore" data-id="' + employee.id + '">Восстановить</button>';
           }
           actions += '</div>';
-          return '<tr' + trClass + '><td>' + employee.id + '</td><td>' + (employee.name || '') + '</td><td>' + loginCell + '</td><td>' + roleLabel(employee.role) + '</td><td>' + (employee.is_active ? 'Да' : 'Нет') + '</td><td>' + actions + '</td></tr>';
+          return '<tr' + trClass + '><td>' + employee.id + '</td><td>' + escapeHtml(employee.name || '') + '</td><td>' + loginCell + '</td><td><span class="badge badge--neutral">' + escapeHtml(roleLabel(employee.role)) + '</span></td><td>' + (employee.is_active ? '<span class="badge badge--ready">Активен</span>' : '<span class="badge badge--problem">Отключён</span>') + '</td><td>' + actions + '</td></tr>';
         }).join('');
         listEl.innerHTML = '<table class="users-table"><thead><tr><th>ID</th><th>Имя</th><th>Логин</th><th>Роль</th><th>Активен</th><th>Действия</th></tr></thead><tbody>' + rows + '</tbody></table>';
 

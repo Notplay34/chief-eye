@@ -18,6 +18,46 @@
     return apiBase + '/orders?limit=100' + (status ? '&status=' + encodeURIComponent(status) : '');
   }
 
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function statusLabel(status) {
+    return {
+      CREATED: 'Создан',
+      PENDING_PAYMENT: 'Ожидает оплаты',
+      PAID: 'Оплачен',
+      PLATE_IN_PROGRESS: 'Номера в работе',
+      PLATE_READY: 'Номера готовы',
+      COMPLETED: 'Завершён',
+      PROBLEM: 'Проблема'
+    }[status] || status || '—';
+  }
+
+  function roleLabel(role) {
+    return {
+      ROLE_OPERATOR: 'Оператор документов',
+      ROLE_PLATE_OPERATOR: 'Оператор номеров',
+      ROLE_MANAGER: 'Управляющий',
+      ROLE_ADMIN: 'Директор'
+    }[role] || role || '—';
+  }
+
+  function badgeForStatus(status) {
+    var cls = status === 'PROBLEM' ? 'badge--problem' : status === 'COMPLETED' ? 'badge--ready' : status === 'PAID' ? 'badge--paid' : 'badge--progress';
+    return '<span class="badge ' + cls + '">' + escapeHtml(statusLabel(status)) + '</span>';
+  }
+
+  function shortOrderId(order) {
+    var id = order.public_id || String(order.id || '');
+    return id.length > 14 ? id.slice(0, 8) + '...' : id;
+  }
+
   function copyToClipboard(text) {
     if (!text) return;
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -46,7 +86,7 @@
       })
       .then(function (data) {
         titleEl.textContent = 'Заказ ' + (data.public_id || data.id);
-        var html = '<p><strong>Статус:</strong> ' + (data.status || '') + ' <strong>Сумма:</strong> ' + Number(data.total_amount) + ' ₽</p>';
+        var html = '<p><strong>Статус:</strong> ' + badgeForStatus(data.status) + ' <strong>Сумма:</strong> ' + Number(data.total_amount) + ' ₽</p>';
         if (data.created_by_name) html += '<p><strong>Оформил:</strong> ' + data.created_by_name + '</p>';
         html += '<p><strong>Создан:</strong> ' + (data.created_at ? new Date(data.created_at).toLocaleString('ru') : '') + '</p>';
         if (data.form_data && Object.keys(data.form_data).length) {
@@ -85,9 +125,9 @@
               var docStr = value.map(function (x) {
                 return (x.label || x.template) + (x.price != null ? ' — ' + Number(x.price) + ' ₽' : '');
               }).join(', ');
-              if (docStr) html += '<dt>Документы</dt><dd>' + docStr + '</dd>';
+              if (docStr) html += '<dt>Документы</dt><dd>' + escapeHtml(docStr) + '</dd>';
             } else {
-              html += '<dt>' + (labels[key] || key) + '</dt><dd>' + String(value) + '</dd>';
+              html += '<dt>' + escapeHtml(labels[key] || key) + '</dt><dd>' + escapeHtml(String(value)) + '</dd>';
             }
           }
           html += '</dl>';
@@ -112,7 +152,7 @@
         }
         var rows = list.map(function (order) {
           var id = order.public_id || '';
-          return '<tr><td class="order-id-copy" data-id="' + id.replace(/"/g, '&quot;') + '" title="Копировать номер">' + id + '</td><td>' + (order.status || '') + '</td><td>' + Number(order.total_amount) + ' ₽</td><td>' + (order.need_plate ? 'Да' : '—') + '</td><td>' + (order.service_type || '—') + '</td><td>' + (order.created_at ? new Date(order.created_at).toLocaleString('ru') : '') + '</td><td><button type="button" class="btn btn-sm btn-detail" data-order-id="' + order.id + '">Детали</button></td></tr>';
+          return '<tr><td class="order-id-copy admin-order-id" data-id="' + escapeHtml(id) + '" title="Копировать полный номер"><strong>' + escapeHtml(shortOrderId(order)) + '</strong><span>' + escapeHtml(id) + '</span></td><td>' + badgeForStatus(order.status) + '</td><td>' + Number(order.total_amount) + ' ₽</td><td>' + (order.need_plate ? '<span class="badge badge--ready">Да</span>' : '—') + '</td><td>' + escapeHtml(order.service_type || '—') + '</td><td>' + (order.created_at ? new Date(order.created_at).toLocaleString('ru') : '') + '</td><td><button type="button" class="btn btn-sm btn-detail" data-order-id="' + order.id + '">Детали</button></td></tr>';
         });
         ordersEl.innerHTML = '<table><thead><tr><th>Номер</th><th>Статус</th><th>Сумма</th><th>Номер</th><th>Услуга</th><th>Создан</th><th></th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
         ordersEl.querySelectorAll('.order-id-copy').forEach(function (el) {
@@ -139,7 +179,7 @@
           return;
         }
         var rows = list.map(function (employee) {
-          return '<tr><td>' + employee.id + '</td><td>' + (employee.name || '') + '</td><td>' + (employee.role || '') + '</td><td>' + (employee.login || '—') + '</td><td>' + (employee.is_active ? 'Да' : 'Нет') + '</td></tr>';
+          return '<tr><td>' + employee.id + '</td><td>' + escapeHtml(employee.name || '') + '</td><td><span class="badge badge--neutral">' + escapeHtml(roleLabel(employee.role)) + '</span></td><td>' + escapeHtml(employee.login || '—') + '</td><td>' + (employee.is_active ? '<span class="badge badge--ready">Активен</span>' : '<span class="badge badge--problem">Отключён</span>') + '</td></tr>';
         });
         employeesEl.innerHTML = '<table><thead><tr><th>ID</th><th>Имя</th><th>Роль</th><th>Логин</th><th>Активен</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
       })
