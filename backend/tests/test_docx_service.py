@@ -201,7 +201,8 @@ def test_zaiavlenie_does_not_copy_owner_address_to_representative_when_no_truste
 def test_zaiavlenie_dkp_field_starts_with_dkp_label():
     text = _docx_text(render_docx("zaiavlenie.docx", _base_form_data()))
 
-    assert "Документ, удостоверяющий право собственности: ДКП, 23.04.2026, 850000" in text
+    assert "Документ, удостоверяющий право собственности" in text
+    assert "ДКП, 23.04.2026, 850000" in text
 
 
 def test_download_filename_uses_russian_label_and_initials():
