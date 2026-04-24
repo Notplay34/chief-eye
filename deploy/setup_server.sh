@@ -94,7 +94,14 @@ if command -v curl >/dev/null 2>&1; then
 fi
 
 echo "=== 3. Backend (systemd) ==="
-echo "=== 3a. Миграции БД ==="
+echo "=== 3a. Зависимости backend ==="
+if [ -x "$PROJECT_ROOT/backend/.venv/bin/pip" ]; then
+  "$PROJECT_ROOT/backend/.venv/bin/pip" install -r "$PROJECT_ROOT/backend/requirements.txt"
+else
+  echo "pip не найден в $PROJECT_ROOT/backend/.venv/bin/pip — пропускаю обновление зависимостей"
+fi
+
+echo "=== 3b. Миграции БД ==="
 if [ -x "$PROJECT_ROOT/backend/.venv/bin/alembic" ]; then
   set -a
   # shellcheck disable=SC1091
