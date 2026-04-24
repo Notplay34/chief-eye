@@ -35,6 +35,8 @@ def make_full_order_payload() -> dict:
         "year": "2021",
         "engine": "1.6 106 л.с.",
         "chassis": "отсутствует",
+        "power": "78 кВт / 106 л.с.",
+        "mass": "1670 / 1235",
         "body": "XTA217230N0000001",
         "color": "Белый",
         "srts": "99AA123456",
@@ -81,7 +83,7 @@ def test_full_order_journey_exercises_documents_cash_plates_and_analytics(
     assert len(detail["form_data"]["documents"]) == 3
 
     for template_name, expected_values in {
-        "zaiavlenie.docx": ["Иванов Иван Иванович", "+79991234567", "XTA217230N0000001"],
+        "zaiavlenie.docx": ["Иванов Иван Иванович", "+79991234567", "XTA217230N0000001", "78 кВт / 106 л.с.", "1670 / 1235"],
         "DKP.docx": ["Иванов Иван Иванович", "Петров Пётр Петрович", "850000"],
         "doverennost.docx": ["Иванов Иван Иванович", "Сидоров Сидор Сидорович"],
         "number.docx": ["Иванов Иван Иванович", "XTA217230N0000001"],

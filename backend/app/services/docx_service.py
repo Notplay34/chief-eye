@@ -79,8 +79,8 @@ PLACEHOLDER_TO_FIELD = {
     "Подпись": "client_fio",
     "Подпись продавец": "seller_fio",
     "Подпись дов": "trustee_fio",
-    "Масса": None,
-    "Мощность": None,
+    "Масса": "mass",
+    "Мощность": "power",
     "ОСАГО": None,
     "Текущая_дата": None,
 }

@@ -68,6 +68,8 @@ def _form_data_from_create(d: OrderCreate, canonical_documents: list[dict], stat
         "year": d.year,
         "engine": d.engine,
         "chassis": d.chassis,
+        "power": d.power,
+        "mass": d.mass,
         "body": d.body,
         "color": d.color,
         "srts": d.srts,

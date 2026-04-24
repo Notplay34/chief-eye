@@ -57,6 +57,8 @@ class OrderCreate(BaseModel):
     year: Optional[str] = None
     engine: Optional[str] = None
     chassis: Optional[str] = None
+    power: Optional[str] = None
+    mass: Optional[str] = None
     body: Optional[str] = None
     color: Optional[str] = None
     srts: Optional[str] = None
@@ -123,6 +125,8 @@ class OrderCreate(BaseModel):
         "year",
         "engine",
         "chassis",
+        "power",
+        "mass",
         "body",
         "color",
         "srts",

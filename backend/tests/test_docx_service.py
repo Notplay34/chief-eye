@@ -46,6 +46,8 @@ def _base_form_data() -> dict:
         "year": "2021",
         "engine": "1.6",
         "chassis": "отсутствует",
+        "power": "78 кВт / 106 л.с.",
+        "mass": "1670 / 1235",
         "body": "XTA217230N0000001",
         "color": "Белый",
         "srts": "99AA 123456",
@@ -105,6 +107,8 @@ def test_zaiavlenie_uses_full_signer_name_and_birth_line():
     assert "Я, Сидоров Сидор Сидорович" in text
     assert "Я, Сидоров С.С." not in text
     assert "11.12.1990 г. Волгоград" in text
+    assert "78 кВт / 106 л.с." in text
+    assert "1670 / 1235" in text
 
 
 def test_zaiavlenie_adds_plate_replacement_action_when_needed():

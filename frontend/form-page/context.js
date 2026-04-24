@@ -57,6 +57,8 @@
       year: el('year'),
       engine: el('engine'),
       chassis: el('chassis'),
+      power: el('power'),
+      mass: el('mass'),
       body: el('body'),
       color: el('color'),
       srtsSeries: el('srtsSeries'),

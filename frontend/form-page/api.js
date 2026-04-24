@@ -95,6 +95,8 @@
       year: (inputs.year && inputs.year.value.trim()) || null,
       engine: (inputs.engine && inputs.engine.value.trim()) || null,
       chassis: (inputs.chassis && inputs.chassis.value.trim()) || null,
+      power: (inputs.power && inputs.power.value.trim()) || null,
+      mass: (inputs.mass && inputs.mass.value.trim()) || null,
       body: (inputs.body && inputs.body.value.trim()) || null,
       color: (inputs.color && inputs.color.value.trim()) || null,
       srts: srts,
@@ -200,6 +202,8 @@
     page.setVal(inputs.year, formData.year);
     page.setVal(inputs.engine, formData.engine);
     page.setVal(inputs.chassis, formData.chassis);
+    page.setVal(inputs.power, formData.power);
+    page.setVal(inputs.mass, formData.mass);
     page.setVal(inputs.body, formData.body);
     page.setVal(inputs.color, formData.color);
     page.setVal(inputs.srtsSeries, formData.srts_series || srts.series);
