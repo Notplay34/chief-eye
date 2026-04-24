@@ -9,19 +9,19 @@
 /* -------------------------------------------------------------------------- */
 :root {
   /* Primary + neutrals */
-  --color-primary: #0d6b5c;
-  --color-primary-hover: #0a5549;
-  --color-primary-soft: #e6f2f0;
+  --color-primary: #116a5b;
+  --color-primary-hover: #0b5247;
+  --color-primary-soft: #e7f2ef;
   --color-income: #0d6b5c;
   --color-danger: #b91c1c;
   --color-danger-bg: #fef2f2;
 
-  --color-bg: #f8f9fa;
+  --color-bg: #f5f3ee;
   --color-surface: #ffffff;
-  --color-surface-alt: #f1f3f5;
+  --color-surface-alt: #f7f7f4;
   --color-text: #1a1d21;
   --color-text-muted: #6b7280;
-  --color-border: #e5e7eb;
+  --color-border: #e4e1d9;
   --color-border-focus: var(--color-primary);
 
   /* Spacing (8px grid) */
@@ -82,7 +82,9 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--color-bg);
+  background:
+    radial-gradient(circle at 14% -10%, rgba(17, 106, 91, 0.11), transparent 34rem),
+    linear-gradient(180deg, #fbfaf7 0%, var(--color-bg) 38%, #f0eee8 100%);
   color: var(--color-text);
   font-family: var(--font-sans);
   font-size: var(--text-body);
@@ -555,16 +557,16 @@ body {
 /* 6. Cards                                                                    */
 /* -------------------------------------------------------------------------- */
 .card {
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.94));
+  border-radius: 22px;
+  box-shadow: 0 18px 44px rgba(42, 37, 27, 0.07);
   padding: var(--space-6);
-  border: 1px solid var(--color-border);
+  border: 1px solid rgba(228, 225, 217, 0.9);
   transition: box-shadow 0.2s ease;
 }
 
 .card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 22px 54px rgba(42, 37, 27, 0.09);
 }
 
 .card__title {
@@ -591,7 +593,17 @@ body {
 }
 
 .card--primary {
-  border-left: 4px solid var(--color-primary);
+  position: relative;
+  overflow: hidden;
+  border-left: 0;
+}
+
+.card--primary::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: linear-gradient(180deg, #116a5b, #d8a63f);
 }
 
 .card--summary .summary__value--total {
@@ -692,8 +704,8 @@ body {
 .form-grid,
 .form-row {
   display: grid;
-  gap: var(--space-4);
-  margin-bottom: var(--space-4);
+  gap: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-5);
 }
 
 .form-grid {
@@ -717,9 +729,9 @@ body {
 
 .form-section {
   border: none;
-  margin: 0 0 var(--space-5) 0;
-  padding: 0 0 var(--space-4) 0;
-  border-bottom: 1px solid var(--color-border);
+  margin: 0 0 var(--space-6) 0;
+  padding: 0 0 var(--space-5) 0;
+  border-bottom: 1px solid rgba(228, 225, 217, 0.75);
 }
 
 .form-section:last-of-type {
@@ -730,9 +742,9 @@ body {
 
 .form-section--togglable {
   padding: 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-alt);
+  border: 1px solid rgba(228, 225, 217, 0.82);
+  border-radius: 18px;
+  background: rgba(247, 247, 244, 0.72);
   overflow: hidden;
   margin-bottom: var(--space-4);
 }
@@ -765,14 +777,16 @@ body {
 .form-section--togglable .form-section__body .form-grid {
   margin-bottom: 0;
   padding-top: var(--space-2);
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid rgba(228, 225, 217, 0.78);
 }
 
 .form-section__title {
-  font-family: var(--font-serif);
-  font-size: var(--text-body);
-  font-weight: 600;
-  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #52615f;
+  text-transform: uppercase;
+  letter-spacing: 0.075em;
   padding: 0 var(--space-2) 0 0;
 }
 
@@ -784,27 +798,46 @@ body {
 .form-section__sub--dkp-single .field--dkp-row .field--grow { flex: 1; min-width: 200px; }
 
 .document-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--color-surface) 72%, transparent);
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) 0 0;
+  border: 0;
+  border-top: 1px solid rgba(228, 225, 217, 0.78);
+  border-radius: 0;
+  background: transparent;
 }
 
 .document-group__title {
-  font-size: var(--text-caption);
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.76rem;
   font-weight: 700;
-  color: var(--color-text-muted);
+  letter-spacing: 0.065em;
+  text-transform: uppercase;
+  color: #52615f;
+}
+
+.document-group__title::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 72%, #d8a63f);
 }
 
 .document-group__row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   align-items: flex-end;
   gap: var(--space-3);
 }
+
+.document-group__row--passport .mini-field:nth-child(1) { grid-column: span 2; min-width: 5.75rem; }
+.document-group__row--passport .mini-field:nth-child(2) { grid-column: span 3; min-width: 7rem; }
+.document-group__row--passport .mini-field--issued-by { grid-column: span 7; }
+.document-group__row:not(.document-group__row--passport) .mini-field { grid-column: span 3; min-width: 9rem; }
 
 .mini-field {
   display: flex;
@@ -813,7 +846,6 @@ body {
 }
 
 .mini-field--issued-by {
-  flex: 1 1 18rem;
   min-width: min(100%, 18rem);
 }
 
@@ -908,30 +940,33 @@ body {
 /* Field */
 .field__label {
   display: block;
-  font-size: var(--text-caption);
-  font-weight: 500;
+  font-size: 0.76rem;
+  font-weight: 650;
   color: var(--color-text-muted);
-  margin-bottom: var(--space-2);
+  margin-bottom: 0.38rem;
+  letter-spacing: 0.012em;
 }
 
 .field__input,
 .field__select {
   width: 100%;
-  padding: var(--space-3) var(--space-3);
+  padding: 0.86rem 0.92rem;
   font: inherit;
   font-size: var(--text-body);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-alt);
+  border: 1px solid rgba(214, 210, 200, 0.95);
+  border-radius: 14px;
+  background: rgba(247, 247, 244, 0.78);
   color: var(--color-text);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 .field__input:focus,
 .field__select:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-soft);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(17, 106, 91, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .field__input::placeholder {
@@ -1720,19 +1755,38 @@ body {
 /* -------------------------------------------------------------------------- */
 @media print {
   .app, .plate-page, .plate-cash-page, .cash-page, .warehouse-page, .admin, .users { max-width: none; padding: 0; }
-  .card--primary { border-left-width: 2px; }
+  .card--primary::before { width: 2px; }
   .actions, .btn, .footer__time, .footer__admin, .header__operator-btn, .nav-bar, .header { display: none !important; }
   .card { box-shadow: none; border: 1px solid #ddd; }
 }
 
 @media (max-width: 768px) {
   .form-grid { grid-template-columns: 1fr; }
+  .document-group__row,
+  .document-group__row--passport {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .document-group__row--passport .mini-field:nth-child(1) { grid-column: span 2; }
+  .document-group__row--passport .mini-field:nth-child(2) { grid-column: span 4; }
+  .document-group__row--passport .mini-field--issued-by {
+    grid-column: 1 / -1;
+  }
+  .document-group__row:not(.document-group__row--passport) .mini-field { grid-column: span 3; }
   .form-row.amounts { grid-template-columns: 1fr; }
   .field__input--number { max-width: 100%; }
   .header { flex-direction: column; align-items: flex-start; }
   .header__operator { margin-left: 0; }
   .nav-bar { margin-left: 0; }
   .app, .plate-page, .plate-cash-page, .cash-page, .warehouse-page, .admin, .users { padding: var(--space-4); }
+}
+
+@media (max-width: 480px) {
+  .document-group__row--passport .mini-field:nth-child(1),
+  .document-group__row--passport .mini-field:nth-child(2),
+  .document-group__row--passport .mini-field--issued-by,
+  .document-group__row:not(.document-group__row--passport) .mini-field {
+    grid-column: 1 / -1;
+  }
 }
 
 /* -------------------------------------------------------------------------- */
