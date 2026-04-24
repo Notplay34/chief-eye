@@ -67,8 +67,8 @@ def test_dkp_uses_full_seller_passport_without_replacing_seller_with_trustee():
     text = _docx_text(render_docx("DKP.docx", _base_form_data()))
 
     assert "Петров Пётр Петрович" in text
-    assert "Петров Пётр Петрович 10.10.1980" in text
-    assert "Иванов Иван Иванович 11.12.1990" in text
+    assert "ФИО: Петров Пётр Петрович, дата рождения: 10.10.1980" in text
+    assert "ФИО: Иванов Иван Иванович, дата рождения: 11.12.1990" in text
     assert "Сидоров Сидор Сидорович" not in text
     assert (
         "1814 654321, выдан ОУФМС России по Волгоградской области, "
@@ -77,6 +77,28 @@ def test_dkp_uses_full_seller_passport_without_replacing_seller_with_trustee():
     assert "СРТС:  99AA 123456, выдан РЭО ГИБДД ОМВД России по г. Михайловке, 12.03.2024" in text
     assert "ПТС: 78УУ 123456, выдан АО Электронный паспорт, 15.01.2021" in text
     assert "восемьсот пятьдесят тысяч рублей 00 копеек" in text
+
+
+def test_dkp_pieces_includes_amount_words_and_clean_party_lines():
+    text = _docx_text(render_docx("dkp_pieces.docx", _base_form_data()))
+
+    assert "ФИО: Петров Пётр Петрович, дата рождения: 10.10.1980" in text
+    assert "Паспорт: 1814 654321, выдан ОУФМС России по Волгоградской области" in text
+    assert "Адрес регистрации: г. Михайловка, ул. Советская, д. 5" in text
+    assert "СТОИМОСТЬ: 850000 РУБ (восемьсот пятьдесят тысяч рублей 00 копеек)" in text
+    assert "Продавец___________________" not in text
+    assert "Покупатель_____________________" not in text
+
+
+def test_act_signature_placeholders_are_in_stable_lines():
+    text = _docx_text(render_docx("akt_pp.docx", _base_form_data()))
+
+    assert "ФИО: Петров Пётр Петрович, дата рождения: 10.10.1980" in text
+    assert "Адрес регистрации: г. Волгоград, ул. Ленина, д. 10" in text
+    assert "2. . ПРОДАВЕЦ" not in text
+    assert "3. ПРОДАВЕЦ ПЕРЕДАЕТ вышеуказанное ТС ПОКУПАТЕЛЮ." in text
+    assert "ПРОДАВЕЦ____________" not in text
+    assert "ПОКУПАТЕЛЬ________________" not in text
 
 
 def test_vehicle_documents_include_issue_details_in_templates():
