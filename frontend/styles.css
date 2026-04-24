@@ -787,16 +787,16 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-3);
-  border: 1px solid var(--color-border);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
   border-radius: var(--radius-sm);
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-surface) 72%, transparent);
 }
 
 .document-group__title {
   font-size: var(--text-caption);
   font-weight: 700;
-  color: var(--color-text);
+  color: var(--color-text-muted);
 }
 
 .document-group__row {
@@ -810,6 +810,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+}
+
+.mini-field--issued-by {
+  flex: 1 1 18rem;
+  min-width: min(100%, 18rem);
 }
 
 .field__input--series {
