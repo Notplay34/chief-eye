@@ -46,6 +46,7 @@
   page.buildOrderPayload = function () {
     var needPlate = page.inputs.needPlate && page.inputs.needPlate.checked;
     var plateQuantity = needPlate ? page.getPlateQuantity() : 1;
+    var platePrice = needPlate ? page.PLATE_PRICE_PER_UNIT * plateQuantity : 0;
     var inputs = page.inputs;
     var clientPassport = page.composePassport('client');
     var sellerPassport = page.composePassport('seller');
@@ -115,9 +116,9 @@
       plate_quantity: plateQuantity,
       state_duty: page.getStateDuty(),
       extra_amount: 0,
-      plate_amount: 0,
+      plate_amount: platePrice,
       summa_dkp: (inputs.hasSeller && inputs.hasSeller.checked && inputs.summaDkp) ? page.num(inputs.summaDkp.value) : 0,
-      documents: page.state.selectedDocuments.map(function (item) {
+      documents: page.state.selectedDocuments.filter(function (item) { return !item.paymentOnly; }).map(function (item) {
         return { template: item.template, price: page.num(item.price), label: item.label || item.template };
       })
     };
@@ -145,7 +146,7 @@
       page.orderIdDisplay.style.fontWeight = '600';
       page.btnAcceptCash.textContent = 'Оплата принята';
       window.lastOrderId = order.id;
-      window.lastOrderDocuments = page.state.selectedDocuments.map(function (item) { return item.template; });
+      window.lastOrderDocuments = page.state.selectedDocuments.filter(function (item) { return !item.paymentOnly; }).map(function (item) { return item.template; });
       if (typeof page.loadFormHistory === 'function') page.loadFormHistory();
     } catch (e) {
       page.btnAcceptCash.disabled = false;

@@ -196,8 +196,7 @@
       return true;
     });
     if (need) {
-      page.state.selectedDocuments.push({ template: 'number.docx', label: 'Изготовление номера', price: page.PLATE_PRICE_PER_UNIT * quantity });
-      page.state.selectedDocuments.push({ template: 'zaiavlenie.docx', label: 'Заявление на номера', price: 0 });
+      page.state.selectedDocuments.push({ template: 'number.docx', label: 'Изготовление номера', price: page.PLATE_PRICE_PER_UNIT * quantity, paymentOnly: true });
     }
     if (page.inputs.plateQuantity) page.inputs.plateQuantity.disabled = !need;
     page.renderDocumentsList();

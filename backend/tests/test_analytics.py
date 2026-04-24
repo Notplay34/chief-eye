@@ -13,8 +13,6 @@ def make_order_payload(*, need_plate: bool = False, plate_quantity: int = 1) -> 
     documents = [
         {"template": "zaiavlenie.docx", "label": "Заявление", "price": "1000"},
     ]
-    if need_plate:
-        documents.append({"template": "number.docx", "label": "Номера", "price": "2000"})
     return {
         "client_fio": "Иван Иванов",
         "brand_model": "Lada Vesta",
@@ -23,7 +21,7 @@ def make_order_payload(*, need_plate: bool = False, plate_quantity: int = 1) -> 
         "plate_quantity": plate_quantity,
         "documents": documents,
         "extra_amount": "0",
-        "plate_amount": "0",
+        "plate_amount": str(1500 * plate_quantity if need_plate else 0),
         "summa_dkp": "0",
     }
 

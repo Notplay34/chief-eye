@@ -88,6 +88,8 @@ def _split_order_revenue(order: Order) -> tuple[Decimal, Decimal]:
             plates_income += price
         else:
             docs_income += price
+    if order.need_plate:
+        plates_income += _to_decimal(order.income_pavilion2)
     return docs_income, plates_income
 
 
@@ -329,6 +331,11 @@ def _build_top_services(orders: list[Order], extra_payments: list[Payment], kind
             stats.setdefault(label, {"label": label, "count": 0, "revenue": ZERO})
             stats[label]["count"] += 1
             stats[label]["revenue"] += price
+        if order.need_plate and kind in ("all", "plates"):
+            label = "Изготовление номера"
+            stats.setdefault(label, {"label": label, "count": 0, "revenue": ZERO})
+            stats[label]["count"] += 1
+            stats[label]["revenue"] += _to_decimal(order.income_pavilion2)
 
     if kind in ("all", "plates") and extra_payments:
         stats.setdefault("Доплата за номера", {"label": "Доплата за номера", "count": 0, "revenue": ZERO})

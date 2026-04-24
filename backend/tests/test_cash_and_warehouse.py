@@ -12,10 +12,9 @@ def make_plate_order_payload(*, plate_quantity: int = 1) -> dict:
         "plate_quantity": plate_quantity,
         "documents": [
             {"template": "zaiavlenie.docx", "label": "Заявление", "price": "1000"},
-            {"template": "number.docx", "label": "Номера", "price": "2000"},
         ],
         "extra_amount": "0",
-        "plate_amount": "0",
+        "plate_amount": str(1500 * plate_quantity),
         "summa_dkp": "0",
     }
 
@@ -99,7 +98,7 @@ def test_plate_status_flow_updates_stock_and_payout_register(client: TestClient,
     payouts_response = client.get("/cash/plate-payouts", headers=auth_headers)
     assert payouts_response.status_code == 200, payouts_response.text
     payouts = payouts_response.json()
-    assert payouts["total"] == 2200.0
+    assert payouts["total"] == 3700.0
     assert payouts["rows"][0]["client_name"] == "Петров Пётр Петрович"
 
 

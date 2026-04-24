@@ -51,10 +51,9 @@ def make_full_order_payload() -> dict:
             {"template": "zaiavlenie.docx", "label": "Заявление", "price": "1000"},
             {"template": "DKP.docx", "label": "ДКП", "price": "1500"},
             {"template": "doverennost.docx", "label": "Доверенность", "price": "1200"},
-            {"template": "number.docx", "label": "Номера", "price": "2000"},
         ],
         "extra_amount": "0",
-        "plate_amount": "0",
+        "plate_amount": "3000",
     }
 
 
@@ -69,7 +68,7 @@ def test_full_order_journey_exercises_documents_cash_plates_and_analytics(
     assert create_response.status_code == 200, create_response.text
     order = create_response.json()
     assert order["need_plate"] is True
-    assert _as_float(order["total_amount"]) == 3650.0
+    assert _as_float(order["total_amount"]) == 5150.0
 
     pay_response = client.post(f"/orders/{order['id']}/pay", headers=auth_headers)
     assert pay_response.status_code == 200, pay_response.text
@@ -79,7 +78,7 @@ def test_full_order_journey_exercises_documents_cash_plates_and_analytics(
     detail = detail_response.json()
     assert detail["form_data"]["client_phone"] == "+79991234567"
     assert detail["form_data"]["vin"] == "XTA217230N0000001"
-    assert len(detail["form_data"]["documents"]) == 4
+    assert len(detail["form_data"]["documents"]) == 3
 
     for template_name, expected_values in {
         "zaiavlenie.docx": ["Иванов Иван Иванович", "+79991234567", "XTA217230N0000001"],
@@ -101,7 +100,7 @@ def test_full_order_journey_exercises_documents_cash_plates_and_analytics(
     assert payments_response.status_code == 200, payments_response.text
     payments = payments_response.json()
     assert payments["debt"] == 0.0
-    assert payments["total_paid"] == 3650.0
+    assert payments["total_paid"] == 5150.0
 
     plate_list_response = client.get("/orders/plate-list", headers=auth_headers)
     assert plate_list_response.status_code == 200, plate_list_response.text
@@ -139,32 +138,32 @@ def test_full_order_journey_exercises_documents_cash_plates_and_analytics(
     assert payouts_response.status_code == 200, payouts_response.text
     payouts = payouts_response.json()
     assert payouts["rows"][0]["client_name"] == "Иванов Иван Иванович"
-    assert payouts["total"] == 2200.0
+    assert payouts["total"] == 3700.0
 
     pay_payouts_response = client.post("/cash/plate-payouts/pay", headers=auth_headers)
     assert pay_payouts_response.status_code == 200, pay_payouts_response.text
-    assert pay_payouts_response.json()["total"] == 2200.0
+    assert pay_payouts_response.json()["total"] == 3700.0
 
     plate_cash_response = client.get("/cash/plate-rows", headers=auth_headers)
     assert plate_cash_response.status_code == 200, plate_cash_response.text
-    assert plate_cash_response.json()["total"] == 2200.0
+    assert plate_cash_response.json()["total"] == 3700.0
 
     cash_rows_response = client.get("/cash/rows", headers=auth_headers)
     assert cash_rows_response.status_code == 200, cash_rows_response.text
     cash_rows = cash_rows_response.json()
-    assert any(row["client_name"] == "Иванов Иван Иванович" and row["total"] == 3650.0 for row in cash_rows)
-    assert any(row["client_name"] == "Иванов Иван Иванович" and row["plates"] == 700.0 for row in cash_rows)
+    assert any(row["client_name"] == "Иванов Иван Иванович" and row["total"] == 5150.0 for row in cash_rows)
+    assert any(row["client_name"] == "Иванов Иван Иванович" and row["plates"] == 3000.0 for row in cash_rows)
     assert plate_cash_response.json()["rows"][0]["client_name"] == "Иванов И.И."
-    assert any(row["client_name"] == "Иванов И.И." and row["plates"] == -2200.0 for row in cash_rows)
+    assert any(row["client_name"] == "Иванов И.И." and row["plates"] == -3700.0 for row in cash_rows)
 
     analytics_response = client.get("/analytics/dashboard?period=month&kind=all", headers=auth_headers)
     assert analytics_response.status_code == 200, analytics_response.text
     overview = analytics_response.json()["overview"]
     assert overview["orders_count"] == 1
-    assert _as_float(overview["income_total"]) == 3850.0
-    assert _as_float(overview["turnover_total"]) == 4350.0
+    assert _as_float(overview["income_total"]) == 5350.0
+    assert _as_float(overview["turnover_total"]) == 5850.0
     assert _as_float(overview["docs_income"]) == 1650.0
-    assert _as_float(overview["plates_income"]) == 1500.0
+    assert _as_float(overview["plates_income"]) == 3000.0
     assert _as_float(overview["plate_extra_income"]) == 700.0
     assert _as_float(overview["state_duty_total"]) == 500.0
 

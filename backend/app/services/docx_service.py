@@ -19,6 +19,7 @@ PLACEHOLDER_TO_FIELD = {
     "ФИО": "client_fio",
     "ФИО дов": "trustee_fio",
     "ФИО_подписант": "client_fio",
+    "Действие": None,
     "Дата рождения": "client_birth_date",
     "Дата рождения продавец": "seller_birth_date",
     "Дата рождения дов": "trustee_birth_date",
@@ -162,6 +163,8 @@ def _form_data_to_replace_map(
             value = _fio_initials(form_data.get("trustee_fio"))
         if placeholder == "ФИО_подписант":
             value = _signer_full_fio(form_data, template_name)
+        if value is None and placeholder == "Действие":
+            value = "НЗ заменить" if form_data.get("need_plate") else ""
         if value is None and placeholder == "Текущая_дата":
             value = doc_date.strftime("%d.%m.%Y")
         if value is None and placeholder == "Дата ДКП":

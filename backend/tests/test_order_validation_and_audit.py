@@ -120,8 +120,8 @@ def test_audit_log_records_key_actions(client: TestClient, auth_headers: dict[st
     payload["plate_quantity"] = 1
     payload["documents"] = [
         {"template": "zaiavlenie.docx", "label": "Заявление", "price": "550"},
-        {"template": "number.docx", "label": "Номера", "price": "1500"},
     ]
+    payload["plate_amount"] = "1500"
     create_response = client.post("/orders", json=payload, headers=auth_headers)
     assert create_response.status_code == 200, create_response.text
     order_id = create_response.json()["id"]
@@ -155,8 +155,8 @@ def test_plate_operator_is_forced_to_plate_only_contour(client: TestClient, auth
     payload["plate_quantity"] = 1
     payload["documents"] = [
         {"template": "zaiavlenie.docx", "label": "Заявление", "price": "550"},
-        {"template": "number.docx", "label": "Номера", "price": "1500"},
     ]
+    payload["plate_amount"] = "1500"
     create_response = client.post("/orders", json=payload, headers=auth_headers)
     assert create_response.status_code == 200, create_response.text
     order_id = create_response.json()["id"]

@@ -86,6 +86,8 @@ def _form_data_from_create(d: OrderCreate, canonical_documents: list[dict]) -> d
         "summa_dkp": str(d.summa_dkp),
         "state_duty": str(d.state_duty),
         "plate_quantity": d.plate_quantity,
+        "need_plate": d.need_plate,
+        "plate_amount": str(d.plate_amount),
     }
     if canonical_documents:
         out["documents"] = canonical_documents
@@ -125,18 +127,17 @@ async def _load_canonical_documents(db: AsyncSession, documents: list) -> list[d
 
 
 def _validate_order_business_rules(data: OrderCreate, canonical_documents: list[dict]) -> None:
-    if not canonical_documents:
-        raise ServiceError("Заказ должен содержать хотя бы один документ", status_code=400)
-
     templates = [document["template"] for document in canonical_documents]
     has_plate_document = _NUMBER_TEMPLATE in templates
-    if data.need_plate and not has_plate_document:
-        raise ServiceError("Для заказа с номерами нужно добавить услугу изготовления номера", status_code=400)
-    if not data.need_plate and has_plate_document:
-        raise ServiceError("Документ изготовления номера требует включить режим заказа с номерами", status_code=400)
+    if has_plate_document:
+        raise ServiceError("Изготовление номера считается отдельной услугой, не документом печати", status_code=400)
+    if data.need_plate and data.plate_amount <= 0:
+        raise ServiceError("Для заказа с номерами нужно указать сумму изготовления номера", status_code=400)
+    if not canonical_documents and not data.need_plate:
+        raise ServiceError("Заказ должен содержать хотя бы один документ или услугу изготовления номера", status_code=400)
 
     docs_total = sum((Decimal(str(document["price"])) for document in canonical_documents), Decimal("0"))
-    total = docs_total + data.state_duty
+    total = docs_total + data.state_duty + (data.plate_amount if data.need_plate else Decimal("0"))
     if total <= 0:
         raise ServiceError("Пустой заказ создавать нельзя", status_code=400)
 
@@ -148,9 +149,9 @@ async def create_order(db: AsyncSession, data: OrderCreate, user: UserInfo) -> O
 
     state_duty = data.state_duty
     income_p1 = sum((Decimal(str(document["price"])) for document in canonical_documents), Decimal("0"))
-    need_plate = any(document["template"] == "number.docx" for document in canonical_documents)
-    service_type = canonical_documents[0]["template"]
-    income_p2 = Decimal("0")
+    need_plate = data.need_plate
+    service_type = canonical_documents[0]["template"] if canonical_documents else _NUMBER_TEMPLATE
+    income_p2 = data.plate_amount if need_plate else Decimal("0")
     total = state_duty + income_p1 + income_p2
 
     order = Order(
@@ -193,6 +194,10 @@ async def get_order_or_error(db: AsyncSession, order_id: int) -> Order:
 
 def plate_amount_from_order(order: Order) -> Decimal:
     form_data = order.form_data or {}
+    if form_data.get("plate_amount") is not None:
+        return Decimal(str(form_data.get("plate_amount") or 0))
+    if order.income_pavilion2:
+        return order.income_pavilion2
     docs = form_data.get("documents") or []
     total = Decimal("0")
     for doc in docs:
@@ -239,11 +244,8 @@ async def accept_order_payment(db: AsyncSession, order: Order, user: UserInfo) -
         )
 
     shift_1 = None
-    shift_2 = None
-    if order.state_duty_amount > 0 or order.income_pavilion1 > 0:
+    if order.state_duty_amount > 0 or order.income_pavilion1 > 0 or order.income_pavilion2 > 0:
         shift_1 = await ensure_workday_shift(db, 1, user)
-    if order.income_pavilion2 > 0:
-        shift_2 = await ensure_workday_shift(db, 2, user)
     if order.state_duty_amount > 0:
         db.add(
             Payment(
@@ -254,24 +256,15 @@ async def accept_order_payment(db: AsyncSession, order: Order, user: UserInfo) -
                 shift_id=shift_1.id,
             )
         )
-    if order.income_pavilion1 > 0:
+    cash_income = (order.income_pavilion1 or Decimal("0")) + (order.income_pavilion2 or Decimal("0"))
+    if cash_income > 0:
         db.add(
             Payment(
                 order_id=order.id,
-                amount=order.income_pavilion1,
+                amount=cash_income,
                 type=PaymentType.INCOME_PAVILION1,
                 employee_id=user.id,
                 shift_id=shift_1.id,
-            )
-        )
-    if order.income_pavilion2 > 0:
-        db.add(
-            Payment(
-                order_id=order.id,
-                amount=order.income_pavilion2,
-                type=PaymentType.INCOME_PAVILION2,
-                employee_id=user.id,
-                shift_id=shift_2.id,
             )
         )
 

@@ -107,6 +107,15 @@ def test_zaiavlenie_uses_full_signer_name_and_birth_line():
     assert "11.12.1990 г. Волгоград" in text
 
 
+def test_zaiavlenie_adds_plate_replacement_action_when_needed():
+    form_data = _base_form_data()
+    form_data["need_plate"] = True
+
+    text = _docx_text(render_docx("zaiavlenie.docx", form_data))
+
+    assert "НЗ заменить" in text
+
+
 def test_partial_passport_details_do_not_create_extra_separators():
     form_data = {
         "client_fio": "Иванов Иван",
