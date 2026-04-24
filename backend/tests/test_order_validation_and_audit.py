@@ -37,9 +37,8 @@ def make_base_payload() -> dict:
     }
 
 
-def test_create_order_rejects_invalid_vin_inn_ogrn_plate_and_year(client: TestClient, auth_headers: dict[str, str]):
+def test_create_order_rejects_invalid_inn_ogrn_plate_and_year(client: TestClient, auth_headers: dict[str, str]):
     invalid_cases = [
-        ("vin", "INVALIDVIN123456I", "vin"),
         ("client_inn", "12345", "инн"),
         ("client_ogrn", "123", "огрн"),
         ("plate_number", "12", "госномер"),
@@ -53,6 +52,38 @@ def test_create_order_rejects_invalid_vin_inn_ogrn_plate_and_year(client: TestCl
         response = client.post("/orders", json=payload, headers=auth_headers)
         assert response.status_code == 422, response.text
         assert expected in str(response.json()["detail"]).lower()
+
+
+def test_create_order_accepts_split_documents_and_relaxed_vin(client: TestClient, auth_headers: dict[str, str]):
+    payload = make_base_payload()
+    payload.update(
+        {
+            "client_passport": None,
+            "client_passport_series": "1814",
+            "client_passport_number": "123456",
+            "client_passport_issued_by": "ГУ МВД России",
+            "client_passport_issued_date": "01.02.2020",
+            "client_passport_division_code": "340001",
+            "srts": None,
+            "srts_series": "99AA",
+            "srts_number": "123456",
+            "pts": None,
+            "pts_series": "78УУ",
+            "pts_number": "123456",
+            "vin": "abcioq1",
+            "documents": [{"template": "zaiavlenie.docx", "label": "Заявление", "price": "1000"}],
+        }
+    )
+
+    response = client.post("/orders", json=payload, headers=auth_headers)
+
+    assert response.status_code == 200, response.text
+    detail = client.get(f"/orders/{response.json()['id']}/detail", headers=auth_headers).json()
+    assert detail["form_data"]["client_passport"] == "1814 123456"
+    assert detail["form_data"]["client_passport_division_code"] == "340-001"
+    assert detail["form_data"]["srts"] == "99AA 123456"
+    assert detail["form_data"]["pts"] == "78УУ 123456"
+    assert detail["form_data"]["vin"] == "ABCIOQ1"
 
 
 def test_create_order_rejects_missing_required_fields_for_selected_templates(client: TestClient, auth_headers: dict[str, str]):

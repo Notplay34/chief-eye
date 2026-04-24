@@ -40,34 +40,34 @@ FIELD_LABELS = {
 TEMPLATE_REQUIRED_FIELDS = {
     "zaiavlenie.docx": {
         "client_fio", "client_passport", "client_address", "client_phone", "vin",
-        "brand_model", "year", "plate_number", "pts", "srts", "vehicle_type", "state_duty",
+        "brand_model", "year", "plate_number", "vehicle_type", "state_duty",
     },
     "DKP.docx": {
         "client_fio", "client_passport", "client_address",
         "seller_fio", "seller_passport", "seller_address",
-        "vin", "brand_model", "year", "plate_number", "pts", "srts",
+        "vin", "brand_model", "year", "plate_number",
         "summa_dkp", "dkp_date",
     },
     "akt_pp.docx": {
         "client_fio", "client_passport", "client_address",
         "seller_fio", "seller_passport", "seller_address",
-        "vin", "brand_model", "year", "plate_number", "pts", "srts",
+        "vin", "brand_model", "year", "plate_number",
         "dkp_date",
     },
     "dkp_dar.docx": {
         "client_fio", "client_passport", "client_address",
         "seller_fio", "seller_passport", "seller_address",
-        "vin", "brand_model", "year", "plate_number", "pts", "srts", "dkp_date",
+        "vin", "brand_model", "year", "plate_number", "dkp_date",
     },
     "dkp_pieces.docx": {
         "client_fio", "client_passport", "client_address",
         "seller_fio", "seller_passport", "seller_address",
-        "vin", "brand_model", "year", "plate_number", "pts", "srts", "dkp_date", "vehicle_type",
+        "vin", "brand_model", "year", "plate_number", "dkp_date", "vehicle_type",
     },
     "doverennost.docx": {
         "client_fio", "client_passport", "client_address",
         "trustee_fio", "trustee_passport", "trustee_basis",
-        "vin", "brand_model", "year", "plate_number", "pts", "srts",
+        "vin", "brand_model", "year", "plate_number",
     },
     "mreo.docx": {"client_fio", "client_passport", "client_address", "client_phone", "brand_model", "year"},
     "number.docx": {"client_fio", "client_passport", "client_address", "client_phone", "vin", "brand_model", "year"},

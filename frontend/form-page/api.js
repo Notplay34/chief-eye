@@ -47,22 +47,42 @@
     var needPlate = page.inputs.needPlate && page.inputs.needPlate.checked;
     var plateQuantity = needPlate ? page.getPlateQuantity() : 1;
     var inputs = page.inputs;
+    var clientPassport = page.composePassport('client');
+    var sellerPassport = page.composePassport('seller');
+    var trusteePassport = page.composePassport('trustee');
+    var srts = page.composeVehicleDoc('srts');
+    var pts = page.composeVehicleDoc('pts');
 
     return {
       client_fio: (inputs.clientFio && inputs.clientFio.value.trim()) || null,
-      client_passport: (inputs.clientPassport && inputs.clientPassport.value.trim()) || null,
+      client_passport: clientPassport,
+      client_passport_series: (inputs.clientPassportSeries && inputs.clientPassportSeries.value.trim()) || null,
+      client_passport_number: (inputs.clientPassportNumber && inputs.clientPassportNumber.value.trim()) || null,
+      client_passport_issued_by: (inputs.clientPassportIssuedBy && inputs.clientPassportIssuedBy.value.trim()) || null,
+      client_passport_issued_date: (inputs.clientPassportIssuedDate && inputs.clientPassportIssuedDate.value.trim()) || null,
+      client_passport_division_code: (inputs.clientPassportDivisionCode && inputs.clientPassportDivisionCode.value.trim()) || null,
       client_address: (inputs.clientAddress && inputs.clientAddress.value.trim()) || null,
-      client_phone: (inputs.clientPhone && inputs.clientPhone.value.trim()) || null,
+      client_phone: page.composePhone(),
       client_comment: null,
       client_is_legal: !!(inputs.clientIsLegal && inputs.clientIsLegal.checked),
       client_legal_name: (inputs.clientLegalName && inputs.clientLegalName.value.trim()) || null,
       client_inn: (inputs.clientInn && inputs.clientInn.value.trim()) || null,
       client_ogrn: (inputs.clientOgrn && inputs.clientOgrn.value.trim()) || null,
       seller_fio: (inputs.hasSeller && inputs.hasSeller.checked && inputs.sellerFio && inputs.sellerFio.value.trim()) ? inputs.sellerFio.value.trim() : null,
-      seller_passport: (inputs.hasSeller && inputs.hasSeller.checked && inputs.sellerPassport && inputs.sellerPassport.value.trim()) ? inputs.sellerPassport.value.trim() : null,
+      seller_passport: (inputs.hasSeller && inputs.hasSeller.checked) ? sellerPassport : null,
+      seller_passport_series: (inputs.hasSeller && inputs.hasSeller.checked && inputs.sellerPassportSeries && inputs.sellerPassportSeries.value.trim()) ? inputs.sellerPassportSeries.value.trim() : null,
+      seller_passport_number: (inputs.hasSeller && inputs.hasSeller.checked && inputs.sellerPassportNumber && inputs.sellerPassportNumber.value.trim()) ? inputs.sellerPassportNumber.value.trim() : null,
+      seller_passport_issued_by: (inputs.hasSeller && inputs.hasSeller.checked && inputs.sellerPassportIssuedBy && inputs.sellerPassportIssuedBy.value.trim()) ? inputs.sellerPassportIssuedBy.value.trim() : null,
+      seller_passport_issued_date: (inputs.hasSeller && inputs.hasSeller.checked && inputs.sellerPassportIssuedDate && inputs.sellerPassportIssuedDate.value.trim()) ? inputs.sellerPassportIssuedDate.value.trim() : null,
+      seller_passport_division_code: (inputs.hasSeller && inputs.hasSeller.checked && inputs.sellerPassportDivisionCode && inputs.sellerPassportDivisionCode.value.trim()) ? inputs.sellerPassportDivisionCode.value.trim() : null,
       seller_address: (inputs.hasSeller && inputs.hasSeller.checked && inputs.sellerAddress && inputs.sellerAddress.value.trim()) ? inputs.sellerAddress.value.trim() : null,
       trustee_fio: (inputs.hasTrustee && inputs.hasTrustee.checked && inputs.trusteeFio && inputs.trusteeFio.value.trim()) ? inputs.trusteeFio.value.trim() : null,
-      trustee_passport: (inputs.hasTrustee && inputs.hasTrustee.checked && inputs.trusteePassport && inputs.trusteePassport.value.trim()) ? inputs.trusteePassport.value.trim() : null,
+      trustee_passport: (inputs.hasTrustee && inputs.hasTrustee.checked) ? trusteePassport : null,
+      trustee_passport_series: (inputs.hasTrustee && inputs.hasTrustee.checked && inputs.trusteePassportSeries && inputs.trusteePassportSeries.value.trim()) ? inputs.trusteePassportSeries.value.trim() : null,
+      trustee_passport_number: (inputs.hasTrustee && inputs.hasTrustee.checked && inputs.trusteePassportNumber && inputs.trusteePassportNumber.value.trim()) ? inputs.trusteePassportNumber.value.trim() : null,
+      trustee_passport_issued_by: (inputs.hasTrustee && inputs.hasTrustee.checked && inputs.trusteePassportIssuedBy && inputs.trusteePassportIssuedBy.value.trim()) ? inputs.trusteePassportIssuedBy.value.trim() : null,
+      trustee_passport_issued_date: (inputs.hasTrustee && inputs.hasTrustee.checked && inputs.trusteePassportIssuedDate && inputs.trusteePassportIssuedDate.value.trim()) ? inputs.trusteePassportIssuedDate.value.trim() : null,
+      trustee_passport_division_code: (inputs.hasTrustee && inputs.hasTrustee.checked && inputs.trusteePassportDivisionCode && inputs.trusteePassportDivisionCode.value.trim()) ? inputs.trusteePassportDivisionCode.value.trim() : null,
       trustee_basis: (inputs.hasTrustee && inputs.hasTrustee.checked && inputs.trusteeBasis && inputs.trusteeBasis.value.trim()) ? inputs.trusteeBasis.value.trim() : null,
       vin: (inputs.vin && inputs.vin.value.trim()) || null,
       brand_model: (inputs.brandModel && inputs.brandModel.value.trim()) || null,
@@ -72,9 +92,17 @@
       chassis: (inputs.chassis && inputs.chassis.value.trim()) || null,
       body: (inputs.body && inputs.body.value.trim()) || null,
       color: (inputs.color && inputs.color.value.trim()) || null,
-      srts: (inputs.srts && inputs.srts.value.trim()) || null,
+      srts: srts,
+      srts_series: (inputs.srtsSeries && inputs.srtsSeries.value.trim()) || null,
+      srts_number: (inputs.srtsNumber && inputs.srtsNumber.value.trim()) || null,
+      srts_issued_by: (inputs.srtsIssuedBy && inputs.srtsIssuedBy.value.trim()) || null,
+      srts_issued_date: (inputs.srtsIssuedDate && inputs.srtsIssuedDate.value.trim()) || null,
       plate_number: (inputs.plateNumber && inputs.plateNumber.value.trim()) || null,
-      pts: (inputs.pts && inputs.pts.value.trim()) || null,
+      pts: pts,
+      pts_series: (inputs.ptsSeries && inputs.ptsSeries.value.trim()) || null,
+      pts_number: (inputs.ptsNumber && inputs.ptsNumber.value.trim()) || null,
+      pts_issued_by: (inputs.ptsIssuedBy && inputs.ptsIssuedBy.value.trim()) || null,
+      pts_issued_date: (inputs.ptsIssuedDate && inputs.ptsIssuedDate.value.trim()) || null,
       dkp_date: (inputs.hasSeller && inputs.hasSeller.checked && inputs.dkpDate && inputs.dkpDate.value.trim()) ? inputs.dkpDate.value.trim() : null,
       dkp_number: (inputs.hasSeller && inputs.hasSeller.checked && inputs.dkpNumber && inputs.dkpNumber.value.trim()) ? inputs.dkpNumber.value.trim() : null,
       dkp_summary: (!inputs.hasSeller || !inputs.hasSeller.checked) && inputs.dkpSummary && inputs.dkpSummary.value.trim() ? inputs.dkpSummary.value.trim() : null,
@@ -125,8 +153,17 @@
   page.applyFormData = function (formData) {
     if (!formData) return;
     var inputs = page.inputs;
+    var clientPassport = page.splitPassport(formData.client_passport);
+    var sellerPassport = page.splitPassport(formData.seller_passport);
+    var trusteePassport = page.splitPassport(formData.trustee_passport);
+    var srts = page.splitVehicleDoc(formData.srts);
+    var pts = page.splitVehicleDoc(formData.pts);
     page.setVal(inputs.clientFio, formData.client_fio);
-    page.setVal(inputs.clientPassport, formData.client_passport);
+    page.setVal(inputs.clientPassportSeries, formData.client_passport_series || clientPassport.series);
+    page.setVal(inputs.clientPassportNumber, formData.client_passport_number || clientPassport.number);
+    page.setVal(inputs.clientPassportIssuedBy, formData.client_passport_issued_by);
+    page.setVal(inputs.clientPassportIssuedDate, formData.client_passport_issued_date);
+    page.setVal(inputs.clientPassportDivisionCode, formData.client_passport_division_code);
     page.setVal(inputs.clientAddress, formData.client_address);
     page.setVal(inputs.clientPhone, formData.client_phone);
     page.setVal(inputs.clientIsLegal, formData.client_is_legal);
@@ -135,11 +172,19 @@
     page.setVal(inputs.clientOgrn, formData.client_ogrn);
     page.setVal(inputs.hasSeller, !!(formData.seller_fio || formData.seller_passport || formData.seller_address));
     page.setVal(inputs.sellerFio, formData.seller_fio);
-    page.setVal(inputs.sellerPassport, formData.seller_passport);
+    page.setVal(inputs.sellerPassportSeries, formData.seller_passport_series || sellerPassport.series);
+    page.setVal(inputs.sellerPassportNumber, formData.seller_passport_number || sellerPassport.number);
+    page.setVal(inputs.sellerPassportIssuedBy, formData.seller_passport_issued_by);
+    page.setVal(inputs.sellerPassportIssuedDate, formData.seller_passport_issued_date);
+    page.setVal(inputs.sellerPassportDivisionCode, formData.seller_passport_division_code);
     page.setVal(inputs.sellerAddress, formData.seller_address);
     page.setVal(inputs.hasTrustee, !!(formData.trustee_fio || formData.trustee_passport || formData.trustee_basis));
     page.setVal(inputs.trusteeFio, formData.trustee_fio);
-    page.setVal(inputs.trusteePassport, formData.trustee_passport);
+    page.setVal(inputs.trusteePassportSeries, formData.trustee_passport_series || trusteePassport.series);
+    page.setVal(inputs.trusteePassportNumber, formData.trustee_passport_number || trusteePassport.number);
+    page.setVal(inputs.trusteePassportIssuedBy, formData.trustee_passport_issued_by);
+    page.setVal(inputs.trusteePassportIssuedDate, formData.trustee_passport_issued_date);
+    page.setVal(inputs.trusteePassportDivisionCode, formData.trustee_passport_division_code);
     page.setVal(inputs.trusteeBasis, formData.trustee_basis);
     page.setVal(inputs.vin, formData.vin);
     page.setVal(inputs.brandModel, formData.brand_model);
@@ -149,9 +194,15 @@
     page.setVal(inputs.chassis, formData.chassis);
     page.setVal(inputs.body, formData.body);
     page.setVal(inputs.color, formData.color);
-    page.setVal(inputs.srts, formData.srts);
+    page.setVal(inputs.srtsSeries, formData.srts_series || srts.series);
+    page.setVal(inputs.srtsNumber, formData.srts_number || srts.number);
+    page.setVal(inputs.srtsIssuedBy, formData.srts_issued_by);
+    page.setVal(inputs.srtsIssuedDate, formData.srts_issued_date);
     page.setVal(inputs.plateNumber, formData.plate_number);
-    page.setVal(inputs.pts, formData.pts);
+    page.setVal(inputs.ptsSeries, formData.pts_series || pts.series);
+    page.setVal(inputs.ptsNumber, formData.pts_number || pts.number);
+    page.setVal(inputs.ptsIssuedBy, formData.pts_issued_by);
+    page.setVal(inputs.ptsIssuedDate, formData.pts_issued_date);
     page.setVal(inputs.dkpDate, formData.dkp_date);
     page.setVal(inputs.dkpNumber, formData.dkp_number);
     page.setVal(inputs.dkpSummary, formData.dkp_summary);

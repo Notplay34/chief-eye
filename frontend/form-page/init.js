@@ -30,6 +30,36 @@
     });
   };
 
+  page.bindInputMasks = function () {
+    ['client', 'seller', 'trustee'].forEach(function (prefix) {
+      var series = page.inputs[prefix + 'PassportSeries'];
+      var number = page.inputs[prefix + 'PassportNumber'];
+      var code = page.inputs[prefix + 'PassportDivisionCode'];
+      if (series) series.addEventListener('input', function () { page.limitDigits(series, 4); });
+      if (number) number.addEventListener('input', function () { page.limitDigits(number, 6); });
+      if (code) code.addEventListener('input', function () { code.value = page.formatDivisionCode(code.value); });
+    });
+    if (page.inputs.clientPhone) {
+      page.inputs.clientPhone.addEventListener('focus', function () {
+        if (!page.inputs.clientPhone.value.trim()) page.inputs.clientPhone.value = '+7 ';
+      });
+      page.inputs.clientPhone.addEventListener('input', function () {
+        page.inputs.clientPhone.value = page.formatPhone(page.inputs.clientPhone.value);
+      });
+    }
+    if (page.inputs.vin) {
+      page.inputs.vin.addEventListener('input', function () {
+        page.inputs.vin.value = page.inputs.vin.value.toUpperCase();
+      });
+    }
+    ['srts', 'pts'].forEach(function (prefix) {
+      var series = page.inputs[prefix + 'Series'];
+      var number = page.inputs[prefix + 'Number'];
+      if (series) series.addEventListener('input', function () { series.value = series.value.replace(/\s+/g, '').toUpperCase().slice(0, 4); });
+      if (number) number.addEventListener('input', function () { number.value = number.value.replace(/\s+/g, '').toUpperCase().slice(0, 6); });
+    });
+  };
+
   page.setupPlateCheckbox = function () {
     if (page.inputs.needPlate) {
       page.inputs.needPlate.addEventListener('change', page.syncPlateToDocuments);
@@ -88,6 +118,7 @@
 
   page.init = async function () {
     await page.loadPriceList();
+    page.bindInputMasks();
     page.bindInputs();
     page.setupPlateCheckbox();
     page.setupTogglableSections();

@@ -54,14 +54,14 @@
     var selectedDocuments = page.state.selectedDocuments;
     var isLegal = inputs.clientIsLegal && inputs.clientIsLegal.checked;
     var fio = isLegal ? '—' : ((inputs.clientFio && inputs.clientFio.value.trim()) || '—');
-    var passport = isLegal ? '—' : ((inputs.clientPassport && inputs.clientPassport.value.trim()) || '—');
+    var passport = isLegal ? '—' : (page.composePassport('client') || '—');
     var address = (inputs.clientAddress && inputs.clientAddress.value.trim()) || '—';
     var phone = (inputs.clientPhone && inputs.clientPhone.value.trim()) || '—';
     var seller = '—';
     if (inputs.hasSeller && inputs.hasSeller.checked && inputs.sellerFio && inputs.sellerFio.value.trim()) {
       seller = [
         inputs.sellerFio.value.trim(),
-        inputs.sellerPassport && inputs.sellerPassport.value.trim(),
+        page.composePassport('seller'),
         inputs.sellerAddress && inputs.sellerAddress.value.trim()
       ].filter(Boolean).join(', ');
     }
@@ -69,7 +69,7 @@
     if (inputs.hasTrustee && inputs.hasTrustee.checked && inputs.trusteeFio && inputs.trusteeFio.value.trim()) {
       trustee = [
         inputs.trusteeFio.value.trim(),
-        inputs.trusteePassport && inputs.trusteePassport.value.trim(),
+        page.composePassport('trustee'),
         inputs.trusteeBasis && inputs.trusteeBasis.value.trim()
       ].filter(Boolean).join(' · ');
     }

@@ -36,6 +36,73 @@
     return page.inputs.plateQuantity ? Math.max(1, parseInt(page.inputs.plateQuantity.value, 10) || 1) : 1;
   };
 
+  page.onlyDigits = function (value) {
+    return String(value || '').replace(/\D/g, '');
+  };
+
+  page.limitDigits = function (input, maxLength) {
+    if (!input) return;
+    input.value = page.onlyDigits(input.value).slice(0, maxLength);
+  };
+
+  page.formatDivisionCode = function (value) {
+    var digits = page.onlyDigits(value).slice(0, 6);
+    if (digits.length > 3) return digits.slice(0, 3) + '-' + digits.slice(3);
+    return digits;
+  };
+
+  page.formatPhone = function (value) {
+    var digits = page.onlyDigits(value);
+    if (digits.charAt(0) === '8') digits = '7' + digits.slice(1);
+    if (digits.charAt(0) === '7') digits = digits.slice(1);
+    digits = digits.slice(0, 10);
+    return '+7 ' + digits;
+  };
+
+  page.composePhone = function () {
+    var input = page.inputs.clientPhone;
+    if (!input) return null;
+    var digits = page.onlyDigits(input.value);
+    if (digits.charAt(0) === '8') digits = '7' + digits.slice(1);
+    if (digits.charAt(0) === '7') digits = digits.slice(1);
+    digits = digits.slice(0, 10);
+    return digits.length === 10 ? ('+7' + digits) : null;
+  };
+
+  page.composePassport = function (prefix) {
+    var inputs = page.inputs;
+    var series = inputs[prefix + 'PassportSeries'];
+    var number = inputs[prefix + 'PassportNumber'];
+    var s = series ? page.onlyDigits(series.value).slice(0, 4) : '';
+    var n = number ? page.onlyDigits(number.value).slice(0, 6) : '';
+    return s && n ? (s + ' ' + n) : null;
+  };
+
+  page.composeVehicleDoc = function (prefix) {
+    var inputs = page.inputs;
+    var series = inputs[prefix + 'Series'];
+    var number = inputs[prefix + 'Number'];
+    var s = series ? String(series.value || '').replace(/\s+/g, '').toUpperCase().slice(0, 4) : '';
+    var n = number ? String(number.value || '').replace(/\s+/g, '').toUpperCase().slice(0, 6) : '';
+    return s && n ? (s + ' ' + n) : null;
+  };
+
+  page.splitPassport = function (value) {
+    var digits = page.onlyDigits(value);
+    return {
+      series: digits.slice(0, 4),
+      number: digits.slice(4, 10)
+    };
+  };
+
+  page.splitVehicleDoc = function (value) {
+    var normalized = String(value || '').replace(/\s+/g, '').toUpperCase();
+    return {
+      series: normalized.slice(0, 4),
+      number: normalized.slice(4, 10)
+    };
+  };
+
   page.isPlateZaiavlenie = function (documentItem) {
     return documentItem.template === 'zaiavlenie.docx' &&
       (documentItem.price === 0 || page.num(documentItem.price) === 0) &&
