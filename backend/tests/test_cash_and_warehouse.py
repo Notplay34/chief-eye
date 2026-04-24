@@ -128,7 +128,11 @@ def test_paying_plate_payouts_moves_money_between_cash_tables(client: TestClient
 
     cash_rows_response = client.get("/cash/rows", headers=auth_headers)
     assert cash_rows_response.status_code == 200, cash_rows_response.text
-    payout_rows = [row for row in cash_rows_response.json() if row["client_name"] == "Номера — выдача"]
+    payout_rows = [
+        row
+        for row in cash_rows_response.json()
+        if row["client_name"] == "Пётр Петров" and row["plates"] == -1500.0
+    ]
     assert len(payout_rows) == 1
     assert payout_rows[0]["plates"] == -1500.0
     assert payout_rows[0]["total"] == -1500.0

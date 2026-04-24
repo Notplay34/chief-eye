@@ -6,12 +6,14 @@
     var documentsList = page.documentsList;
     var documentsEmpty = page.documentsEmpty;
     var selectedDocuments = page.state.selectedDocuments;
-    var forPayment = selectedDocuments.filter(function (item) { return !page.isPlateZaiavlenie(item); });
-    if (documentsEmpty) documentsEmpty.style.display = forPayment.length ? 'none' : 'block';
+    if (documentsEmpty) {
+      documentsEmpty.hidden = true;
+      documentsEmpty.style.display = 'none';
+    }
     if (!documentsList) return;
 
-    documentsList.innerHTML = selectedDocuments.map(function (item, index) {
-      if (page.isPlateZaiavlenie(item)) return '';
+    var html = selectedDocuments.map(function (item, index) {
+      if (page.isPlateZaiavlenie(item) || item.template === 'number.docx') return '';
       return '<li class="documents-to-print__item">' +
         '<span class="documents-to-print__item-info">' +
           '<span>' + (item.label || item.template) + '</span>' +
@@ -20,6 +22,9 @@
         '<button type="button" class="documents-to-print__item-remove" data-index="' + index + '">Удалить</button>' +
       '</li>';
     }).filter(Boolean).join('');
+    documentsList.innerHTML = html;
+    var documentsWrap = page.el('documentsToPrint');
+    if (documentsWrap) documentsWrap.hidden = !html;
 
     documentsList.querySelectorAll('.documents-to-print__item-remove').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -33,10 +38,19 @@
 
   page.updateSummary = function () {
     var duty = page.getStateDuty();
-    var income = page.getDocumentsTotal();
+    var selectedDocuments = page.state.selectedDocuments;
+    var plate = selectedDocuments.reduce(function (sum, item) {
+      return item.template === 'number.docx' ? sum + page.num(item.price) : sum;
+    }, 0);
+    var income = selectedDocuments.reduce(function (sum, item) {
+      if (page.isPlateZaiavlenie(item) || item.template === 'number.docx') return sum;
+      return sum + page.num(item.price);
+    }, 0);
     var total = page.getTotal();
     if (page.summary.sumStateDuty) page.summary.sumStateDuty.textContent = page.formatMoney(duty);
     if (page.summary.sumIncome) page.summary.sumIncome.textContent = page.formatMoney(income);
+    if (page.summary.sumPlate) page.summary.sumPlate.textContent = page.formatMoney(plate);
+    if (page.summary.sumPlateRow) page.summary.sumPlateRow.hidden = plate <= 0;
     if (page.summary.sumTotal) page.summary.sumTotal.textContent = page.formatMoney(total);
 
     var isLegal = page.inputs.clientIsLegal && page.inputs.clientIsLegal.checked;

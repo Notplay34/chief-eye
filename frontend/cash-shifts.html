@@ -49,31 +49,16 @@
       </div>
 
       <aside class="cash-crm__total-card">
-        <div class="cash-crm__total-label">Кассовый день</div>
-        <div class="cash-crm__day-date" id="cashDayDate">Сегодня</div>
+        <div class="cash-crm__total-label">Итого в кассе</div>
         <div class="cash-crm__total-value" id="cashTotalCell">
           <span class="cash-crm__amount-num">0</span><span class="cash-crm__amount-currency"> ₽</span>
         </div>
-        <div class="cash-crm__reconcile" id="cashDayReconcile">
-          <div class="cash-crm__reconcile-row">
-            <span>Статус</span>
-            <strong id="cashDayStatus">Не сверен</strong>
-          </div>
-          <div class="cash-crm__reconcile-row">
-            <span>Расхождение</span>
-            <strong id="cashDayDiff">—</strong>
-          </div>
-          <label class="cash-crm__reconcile-label" for="cashActualBalance">Фактически в кассе</label>
-          <input type="text" id="cashActualBalance" class="cash-crm__reconcile-input" inputmode="decimal" placeholder="0.00">
-          <button type="button" class="cash-crm__reconcile-btn" id="btnReconcileDay">Сверить день</button>
-          <p class="cash-crm__reconcile-msg" id="cashDayMsg"></p>
-        </div>
         <button type="button" class="cash-payout__chip" id="btnPayoutToggle">
-          Номера: к выдаче <span id="payoutTotalShort">0 ₽</span>
+          Выдача в кассу номеров <span id="payoutTotalShort">0 ₽</span>
         </button>
         <div class="cash-payout__panel" id="cashPayoutPanel" hidden>
           <div class="cash-payout__panel-header">
-            <span class="cash-payout__label">Номера к выдаче</span>
+            <span class="cash-payout__label">К выдаче в кассу номеров</span>
             <span class="cash-payout__total" id="payoutTotal">0 ₽</span>
           </div>
           <div class="cash-payout__panel-body">

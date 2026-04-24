@@ -16,27 +16,9 @@
     <header class="header">
       <div>
         <h1 class="header__title">Касса номеров</h1>
-        <p class="header__subtitle">В кассе номера и суммы, которые уже зачислены. Отдельно показываются суммы, ожидающие зачисления после выдачи клиенту.</p>
+        <p class="header__subtitle">Здесь только деньги, уже переданные из кассы документов в кассу номеров.</p>
       </div>
     </header>
-
-    <section class="cash-payout__panel plate-cash-pending plate-cash-kpi" id="plateCashPendingPanel">
-      <div class="cash-payout__panel-header">
-        <span class="cash-payout__label">Ожидает зачисления</span>
-        <span class="cash-payout__total" id="platePendingTotal">0 ₽</span>
-      </div>
-      <div class="cash-payout__panel-body">
-        <table class="cash-payout__table">
-          <tbody id="platePendingBody">
-            <tr><td colspan="3" class="cash-payout__empty">Загрузка…</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="plate-cash-toolbar">
-        <button type="button" class="btn btn--secondary" id="btnAcceptPending">Зачислить в кассу номеров</button>
-        <span id="platePendingMsg" class="plate-cash-msg"></span>
-      </div>
-    </section>
 
     <div class="plate-cash-toolbar plate-cash-toolbar--main">
       <button type="button" class="btn btn--primary" id="btnAddRow">Добавить строку</button>

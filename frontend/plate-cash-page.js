@@ -4,7 +4,6 @@
   if (!window.getToken || !window.getToken()) return;
 
   var rows = [];
-  var pendingRows = [];
 
   function msg(text, isErr) {
     var el = document.getElementById('plateCashMsg');
@@ -24,55 +23,6 @@
       maximumFractionDigits: 2
     }).format(value) + ' ₽';
     return value < 0 ? '<span class="amount-neg">' + text + '</span>' : text;
-  }
-
-  function renderPending(data) {
-    var body = document.getElementById('platePendingBody');
-    var totalEl = document.getElementById('platePendingTotal');
-    var acceptBtn = document.getElementById('btnAcceptPending');
-    var panel = document.getElementById('plateCashPendingPanel');
-    var total = data && data.total ? data.total : 0;
-    pendingRows = (data && data.rows) || [];
-    if (!body || !totalEl) return;
-    body.innerHTML = '';
-    if (!pendingRows.length) {
-      body.innerHTML = '<tr><td colspan="3" class="cash-payout__empty">Нет сумм, ожидающих зачисления.</td></tr>';
-      if (acceptBtn) acceptBtn.disabled = true;
-      if (panel) panel.classList.add('plate-cash-kpi--empty');
-    } else {
-      if (acceptBtn) acceptBtn.disabled = false;
-      if (panel) panel.classList.remove('plate-cash-kpi--empty');
-      pendingRows.forEach(function (row) {
-        var date = row.created_at ? row.created_at.substring(0, 10).split('-').reverse().join('.') : '';
-        var tr = document.createElement('tr');
-        tr.innerHTML =
-          '<td>' + date + '</td>' +
-          '<td>' + (row.client_name || '—') + '</td>' +
-          '<td class="cash-payout__amount">' + fmt(numVal(row.amount)) + '</td>';
-        body.appendChild(tr);
-      });
-    }
-    totalEl.textContent = fmt(numVal(total));
-  }
-
-  function loadPending() {
-    var msgPending = document.getElementById('platePendingMsg');
-    if (msgPending) msgPending.textContent = '';
-    return fetchApi(api + '/cash/plate-payouts')
-      .then(function (r) {
-        if (!r.ok) return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
-        return r.json();
-      })
-      .then(function (data) {
-        renderPending(data);
-      })
-      .catch(function (e) {
-        renderPending({ rows: [], total: 0 });
-        if (msgPending) {
-          msgPending.textContent = 'Ошибка: ' + (e.message || 'не удалось загрузить суммы к зачислению');
-          msgPending.className = 'plate-cash-msg err';
-        }
-      });
   }
 
   function patchRow(rowId, payload) {
@@ -254,35 +204,6 @@
       });
   }
 
-  function acceptPending() {
-    var msgPending = document.getElementById('platePendingMsg');
-    if (!pendingRows.length) {
-      if (msgPending) {
-        msgPending.textContent = 'Нет сумм для зачисления.';
-        msgPending.className = 'plate-cash-msg';
-      }
-      return;
-    }
-    fetchApi(api + '/cash/plate-payouts/pay', { method: 'POST' })
-      .then(function (r) {
-        if (!r.ok) return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
-        return r.json();
-      })
-      .then(function (data) {
-        if (msgPending) {
-          msgPending.textContent = 'Зачислено в кассу номеров: ' + fmt(numVal(data.total));
-          msgPending.className = 'plate-cash-msg';
-        }
-        return Promise.all([load(), loadPending()]);
-      })
-      .catch(function (e) {
-        if (msgPending) {
-          msgPending.textContent = 'Ошибка: ' + (e.message || 'не удалось зачислить суммы');
-          msgPending.className = 'plate-cash-msg err';
-        }
-      });
-  }
-
   document.getElementById('btnAddRow').addEventListener('click', function () {
     fetchApi(api + '/cash/plate-rows', {
       method: 'POST',
@@ -307,8 +228,4 @@
   });
 
   load();
-  loadPending();
-  if (document.getElementById('btnAcceptPending')) {
-    document.getElementById('btnAcceptPending').addEventListener('click', acceptPending);
-  }
 })();

@@ -154,7 +154,7 @@ def test_full_order_journey_exercises_documents_cash_plates_and_analytics(
     cash_rows = cash_rows_response.json()
     assert any(row["client_name"] == "Иванов Иван Иванович" and row["total"] == 3650.0 for row in cash_rows)
     assert any(row["client_name"] == "Иванов Иван Иванович" and row["plates"] == 700.0 for row in cash_rows)
-    assert any(row["client_name"] == "Номера — выдача" and row["plates"] == -2200.0 for row in cash_rows)
+    assert any(row["client_name"] == "Иванов Иван Иванович" and row["plates"] == -2200.0 for row in cash_rows)
 
     analytics_response = client.get("/analytics/dashboard?period=month&kind=all", headers=auth_headers)
     assert analytics_response.status_code == 200, analytics_response.text

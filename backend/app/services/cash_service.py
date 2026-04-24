@@ -292,9 +292,16 @@ async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
     if total <= 0:
         raise ServiceError("Сумма к выдаче нулевая", status_code=400)
 
+    payout_names = [
+        payout.client_name.strip()
+        for payout in payouts
+        if payout.client_name and payout.client_name.strip()
+    ]
+    cash_row_name = ", ".join(payout_names) if payout_names else "Номера — выдача"
+
     db.add(
         CashRow(
-            client_name="Номера — выдача",
+            client_name=cash_row_name,
             application=Decimal("0"),
             state_duty=Decimal("0"),
             dkp=Decimal("0"),

@@ -82,6 +82,8 @@
     summary: {
       sumStateDuty: el('sumStateDuty'),
       sumIncome: el('sumIncome'),
+      sumPlate: el('sumPlate'),
+      sumPlateRow: el('sumPlateRow'),
       sumTotal: el('sumTotal')
     },
     preview: {

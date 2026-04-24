@@ -323,10 +323,6 @@
             </div>
             <button type="button" class="btn btn--add-doc" id="btnAddDoc">Добавить</button>
           </div>
-          <div class="documents-to-print" id="documentsToPrint">
-            <p class="documents-to-print__empty" id="documentsEmpty">Документов пока нет — выберите и нажмите «Добавить»</p>
-            <ul class="documents-to-print__list" id="documentsList"></ul>
-          </div>
           <div class="form-row amounts">
             <div class="field">
               <label class="field__label" for="stateDuty">Госпошлина, ₽</label>
@@ -354,20 +350,28 @@
       <aside class="work-sidebar" aria-label="Итоги заказа">
         <!-- Автозаполняемый блок: итоги и действия -->
         <section class="card card--summary" id="summaryCard">
-          <h2 class="card__title">Итого и оплата</h2>
+          <h2 class="card__title">К оплате</h2>
           <div class="summary">
+            <div class="summary__row">
+              <span class="summary__label">Документы</span>
+              <span class="summary__value summary__value--income" id="sumIncome">0 ₽</span>
+            </div>
             <div class="summary__row">
               <span class="summary__label">Госпошлина</span>
               <span class="summary__value" id="sumStateDuty">0 ₽</span>
             </div>
-            <div class="summary__row">
-              <span class="summary__label">Доход павильона</span>
-              <span class="summary__value summary__value--income" id="sumIncome">0 ₽</span>
+            <div class="summary__row" id="sumPlateRow" hidden>
+              <span class="summary__label">Номера</span>
+              <span class="summary__value" id="sumPlate">0 ₽</span>
             </div>
             <div class="summary__row summary__row--total">
-              <span class="summary__label">К оплате</span>
+              <span class="summary__label">Итого к оплате</span>
               <span class="summary__value summary__value--total" id="sumTotal">0 ₽</span>
             </div>
+          </div>
+          <div class="documents-to-print documents-to-print--summary" id="documentsToPrint">
+            <p class="documents-to-print__empty" id="documentsEmpty" hidden></p>
+            <ul class="documents-to-print__list" id="documentsList"></ul>
           </div>
           <div class="actions actions--stacked">
             <button type="button" class="btn btn--primary" id="btnAcceptCash" disabled>
