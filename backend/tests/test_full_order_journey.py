@@ -171,12 +171,14 @@ def test_full_order_journey_exercises_documents_cash_plates_and_analytics(
     assert analytics_response.status_code == 200, analytics_response.text
     overview = analytics_response.json()["overview"]
     assert overview["orders_count"] == 1
-    assert _as_float(overview["income_total"]) == 5350.0
-    assert _as_float(overview["turnover_total"]) == 5850.0
+    assert _as_float(overview["income_total"]) == 5500.0
+    assert _as_float(overview["turnover_total"]) == 6000.0
     assert _as_float(overview["docs_income"]) == 1650.0
     assert _as_float(overview["plates_income"]) == 3000.0
     assert _as_float(overview["plate_extra_income"]) == 700.0
     assert _as_float(overview["state_duty_total"]) == 500.0
+    assert _as_float(overview["state_duty_cash_total"]) == 650.0
+    assert _as_float(overview["state_duty_commission_income"]) == 150.0
 
 
 def test_create_order_rejects_invalid_phone_number(client: TestClient, auth_headers: dict[str, str]):

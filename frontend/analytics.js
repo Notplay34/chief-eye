@@ -10,18 +10,18 @@
     if (kind === 'docs') {
       return {
         title: 'Аналитика — Документы',
-        subtitle: 'Выручка по документам, госпошлине, услугам и сотрудникам павильона 1.',
+        subtitle: 'Сколько заработали на документах и комиссии госпошлин, отдельно от проходных сумм.',
       };
     }
     if (kind === 'plates') {
       return {
         title: 'Аналитика — Номера',
-        subtitle: 'Номера, доплаты, статусы и результат по павильону 2.',
+        subtitle: 'Доход по изготовлению номеров, доплатам и работе павильона 2.',
       };
     }
     return {
       title: 'Аналитика',
-      subtitle: 'Короткая сводка по доходу, заказам, сотрудникам и динамике.',
+      subtitle: 'Главный экран владельца: сколько заработали, откуда пришли деньги и что ушло госпошлиной.',
     };
   }
 
@@ -50,18 +50,6 @@
       .replace(/'/g, '&#39;');
   }
 
-  function statusLabel(status) {
-    return {
-      CREATED: 'Создан',
-      PENDING_PAYMENT: 'Ожидает оплаты',
-      PAID: 'Оплачен',
-      PLATE_IN_PROGRESS: 'Номера в работе',
-      PLATE_READY: 'Номера готовы',
-      COMPLETED: 'Завершён',
-      PROBLEM: 'Проблема'
-    }[status] || status;
-  }
-
   function deltaText(current, previous, mode) {
     var curr = Number(current || 0);
     var prev = Number(previous || 0);
@@ -87,51 +75,49 @@
 
   function renderOverview(overview, previous) {
     var cards = [
-      card('Доход', formatMoney(overview.income_total), deltaText(overview.income_total, previous.income_total, 'money'), 'primary'),
-      card('Оборот', formatMoney(overview.turnover_total), deltaText(overview.turnover_total, previous.turnover_total, 'money'), 'turnover'),
+      card('Мой доход', formatMoney(overview.income_total), deltaText(overview.income_total, previous.income_total, 'money'), 'primary'),
+      card('Оборот в кассе', formatMoney(overview.turnover_total), 'Все принятые деньги, включая госпошлину', 'turnover'),
       card('Заказы', String(overview.orders_count || 0), deltaText(overview.orders_count, previous.orders_count, 'count')),
       card('Средний чек', formatMoney(overview.average_check), deltaText(overview.average_check, previous.average_check, 'money')),
     ];
 
-    if (Number(overview.docs_income || 0) > 0) {
-      cards.push(card('Документы', formatMoney(overview.docs_income), 'Основная выручка павильона 1'));
-    }
-    if (Number(overview.state_duty_total || 0) > 0) {
-      cards.push(card('Госпошлина', formatMoney(overview.state_duty_total), 'Проходит через кассу, но не является вашим доходом'));
-    }
-    if (Number(overview.plates_income || 0) > 0 || Number(overview.plate_extra_income || 0) > 0) {
-      cards.push(
-        card(
-          'Номера и доплаты',
-          formatMoney(Number(overview.plates_income || 0) + Number(overview.plate_extra_income || 0)),
-          'База: ' + formatMoney(overview.plates_income) + ' • Доплаты: ' + formatMoney(overview.plate_extra_income)
-        )
-      );
-    }
-
     return '<section class="analytics-grid analytics-grid--cards">' + cards.join('') + '</section>';
   }
 
-  function renderStatus(statuses) {
-    if (!statuses || !statuses.length) {
-      return '<div class="analytics-empty">За выбранный период заказов нет.</div>';
-    }
+  function moneyRow(label, value, tone) {
     return [
-      '<section class="analytics-panel">',
+      '<div class="analytics-money-row', tone ? ' analytics-money-row--' + tone : '', '">',
+      '  <span>', escapeHtml(label), '</span>',
+      '  <strong>', escapeHtml(formatMoney(value)), '</strong>',
+      '</div>',
+    ].join('');
+  }
+
+  function renderIncomeBreakdown(overview) {
+    var plateTotal = Number(overview.plates_income || 0) + Number(overview.plate_extra_income || 0);
+    var rows = [];
+    if (Number(overview.docs_income || 0) > 0) rows.push(moneyRow('Документы', overview.docs_income));
+    if (Number(overview.state_duty_commission_income || 0) > 0) rows.push(moneyRow('Комиссия госпошлин', overview.state_duty_commission_income));
+    if (Number(overview.plates_income || 0) > 0) rows.push(moneyRow('Изготовление номеров', overview.plates_income));
+    if (Number(overview.plate_extra_income || 0) > 0) rows.push(moneyRow('Доплаты за номера', overview.plate_extra_income));
+    if (!rows.length) rows.push('<div class="analytics-empty">Дохода за выбранный период пока нет.</div>');
+
+    return [
+      '<section class="analytics-panel analytics-panel--breakdown">',
       '  <div class="analytics-panel__header">',
-      '    <h2>Статусы заказов</h2>',
-      '    <p>Чтобы быстро видеть, где застревает поток.</p>',
+      '    <h2>Из чего собрался доход</h2>',
+      '    <p>Здесь только ваши деньги. Госпошлина ниже показана отдельно как проходная сумма.</p>',
       '  </div>',
-      '  <div class="analytics-status-list">',
-      statuses.map(function (item) {
-        return [
-          '<div class="analytics-status-item">',
-          '  <span>', escapeHtml(statusLabel(item.status)), '</span>',
-          '  <strong>', escapeHtml(item.count), '</strong>',
-          '</div>',
-        ].join('');
-      }).join(''),
+      '  <div class="analytics-money-list">',
+      rows.join(''),
+      moneyRow('Итого мой доход', overview.income_total, 'total'),
       '  </div>',
+      '  <div class="analytics-pass-through">',
+      '    <h3>Проходные деньги</h3>',
+      moneyRow('Госпошлина к списанию/перечислению', overview.state_duty_total || 0),
+      moneyRow('Принято госпошлины в кассу', overview.state_duty_cash_total || overview.state_duty_total || 0),
+      '  </div>',
+      Number(overview.numbers_orders_count || 0) ? '<p class="analytics-panel__note">Номера: заказов ' + escapeHtml(overview.numbers_orders_count) + ', комплектов ' + escapeHtml(overview.numbers_units || 0) + ', сумма ' + escapeHtml(formatMoney(plateTotal)) + '.</p>' : '',
       '</section>',
     ].join('');
   }
@@ -140,20 +126,20 @@
     return [
       '<section class="analytics-panel">',
       '  <div class="analytics-panel__header">',
-      '    <h2>Динамика по месяцам</h2>',
-      '    <p>Последние 12 месяцев, чтобы видеть сезонность и просадки.</p>',
+      '    <h2>Доход по месяцам</h2>',
+      '    <p>Последние 12 месяцев: удобно смотреть сезонность и просадки.</p>',
       '  </div>',
       '  <div class="analytics-table-wrap">',
       '    <table class="analytics-table">',
-      '      <thead><tr><th>Месяц</th><th>Заказы</th><th>Оборот</th><th>Доход</th></tr></thead>',
+      '      <thead><tr><th>Месяц</th><th>Заказы</th><th>Мой доход</th><th>Оборот</th></tr></thead>',
       '      <tbody>',
       rows.map(function (row) {
         return [
           '<tr>',
           '  <td>', escapeHtml(row.label), '</td>',
           '  <td>', escapeHtml(row.orders_count), '</td>',
-          '  <td>', escapeHtml(formatMoney(row.turnover_total)), '</td>',
           '  <td>', escapeHtml(formatMoney(row.income_total)), '</td>',
+          '  <td>', escapeHtml(formatMoney(row.turnover_total)), '</td>',
           '</tr>',
         ].join('');
       }).join(''),
@@ -164,33 +150,17 @@
     ].join('');
   }
 
-  function renderQuarters(rows) {
-    return [
-      '<section class="analytics-panel">',
-      '  <div class="analytics-panel__header">',
-      '    <h2>Кварталы</h2>',
-      '    <p>Короткий управленческий срез по году.</p>',
-      '  </div>',
-      '  <div class="analytics-grid analytics-grid--quarters">',
-      rows.map(function (row) {
-        return card(row.label, formatMoney(row.income_total), 'Заказов: ' + row.orders_count + ' • Оборот: ' + formatMoney(row.turnover_total));
-      }).join(''),
-      '  </div>',
-      '</section>',
-    ].join('');
-  }
-
   function renderEmployees(rows) {
     return [
       '<section class="analytics-panel">',
       '  <div class="analytics-panel__header">',
       '    <h2>Сотрудники</h2>',
-      '    <p>Кто даёт результат в выбранном периоде.</p>',
+      '    <p>Кто приносит деньги в выбранном периоде.</p>',
       '  </div>',
       rows && rows.length ? [
         '  <div class="analytics-table-wrap">',
         '    <table class="analytics-table">',
-        '      <thead><tr><th>Сотрудник</th><th>Заказы</th><th>Доход</th><th>Средний чек</th><th>Доля</th></tr></thead>',
+        '      <thead><tr><th>Сотрудник</th><th>Заказы</th><th>Мой доход</th><th>Средний чек</th><th>Доля</th></tr></thead>',
         '      <tbody>',
         rows.map(function (row) {
           return [
@@ -215,13 +185,13 @@
     return [
       '<section class="analytics-panel">',
       '  <div class="analytics-panel__header">',
-      '    <h2>Топ услуг</h2>',
-      '    <p>Что реально продаётся и приносит деньги.</p>',
+      '    <h2>Что приносит деньги</h2>',
+      '    <p>Услуги и комиссии, отсортированные по сумме.</p>',
       '  </div>',
       rows && rows.length ? [
         '  <div class="analytics-table-wrap">',
         '    <table class="analytics-table">',
-        '      <thead><tr><th>Услуга</th><th>Количество</th><th>Выручка</th></tr></thead>',
+        '      <thead><tr><th>Источник</th><th>Количество</th><th>Сумма</th></tr></thead>',
         '      <tbody>',
         rows.map(function (row) {
           return [
@@ -304,13 +274,12 @@
       renderOverview(dashboard.overview, dashboard.previous_overview),
       '<div class="analytics-grid analytics-grid--main">',
       '  <div class="analytics-stack">',
+      renderIncomeBreakdown(dashboard.overview),
       renderTrend(dashboard.monthly_trend || []),
-      renderEmployees(dashboard.employee_stats || []),
       '  </div>',
       '  <div class="analytics-stack">',
-      renderStatus(dashboard.status_breakdown || []),
-      renderQuarters(dashboard.quarter_summary || []),
       renderServices(dashboard.top_services || []),
+      renderEmployees(dashboard.employee_stats || []),
       '  </div>',
       '</div>',
     ].join('');

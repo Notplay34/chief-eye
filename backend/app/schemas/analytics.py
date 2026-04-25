@@ -80,6 +80,8 @@ class AnalyticsOverview(BaseModel):
     turnover_total: Decimal
     income_total: Decimal
     state_duty_total: Decimal
+    state_duty_cash_total: Decimal
+    state_duty_commission_income: Decimal
     docs_income: Decimal
     plates_income: Decimal
     plate_extra_income: Decimal

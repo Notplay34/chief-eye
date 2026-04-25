@@ -63,12 +63,14 @@ def test_analytics_dashboard_returns_operational_sections(client: TestClient, au
     data = response.json()
 
     assert data["overview"]["orders_count"] == 1
-    assert as_float(data["overview"]["income_total"]) == 2750.0
-    assert as_float(data["overview"]["turnover_total"]) == 3250.0
+    assert as_float(data["overview"]["income_total"]) == 2900.0
+    assert as_float(data["overview"]["turnover_total"]) == 3400.0
     assert as_float(data["overview"]["docs_income"]) == 550.0
     assert as_float(data["overview"]["plates_income"]) == 1500.0
     assert as_float(data["overview"]["plate_extra_income"]) == 700.0
     assert as_float(data["overview"]["state_duty_total"]) == 500.0
+    assert as_float(data["overview"]["state_duty_cash_total"]) == 650.0
+    assert as_float(data["overview"]["state_duty_commission_income"]) == 150.0
 
     assert len(data["monthly_trend"]) == 12
     assert len(data["quarter_summary"]) == 4
@@ -90,10 +92,12 @@ def test_analytics_dashboard_supports_docs_and_plates_scopes(client: TestClient,
     docs_response = client.get("/analytics/dashboard?period=month&kind=docs", headers=auth_headers)
     assert docs_response.status_code == 200, docs_response.text
     docs = docs_response.json()["overview"]
-    assert as_float(docs["income_total"]) == 550.0
+    assert as_float(docs["income_total"]) == 700.0
     assert as_float(docs["plates_income"]) == 0.0
     assert as_float(docs["plate_extra_income"]) == 0.0
     assert as_float(docs["state_duty_total"]) == 500.0
+    assert as_float(docs["state_duty_cash_total"]) == 650.0
+    assert as_float(docs["state_duty_commission_income"]) == 150.0
 
     plates_response = client.get("/analytics/dashboard?period=month&kind=plates", headers=auth_headers)
     assert plates_response.status_code == 200, plates_response.text
@@ -101,6 +105,7 @@ def test_analytics_dashboard_supports_docs_and_plates_scopes(client: TestClient,
     assert as_float(plates["income_total"]) == 1800.0
     assert as_float(plates["docs_income"]) == 0.0
     assert as_float(plates["state_duty_total"]) == 0.0
+    assert as_float(plates["state_duty_commission_income"]) == 0.0
     assert plates["numbers_orders_count"] == 1
 
 

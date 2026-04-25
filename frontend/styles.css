@@ -2161,6 +2161,62 @@ body {
   font-size: var(--text-caption);
 }
 
+.analytics-panel__note {
+  margin: var(--space-4) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+}
+
+.analytics-money-list,
+.analytics-pass-through {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.analytics-pass-through {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.analytics-pass-through h3 {
+  margin: 0 0 var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.analytics-money-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.analytics-money-row span {
+  color: var(--color-text-muted);
+}
+
+.analytics-money-row strong {
+  white-space: nowrap;
+}
+
+.analytics-money-row--total {
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, var(--color-border));
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+}
+
+.analytics-money-row--total span,
+.analytics-money-row--total strong {
+  color: var(--color-primary);
+}
+
 .analytics-table-wrap {
   overflow-x: auto;
 }

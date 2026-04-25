@@ -93,6 +93,18 @@ def _split_order_revenue(order: Order) -> tuple[Decimal, Decimal]:
     return docs_income, plates_income
 
 
+def _state_duty_parts(order: Order) -> tuple[Decimal, Decimal, Decimal]:
+    form_data = order.form_data or {}
+    base = _to_decimal(form_data.get("state_duty_base_amount") or order.state_duty_amount)
+    commission = _to_decimal(form_data.get("state_duty_commission"))
+    cash_amount = _to_decimal(form_data.get("state_duty_cash_amount"))
+    if cash_amount <= 0 and base > 0:
+        cash_amount = base + commission
+    if commission <= 0 and cash_amount > base:
+        commission = cash_amount - base
+    return base, commission, cash_amount
+
+
 def _scope_match(order: Order, kind: str) -> bool:
     kind_key = (kind or "all").lower()
     if kind_key == "all":
@@ -106,11 +118,12 @@ def _scope_match(order: Order, kind: str) -> bool:
 
 def _order_income_for_kind(order: Order, kind: str) -> Decimal:
     docs_income, plates_income = _split_order_revenue(order)
+    _base, state_duty_commission, _cash_amount = _state_duty_parts(order)
     if kind == "docs":
-        return docs_income
+        return docs_income + state_duty_commission
     if kind == "plates":
         return plates_income
-    return docs_income + plates_income
+    return docs_income + plates_income + state_duty_commission
 
 
 def _build_overview(
@@ -123,15 +136,20 @@ def _build_overview(
     docs_income = ZERO
     plates_income = ZERO
     state_duty_total = ZERO
+    state_duty_cash_total = ZERO
+    state_duty_commission_income = ZERO
     numbers_orders_count = 0
     numbers_units = 0
     status_breakdown: dict[str, int] = defaultdict(int)
 
     for order in scope_orders:
         order_docs_income, order_plates_income = _split_order_revenue(order)
+        state_duty_base, state_duty_commission, state_duty_cash = _state_duty_parts(order)
         docs_income += order_docs_income
         plates_income += order_plates_income
-        state_duty_total += _to_decimal(order.state_duty_amount)
+        state_duty_total += state_duty_base
+        state_duty_cash_total += state_duty_cash
+        state_duty_commission_income += state_duty_commission
         status_breakdown[order.status.value] += 1
         if order.need_plate:
             numbers_orders_count += 1
@@ -144,8 +162,10 @@ def _build_overview(
     plates_income_output = plates_income if kind in ("all", "plates") else ZERO
     plate_extra_output = plate_extra_income if kind in ("all", "plates") else ZERO
     state_duty_output = state_duty_total if kind in ("all", "docs") else ZERO
+    state_duty_cash_output = state_duty_cash_total if kind in ("all", "docs") else ZERO
+    state_duty_commission_output = state_duty_commission_income if kind in ("all", "docs") else ZERO
 
-    income_total = docs_income_output + plates_income_output + plate_extra_output
+    income_total = docs_income_output + plates_income_output + plate_extra_output + state_duty_commission_output
     turnover_total = income_total + state_duty_output
     orders_count = len(scope_orders)
     average_check = (turnover_total / orders_count) if orders_count else ZERO
@@ -155,6 +175,8 @@ def _build_overview(
         "turnover_total": turnover_total,
         "income_total": income_total,
         "state_duty_total": state_duty_output,
+        "state_duty_cash_total": state_duty_cash_output,
+        "state_duty_commission_income": state_duty_commission_output,
         "docs_income": docs_income_output,
         "plates_income": plates_income_output,
         "plate_extra_income": plate_extra_output,
@@ -319,6 +341,7 @@ def _build_employee_stats(
 def _build_top_services(orders: list[Order], extra_payments: list[Payment], kind: str) -> list[dict]:
     stats: dict[str, dict] = {}
     for order in orders:
+        _state_duty_base, state_duty_commission, _state_duty_cash = _state_duty_parts(order)
         for item in _docs_for_order(order):
             template = (item.get("template") or "").strip().lower()
             is_plate = template == PLATE_TEMPLATE
@@ -336,6 +359,11 @@ def _build_top_services(orders: list[Order], extra_payments: list[Payment], kind
             stats.setdefault(label, {"label": label, "count": 0, "revenue": ZERO})
             stats[label]["count"] += 1
             stats[label]["revenue"] += _to_decimal(order.income_pavilion2)
+        if state_duty_commission > 0 and kind in ("all", "docs"):
+            label = "Комиссия госпошлины"
+            stats.setdefault(label, {"label": label, "count": 0, "revenue": ZERO})
+            stats[label]["count"] += 1
+            stats[label]["revenue"] += state_duty_commission
 
     if kind in ("all", "plates") and extra_payments:
         stats.setdefault("Доплата за номера", {"label": "Доплата за номера", "count": 0, "revenue": ZERO})
