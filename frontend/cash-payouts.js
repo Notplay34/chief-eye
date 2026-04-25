@@ -52,9 +52,9 @@
         var tr = document.createElement('tr');
         var date = r.created_at ? r.created_at.substring(0, 10).split('-').reverse().join('.') : '';
         tr.innerHTML =
-          '<td>' + escapeHtml(date) + '</td>' +
-          '<td>' + (r.client_short_name || r.client_name ? escapeHtml(r.client_short_name || r.client_name) : '—') +
-          (r.quantity ? ' · ' + escapeHtml(r.quantity) + ' шт' : '') + '</td>' +
+          '<td class="cash-payout__date">' + escapeHtml(date) + '</td>' +
+          '<td class="cash-payout__client"><span>' + (r.client_short_name || r.client_name ? escapeHtml(r.client_short_name || r.client_name) : '—') +
+          '</span><small>' + escapeHtml(r.quantity || 1) + ' шт</small></td>' +
           '<td class="cash-payout__amount">' + formatMoney(r.amount) + '</td>';
         bodyEl.appendChild(tr);
       });

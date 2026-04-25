@@ -373,15 +373,10 @@
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  background: transparent;
-  border-radius: 0;
-  padding: 0;
-  box-shadow: none;
-  border: 0;
   display: grid;
-  grid-template-columns: minmax(280px, 0.85fr) minmax(300px, 1fr) minmax(280px, 0.9fr);
-  gap: 16px;
-  align-items: start;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
 }
 
 @media (min-width: 1025px) {
@@ -392,15 +387,8 @@
 
 .cash-crm__total-summary {
   grid-column: 1;
-  min-height: 136px;
-  padding: 22px 24px;
-  border: 1px solid #eef2f7;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
   display: grid;
   align-content: space-between;
-  gap: 20px;
 }
 
 .cash-crm__total-label {
@@ -429,14 +417,20 @@
 
 .cash-payout-card {
   grid-column: 3;
-  min-height: 136px;
-  padding: 14px;
-  border: 1px solid #d5ebe7;
-  border-radius: 16px;
-  background: #f7fbfa;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
   display: grid;
-  gap: 10px;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.cash-crm__total-summary,
+.cash-duty-commission,
+.cash-payout-card {
+  min-height: 192px;
+  padding: 20px 22px;
+  border: 1px solid #ded8cc;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 34px rgba(31, 41, 51, 0.05);
+  box-sizing: border-box;
 }
 
 @media (max-width: 1180px) {
@@ -475,8 +469,7 @@
   }
 
   .cash-crm__total-card {
-    grid-template-columns: minmax(240px, 0.85fr) minmax(270px, 1fr) minmax(240px, 0.9fr);
-    gap: 12px;
+    gap: 14px;
   }
 
   .cash-crm__total-value {
@@ -498,10 +491,10 @@
 
 .cash-payout__chip {
   width: 100%;
-  color: #2f766c;
+  color: #6d7482;
   font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   display: flex;
   align-items: baseline;
@@ -510,8 +503,9 @@
 }
 
 .cash-payout__chip strong {
-  color: #2f766c;
-  font-size: 1.35rem;
+  color: #0f766e;
+  font-size: 1.45rem;
+  font-weight: 800;
   letter-spacing: 0;
   text-transform: none;
   white-space: nowrap;
@@ -521,7 +515,9 @@
 
 .cash-payout__panel {
   display: grid;
-  gap: 8px;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  min-height: 0;
 }
 
 .cash-payout__panel-header {
@@ -539,35 +535,57 @@
 }
 
 .cash-payout__panel-body {
-  min-height: 58px;
-  max-height: 92px;
+  min-height: 64px;
+  max-height: 96px;
   overflow-y: auto;
-  padding-right: 4px;
+  padding-right: 6px;
 }
 
 .cash-payout__table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.8125rem;
+  table-layout: fixed;
+  font-size: 0.8rem;
 }
 
 .cash-payout__table td {
-  padding: 4px 0;
-  vertical-align: top;
-  border-top: 1px solid rgba(47, 118, 108, 0.12);
+  padding: 6px 0;
+  vertical-align: middle;
+  border-top: 1px solid #ece7dc;
 }
 
 .cash-payout__table tr:first-child td {
   border-top: 0;
 }
 
-.cash-payout__table td:first-child {
+.cash-payout__date {
   width: 76px;
   color: #6b7280;
   white-space: nowrap;
 }
 
+.cash-payout__client {
+  min-width: 0;
+  padding-right: 8px !important;
+  color: #1f2937;
+}
+
+.cash-payout__client span,
+.cash-payout__client small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cash-payout__client small {
+  margin-top: 2px;
+  color: #6b7280;
+  font-size: 0.72rem;
+}
+
 .cash-payout__amount {
+  width: 82px;
   text-align: right;
   white-space: nowrap;
   color: #1f2937;
@@ -585,8 +603,8 @@
 
 .cash-payout__btn {
   width: 100%;
-  min-height: 38px;
-  border-radius: 10px;
+  min-height: 44px;
+  border-radius: 8px;
   border: none;
   background: #0d6b5c;
   color: #fff;
@@ -620,10 +638,6 @@
   display: grid;
   gap: 10px;
   margin: 0;
-  padding: 14px;
-  border: 1px solid var(--color-border, #ded8cc);
-  border-radius: 8px;
-  background: var(--color-surface-alt, #f7f7f4);
 }
 
 .cash-duty-commission__label {
@@ -645,6 +659,7 @@
   width: 100%;
   border: 0;
   border-radius: 8px;
+  min-height: 44px;
   padding: 12px 14px;
   background: var(--color-text, #1f2933);
   color: #fff;
