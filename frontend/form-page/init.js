@@ -140,7 +140,6 @@
     setInterval(page.updateTime, 60000);
 
     if (page.btnAddDoc) page.btnAddDoc.addEventListener('click', page.addSelectedDocument);
-    if (page.btnStateDutyQr) page.btnStateDutyQr.addEventListener('click', page.toggleStateDutyQr);
     if (page.btnAcceptCash) page.btnAcceptCash.addEventListener('click', page.acceptCash);
     if (page.btnPrint) page.btnPrint.addEventListener('click', page.doPrint);
     page.loadFormHistory();
