@@ -12,8 +12,9 @@
     kpp: '344401001',
     kbk: '18810807141011000110',
     oktmo: '18520000',
-    budgetPersonalAccount: '04291356650',
-    docIdx: '0'
+    docIdx: '0',
+    uin: '0',
+    techCode: '03'
   };
 
   function cleanField(value) {
@@ -56,9 +57,10 @@
       ['CorrespAcc', RECIPIENT.correspAcc],
       ['PayeeINN', RECIPIENT.inn],
       ['KPP', RECIPIENT.kpp],
+      ['TechCode', RECIPIENT.techCode],
       ['CBC', RECIPIENT.kbk],
       ['OKTMO', RECIPIENT.oktmo],
-      ['PersonalAccount', RECIPIENT.budgetPersonalAccount],
+      ['UIN', RECIPIENT.uin],
       ['DocIdx', RECIPIENT.docIdx],
       ['LastName', fio.lastName],
       ['FirstName', fio.firstName],
@@ -71,7 +73,6 @@
     if (passport.length === 10) {
       fields.push(['PayerIdType', '01']);
       fields.push(['PayerIdNum', passport]);
-      fields.push(['PersAcc', '101000000000' + passport]);
     }
 
     return {

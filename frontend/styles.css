@@ -2429,8 +2429,6 @@ body {
   position: sticky;
   top: var(--space-5);
   align-self: start;
-  max-height: calc(100vh - 32px);
-  overflow: auto;
   padding-bottom: var(--space-1);
 }
 
