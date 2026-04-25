@@ -1258,15 +1258,6 @@ body {
   font-weight: 700;
 }
 
-.preview {
-  background: var(--color-surface-alt);
-  border-radius: var(--radius-sm);
-  padding: var(--space-4);
-  font-size: var(--text-caption);
-}
-.preview__line { margin: var(--space-2) 0; }
-.preview__line strong { color: var(--color-text-muted); font-weight: 500; margin-right: var(--space-2); }
-
 /* -------------------------------------------------------------------------- */
 /* 11. Form history (app.js)                                                  */
 /* -------------------------------------------------------------------------- */
@@ -2370,8 +2361,7 @@ body {
   padding-bottom: var(--space-1);
 }
 
-.card--summary,
-.card--preview {
+.card--summary {
   padding: var(--space-5);
   border-radius: 18px;
 }
@@ -2380,8 +2370,7 @@ body {
   border-color: rgba(17, 106, 91, 0.28);
 }
 
-.card--summary .card__title,
-.card--preview .card__title {
+.card--summary .card__title {
   font-family: var(--font-sans);
   font-size: 1rem;
   padding-bottom: var(--space-2);
@@ -2408,25 +2397,6 @@ body {
 
 .actions--stacked .btn {
   width: 100%;
-}
-
-.preview {
-  max-height: 38vh;
-  overflow: auto;
-  background: transparent;
-  padding: 0;
-}
-
-.preview__line {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: var(--space-2);
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid rgba(221, 216, 206, 0.7);
-}
-
-.preview__line:last-child {
-  border-bottom: 0;
 }
 
 .form-section {
