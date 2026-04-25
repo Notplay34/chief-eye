@@ -281,6 +281,7 @@ async def accept_order_payment(db: AsyncSession, order: Order, user: UserInfo) -
     order.status = OrderStatus.PAID
     db.add(order)
     await db.flush()
+    await _sync_plate_payout_for_paid_order(db, order, user)
 
     amounts = order_cash_row_amounts(order)
     db.add(
@@ -364,6 +365,7 @@ async def record_plate_extra_payment(db: AsyncSession, order: Order, amount: Dec
         )
     )
     await db.flush()
+    await _sync_plate_payout_for_paid_order(db, order, user)
     await write_audit_log(
         db,
         user=user,
@@ -459,9 +461,8 @@ async def build_plate_order_detail(db: AsyncSession, order: Order) -> dict:
     }
 
 
-async def _ensure_plate_payout_for_completed_order(db: AsyncSession, order: Order, user: UserInfo) -> None:
-    existing = await db.execute(select(PlatePayout).where(PlatePayout.order_id == order.id))
-    if existing.scalar_one_or_none() is not None:
+async def _sync_plate_payout_for_paid_order(db: AsyncSession, order: Order, user: UserInfo) -> None:
+    if not order.need_plate or order.status == OrderStatus.AWAITING_PAYMENT:
         return
 
     base_amount = plate_amount_from_order(order)
@@ -479,22 +480,49 @@ async def _ensure_plate_payout_for_completed_order(db: AsyncSession, order: Orde
 
     form_data = order.form_data or {}
     client_name = (form_data.get("client_fio") or form_data.get("client_legal_name") or "").strip() or "—"
-    db.add(
-        PlatePayout(
-            order_id=order.id,
-            client_name=client_name,
-            quantity=plate_quantity_from_order(order),
-            amount=plate_amount,
+    payouts = (
+        await db.execute(
+            select(PlatePayout)
+            .where(PlatePayout.order_id == order.id)
+            .order_by(PlatePayout.created_at, PlatePayout.id)
         )
+    ).scalars().all()
+    existing_total = sum((payout.amount for payout in payouts), Decimal("0"))
+    delta = plate_amount - existing_total
+
+    open_payout = next(
+        (payout for payout in payouts if payout.transferred_at is None and payout.paid_at is None),
+        None,
     )
+    if open_payout is not None:
+        open_payout.client_name = client_name
+        open_payout.quantity = plate_quantity_from_order(order)
+        open_payout.amount += delta
+        db.add(open_payout)
+        event_type = "plate_payout_updated"
+        audit_amount = open_payout.amount
+    elif delta > 0:
+        db.add(
+            PlatePayout(
+                order_id=order.id,
+                client_name=client_name,
+                quantity=plate_quantity_from_order(order),
+                amount=delta,
+            )
+        )
+        event_type = "plate_payout_created"
+        audit_amount = delta
+    else:
+        return
+
     await db.flush()
     await write_audit_log(
         db,
         user=user,
-        event_type="plate_payout_created",
+        event_type=event_type,
         entity_type="order",
         entity_id=order.id,
-        payload={"public_id": order.public_id, "amount": float(plate_amount)},
+        payload={"public_id": order.public_id, "amount": float(audit_amount)},
     )
 
 
@@ -517,12 +545,11 @@ async def update_order_status(db: AsyncSession, order: Order, new_status: OrderS
     if new_status == OrderStatus.PROBLEM and order.need_plate and quantity > 0:
         await release_reservation_for_order(db, order.id)
 
-    if new_status == OrderStatus.COMPLETED and order.need_plate:
-        await _ensure_plate_payout_for_completed_order(db, order, user)
-
     order.status = new_status
     db.add(order)
     await db.flush()
+    if order.need_plate:
+        await _sync_plate_payout_for_paid_order(db, order, user)
     await write_audit_log(
         db,
         user=user,

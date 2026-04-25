@@ -114,7 +114,7 @@
             if (!r.ok) return r.json().then(function (j) { throw new Error(j.detail || 'Ошибка'); });
             loadOrders();
             if (status === 'COMPLETED') {
-              showMessage('Заказ отмечен как выданный. Сумма доступна в кассе документов для выдачи в кассу номеров.', false);
+              showMessage('Заказ отмечен как выданный. Деньги оператору выдаются из промежуточной кассы.', false);
             }
           })
           .catch(function (e) {
