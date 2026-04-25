@@ -164,6 +164,8 @@ def _number_applicant_field(form_data: dict, placeholder: str) -> Optional[str]:
         return str(form_data.get("trustee_fio") or "").strip()
     if placeholder == "Паспорт":
         return _full_passport(form_data, "trustee")
+    if placeholder in {"Адрес", "Телефон", "Номер телефона"}:
+        return ""
     return None
 
 
@@ -342,7 +344,9 @@ def _form_data_to_replace_map(
         if placeholder == "ПТС":
             value = _full_vehicle_doc(form_data, "pts")
         if template_name in _NUMBER_REPRESENTATIVE_TEMPLATES:
-            value = _number_applicant_field(form_data, placeholder) or value
+            number_value = _number_applicant_field(form_data, placeholder)
+            if number_value is not None:
+                value = number_value
         if placeholder == "Сумма ДКП прописью":
             value = _money_words_ru(form_data.get("summa_dkp"))
         if placeholder == "Подпись":

@@ -153,6 +153,8 @@ def test_number_statement_uses_trustee_as_applicant_when_present():
     assert "Иванов Иван Иванович" not in text
     assert "1814 777777, выдан ГУ МВД России по Москве" in text
     assert "Сидоров С.С." in text
+    assert "г. Волгоград, ул. Ленина, д. 10" not in text
+    assert "+79991234567" not in text
 
 
 def test_signature_initials_keep_ogly_kyzy_as_patronymic_suffix():
