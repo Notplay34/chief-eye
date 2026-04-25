@@ -9,6 +9,7 @@ Source of truth для схемы БД теперь `Alembic`.
 - Ревизии: [alembic/versions](/Users/NotPlay/Documents/dev/pavilion/alembic/versions)
 - Baseline-ревизия: [alembic/versions/20260423_01_baseline_internal_safe.py](/Users/NotPlay/Documents/dev/pavilion/alembic/versions/20260423_01_baseline_internal_safe.py)
 - Текущая ревизия кассовых дней: [alembic/versions/20260424_01_cash_day_reconciliations.py](/Users/NotPlay/Documents/dev/pavilion/alembic/versions/20260424_01_cash_day_reconciliations.py)
+- Промежуточная касса денег за номера: [alembic/versions/20260425_01_plate_payout_intermediate.py](/Users/NotPlay/Documents/dev/pavilion/alembic/versions/20260425_01_plate_payout_intermediate.py)
 
 ## Текущий контракт
 

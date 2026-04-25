@@ -14,13 +14,15 @@
     if (node) node.style.display = 'block';
   }
 
+  if (['ROLE_OPERATOR', 'ROLE_MANAGER', 'ROLE_ADMIN'].indexOf(user.role) >= 0) {
+    show('linkDocsForm');
+    show('linkCash');
+    show('linkPlateTransfer');
+  }
   if (['ROLE_PLATE_OPERATOR', 'ROLE_MANAGER', 'ROLE_ADMIN'].indexOf(user.role) >= 0) {
     show('linkPlate');
     show('linkPlateCash');
     show('linkWarehouse');
-  }
-  if (['ROLE_OPERATOR', 'ROLE_PLATE_OPERATOR', 'ROLE_MANAGER', 'ROLE_ADMIN'].indexOf(user.role) >= 0) {
-    show('linkCash');
   }
   if (user.role === 'ROLE_ADMIN') {
     show('linkAnalyticsDocs');
