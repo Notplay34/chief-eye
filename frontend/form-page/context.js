@@ -106,6 +106,11 @@
     stateDutyBaseHint: el('stateDutyBaseHint'),
     stateDutyCashHint: el('stateDutyCashHint'),
     stateDutyCommissionHint: el('stateDutyCommissionHint'),
+    btnStateDutyQr: el('btnStateDutyQr'),
+    stateDutyQrPanel: el('stateDutyQrPanel'),
+    stateDutyQrCode: el('stateDutyQrCode'),
+    stateDutyQrAmount: el('stateDutyQrAmount'),
+    stateDutyQrPurpose: el('stateDutyQrPurpose'),
     preview: {
       previewFio: el('previewFio'),
       previewPassport: el('previewPassport'),
