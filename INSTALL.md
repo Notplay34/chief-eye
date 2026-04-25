@@ -22,12 +22,14 @@ cp .env.example .env
 ```env
 APP_ENV=development
 DATABASE_URL=postgresql+asyncpg://eye_user:eye_pass@localhost:5432/eye_w
-JWT_SECRET=local_dev_secret_change_me
+JWT_SECRET=
 CORS_ORIGINS=http://localhost:8080,http://127.0.0.1:8080
 SUPERUSER_LOGIN=admin
 SUPERUSER_PASSWORD=admin1234
 SUPERUSER_NAME=Администратор
 ```
+
+Это пример для локального запуска. Реальные production-секреты нельзя коммитить в репозиторий.
 
 ## 3. Backend
 
@@ -76,4 +78,4 @@ node --check frontend/*.js frontend/form-page/*.js
 
 ## 7. Если нужен сервер
 
-Для nginx, systemd и пост-деплойной проверки использовать [DEPLOYMENT.md](/Users/NotPlay/Documents/dev/pavilion/DEPLOYMENT.md).
+Для nginx, systemd и пост-деплойной проверки использовать [DEPLOYMENT.md](DEPLOYMENT.md).

@@ -35,6 +35,15 @@ coverage/
 *.log
 backups/
 *.dump
+*.sqlite
+*.sqlite3
+*.db
+tmp/
+temp/
 
 # Frontend package artifacts
 node_modules/
+
+# Generated local documents
+generated/
+downloads/

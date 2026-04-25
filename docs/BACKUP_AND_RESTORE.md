@@ -14,7 +14,7 @@ bash deploy/backup_db.sh
 ```bash
 dropdb eye_w
 createdb -O eye_user eye_w
-pg_restore --clean --if-exists --no-owner -d postgresql://eye_user:eye_pass@localhost:5432/eye_w /opt/eye_w/backups/eye_w_YYYYMMDD_HHMMSS.dump
+pg_restore --clean --if-exists --no-owner -d postgresql://eye_user:your_password@localhost:5432/eye_w /opt/eye_w/backups/eye_w_YYYYMMDD_HHMMSS.dump
 systemctl restart eye_w
 ```
 

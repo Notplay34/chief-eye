@@ -137,7 +137,7 @@ bash deploy/check_stack.sh
 - `/analytics/dashboard` через nginx
 - ключевые статические страницы
 
-Подробный чеклист: [docs/SMOKE_TEST.md](/Users/NotPlay/Documents/dev/pavilion/docs/SMOKE_TEST.md)
+Подробный чеклист: [docs/SMOKE_TEST.md](docs/SMOKE_TEST.md)
 
 ## 6. Бэкап и восстановление
 
@@ -146,7 +146,7 @@ cd /opt/eye_w
 bash deploy/backup_db.sh
 ```
 
-Runbook: [docs/BACKUP_AND_RESTORE.md](/Users/NotPlay/Documents/dev/pavilion/docs/BACKUP_AND_RESTORE.md)
+Runbook: [docs/BACKUP_AND_RESTORE.md](docs/BACKUP_AND_RESTORE.md)
 
 ## 7. Обновление
 
