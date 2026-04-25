@@ -141,7 +141,12 @@
     if (inputs.dkpSummary) {
       inputs.dkpSummary.readOnly = !!pullDkp;
       inputs.dkpSummary.classList.toggle('field__input--readonly', !!pullDkp);
-      if (pullDkp) inputs.dkpSummary.value = dkpStr;
+      if (pullDkp) {
+        inputs.dkpSummary.value = dkpStr;
+        inputs.dkpSummary.dataset.autoDkp = '1';
+      } else {
+        delete inputs.dkpSummary.dataset.autoDkp;
+      }
     }
     if (preview.previewDkp) preview.previewDkp.textContent = pullDkp ? dkpStr : (inputs.dkpSummary && inputs.dkpSummary.value.trim()) || '—';
 
@@ -254,7 +259,24 @@
       page.inputs.hasSeller.addEventListener('change', function () {
         var enabled = page.inputs.hasSeller.checked;
         sellerBody.classList.toggle('form-section__body--closed', !enabled);
-        if (page.inputs.dkpDate) page.inputs.dkpDate.value = enabled ? page.todayRu() : '';
+        if (!enabled) {
+          var dkpParts = [];
+          if (page.inputs.dkpDate && page.inputs.dkpDate.value.trim()) dkpParts.push(page.inputs.dkpDate.value.trim());
+          if (page.inputs.summaDkp && page.num(page.inputs.summaDkp.value) > 0) dkpParts.push(page.formatMoney(page.num(page.inputs.summaDkp.value)));
+          if (page.inputs.dkpNumber && page.inputs.dkpNumber.value.trim()) dkpParts.push('№ ' + page.inputs.dkpNumber.value.trim());
+          var previousAutoDkp = dkpParts.join(', ');
+          if (page.inputs.dkpDate) page.inputs.dkpDate.value = '';
+          if (page.inputs.summaDkp) page.inputs.summaDkp.value = '0';
+          if (page.inputs.dkpNumber) page.inputs.dkpNumber.value = '';
+          if (
+            page.inputs.dkpSummary &&
+            (page.inputs.dkpSummary.dataset.autoDkp === '1' || page.inputs.dkpSummary.value === previousAutoDkp)
+          ) {
+            page.inputs.dkpSummary.value = '';
+          }
+        } else if (page.inputs.dkpDate) {
+          page.inputs.dkpDate.value = page.todayRu();
+        }
         page.syncFromMainForm();
       });
     }
