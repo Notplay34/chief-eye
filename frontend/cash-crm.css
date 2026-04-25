@@ -9,9 +9,9 @@
 }
 
 .cash-crm {
-  max-width: 1440px;
+  max-width: 1360px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 20px;
 }
 
 /* ----- Header card ----- */
@@ -77,7 +77,7 @@
 /* ----- Main: table + total ----- */
 .cash-crm__main {
   display: flex;
-  gap: 24px;
+  gap: 16px;
   align-items: flex-start;
 }
 
@@ -207,19 +207,20 @@
 }
 
 .cash-crm__table-wrap {
-  overflow-x: auto;
+  overflow-x: hidden;
   overflow-y: auto;
   max-height: calc(100vh - 280px);
 }
 
 /* ----- Grid: фиксированная структура колонок ----- */
 .cash-crm__grid {
-  min-width: 800px;
+  width: 100%;
+  min-width: 0;
 }
 
 .cash-crm__grid-header {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1.2fr 60px;
+  grid-template-columns: minmax(150px, 1.45fr) repeat(5, minmax(76px, 0.72fr)) minmax(90px, 0.8fr) 44px;
   position: sticky;
   top: 0;
   z-index: 2;
@@ -228,8 +229,8 @@
 }
 
 .cash-crm__grid-header .cash-crm__grid-cell {
-  padding: 14px 16px;
-  font-size: 0.6875rem;
+  padding: 12px 8px;
+  font-size: 0.625rem;
   font-weight: 600;
   color: #6b7280;
   text-transform: uppercase;
@@ -238,8 +239,8 @@
 
 .cash-crm__grid-body {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1.2fr 60px;
-  grid-auto-rows: 56px;
+  grid-template-columns: minmax(150px, 1.45fr) repeat(5, minmax(76px, 0.72fr)) minmax(90px, 0.8fr) 44px;
+  grid-auto-rows: 52px;
 }
 
 .cash-crm__grid-row {
@@ -249,7 +250,7 @@
 .cash-crm__grid-row .cash-crm__grid-cell {
   display: flex;
   align-items: center;
-  padding: 0 16px;
+  padding: 0 8px;
   border-bottom: 1px solid #eef2f7;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
@@ -267,11 +268,12 @@
 .cash-crm__grid-cell--num {
   justify-content: flex-end;
   text-align: right;
+  min-width: 0;
 }
 
 .cash-crm__grid-cell--del {
   justify-content: center;
-  padding: 0 8px;
+  padding: 0 4px;
 }
 
 /* ----- Табличные числа: сумма в одну строку ----- */
@@ -294,11 +296,11 @@
 .cash-crm__input {
   width: 100%;
   min-width: 0;
-  padding: 8px 10px;
+  padding: 7px 8px;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
   background: #fff;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-family: inherit;
   color: #111827;
   font-variant-numeric: tabular-nums;
@@ -320,6 +322,8 @@
 
 .cash-crm__input--num {
   text-align: right;
+  padding-left: 4px;
+  padding-right: 4px;
 }
 
 .cash-crm__input--num::-webkit-outer-spin-button,
@@ -359,8 +363,8 @@
 
 /* Редактируемое поле Итого по строке (в т.ч. минус) */
 .cash-crm__input--total {
-  width: 6em;
-  min-width: 4em;
+  width: 5.4em;
+  min-width: 0;
   text-align: right;
   border: none;
   background: transparent;
@@ -383,8 +387,8 @@
 
 /* ----- Delete button ----- */
 .cash-crm__btn-del {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   border: none;
   border-radius: 10px;
@@ -479,7 +483,7 @@
 /* ----- ИТОГО В КАССЕ — KPI-блок ----- */
 .cash-crm__total-card {
   flex-shrink: 0;
-  width: 260px;
+  width: 238px;
   background: #f8fafc;
   border-radius: 16px;
   padding: 24px;
@@ -504,7 +508,7 @@
 }
 
 .cash-crm__total-value {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
   color: #111827;
   letter-spacing: -0.02em;
@@ -512,6 +516,55 @@
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
   white-space: nowrap;
+}
+
+@media (max-width: 1180px) {
+  .cash-crm {
+    padding: 16px;
+  }
+
+  .cash-crm__main {
+    gap: 12px;
+  }
+
+  .cash-crm__grid-header,
+  .cash-crm__grid-body {
+    grid-template-columns: minmax(132px, 1.25fr) repeat(5, minmax(66px, 0.64fr)) minmax(78px, 0.72fr) 36px;
+  }
+
+  .cash-crm__grid-header .cash-crm__grid-cell {
+    padding: 10px 5px;
+    font-size: 0.5625rem;
+    letter-spacing: 0.5px;
+  }
+
+  .cash-crm__grid-row .cash-crm__grid-cell {
+    padding: 0 5px;
+  }
+
+  .cash-crm__input {
+    padding: 6px 5px;
+    font-size: 0.75rem;
+  }
+
+  .cash-crm__input--total {
+    width: 4.8em;
+  }
+
+  .cash-crm__btn-del {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+  }
+
+  .cash-crm__total-card {
+    width: 220px;
+    padding: 18px;
+  }
+
+  .cash-crm__total-value {
+    font-size: 24px;
+  }
 }
 
 .cash-duty-commission {
