@@ -68,23 +68,26 @@
           </button>
           <p class="cash-duty-commission__msg" id="stateDutyCommissionMsg"></p>
         </div>
-        <button type="button" class="cash-payout__chip" id="btnPayoutToggle">
-          Номера к переносу <span id="payoutTotalShort">0 ₽</span>
-        </button>
-        <div class="cash-payout__panel" id="cashPayoutPanel" hidden>
-          <div class="cash-payout__panel-header">
-            <span class="cash-payout__label">К переносу в промежуточную кассу</span>
-            <span class="cash-payout__total" id="payoutTotal">0 ₽</span>
+        <div class="cash-payout-card">
+          <div class="cash-payout__chip" id="btnPayoutToggle">
+            <span>Номера к переносу</span>
+            <strong id="payoutTotalShort">0 ₽</strong>
           </div>
-          <div class="cash-payout__panel-body">
-            <table class="cash-payout__table">
-              <tbody id="payoutBody">
-                <tr><td colspan="2" class="cash-payout__empty">Загрузка…</td></tr>
-              </tbody>
-            </table>
+          <div class="cash-payout__panel" id="cashPayoutPanel">
+            <div class="cash-payout__panel-header">
+              <span class="cash-payout__label">К переносу в промежуточную кассу</span>
+              <span class="cash-payout__total" id="payoutTotal">0 ₽</span>
+            </div>
+            <div class="cash-payout__panel-body">
+              <table class="cash-payout__table">
+                <tbody id="payoutBody">
+                  <tr><td colspan="3" class="cash-payout__empty">Загрузка…</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <button type="button" class="cash-payout__btn" id="btnPayoutPay">Перенести в промежуточную кассу</button>
+            <p class="cash-payout__msg" id="payoutMsg"></p>
           </div>
-          <button type="button" class="cash-payout__btn" id="btnPayoutPay">Перенести в промежуточную кассу</button>
-          <p class="cash-payout__msg" id="payoutMsg"></p>
         </div>
       </aside>
     </div>

@@ -82,114 +82,6 @@
   align-items: stretch;
 }
 
-/* Чип под «Итого в кассе» + компактная панель */
-.cash-payout__chip {
-  margin-top: 8px;
-  padding: 6px 10px;
-  width: 100%;
-  border-radius: 999px;
-  border: none;
-  background: #f3f4ff;
-  color: #111827;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-family: inherit;
-}
-
-.cash-payout__chip:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.cash-payout__panel {
-  margin-top: 8px;
-  padding: 8px 10px;
-  border-radius: 12px;
-  background: #ffffff;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
-}
-
-.cash-payout__panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.cash-payout__label {
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.cash-payout__total {
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.cash-payout__panel-body {
-  max-height: 140px;
-  overflow-y: auto;
-  margin-bottom: 6px;
-}
-
-.cash-payout__table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.8125rem;
-}
-
-.cash-payout__table td {
-  padding: 3px 0;
-}
-
-.cash-payout__amount {
-  text-align: right;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
-}
-
-.cash-payout__empty {
-  text-align: left;
-  padding: 4px 0;
-  font-size: 0.8125rem;
-  color: #6b7280;
-}
-
-.cash-payout__btn {
-  width: 100%;
-  margin-top: 4px;
-  height: 32px;
-  border-radius: 999px;
-  border: none;
-  background: #0d6b5c;
-  color: #fff;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.cash-payout__btn:hover {
-  background: #0a5549;
-}
-
-.cash-payout__msg {
-  margin: 4px 0 0 0;
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.cash-payout__msg--err {
-  color: #b91c1c;
-}
-
 /* ----- Table card ----- */
 .cash-crm__table-card {
   flex: 1;
@@ -535,16 +427,16 @@
   grid-column: 2;
 }
 
-.cash-payout__chip {
+.cash-payout-card {
   grid-column: 3;
-  grid-row: 1;
-  align-self: start;
-  margin-top: 0;
-}
-
-.cash-payout__panel {
-  grid-column: 3;
-  grid-row: 2;
+  min-height: 136px;
+  padding: 14px;
+  border: 1px solid #d5ebe7;
+  border-radius: 16px;
+  background: #f7fbfa;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
+  display: grid;
+  gap: 10px;
 }
 
 @media (max-width: 1180px) {
@@ -599,10 +491,129 @@
 
   .cash-crm__total-summary,
   .cash-duty-commission,
-  .cash-payout__chip,
-  .cash-payout__panel {
+  .cash-payout-card {
     grid-column: 1;
   }
+}
+
+.cash-payout__chip {
+  width: 100%;
+  color: #2f766c;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cash-payout__chip strong {
+  color: #2f766c;
+  font-size: 1.35rem;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.cash-payout__panel {
+  display: grid;
+  gap: 8px;
+}
+
+.cash-payout__panel-header {
+  display: none;
+}
+
+.cash-payout__label {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.cash-payout__total {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.cash-payout__panel-body {
+  min-height: 58px;
+  max-height: 92px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.cash-payout__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.cash-payout__table td {
+  padding: 4px 0;
+  vertical-align: top;
+  border-top: 1px solid rgba(47, 118, 108, 0.12);
+}
+
+.cash-payout__table tr:first-child td {
+  border-top: 0;
+}
+
+.cash-payout__table td:first-child {
+  width: 76px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.cash-payout__amount {
+  text-align: right;
+  white-space: nowrap;
+  color: #1f2937;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.cash-payout__empty {
+  text-align: left;
+  padding: 6px 0;
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.cash-payout__btn {
+  width: 100%;
+  min-height: 38px;
+  border-radius: 10px;
+  border: none;
+  background: #0d6b5c;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.cash-payout__btn:hover {
+  background: #0a5549;
+}
+
+.cash-payout__btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.cash-payout__msg {
+  min-height: 18px;
+  margin: 0;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.cash-payout__msg--err {
+  color: #b91c1c;
 }
 
 .cash-duty-commission {

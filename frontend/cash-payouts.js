@@ -64,11 +64,8 @@
     totalEl.textContent = formatted;
     totalShortEl.textContent = formatted;
 
-    // Если нечего выдавать — делаем чип бледным и панель по умолчанию закрытой
-    toggleEl.disabled = !rows.length;
-    if (!rows.length && !panelEl.hasAttribute('hidden')) {
-      panelEl.setAttribute('hidden', 'hidden');
-    }
+    if (panelEl.hasAttribute('hidden')) panelEl.removeAttribute('hidden');
+    btnEl.disabled = !rows.length;
   }
 
   function load() {
@@ -116,14 +113,5 @@
   }
 
   btnEl.addEventListener('click', pay);
-
-  toggleEl.addEventListener('click', function () {
-    var isHidden = panelEl.hasAttribute('hidden');
-    if (isHidden) {
-      panelEl.removeAttribute('hidden');
-    } else {
-      panelEl.setAttribute('hidden', 'hidden');
-    }
-  });
   load();
 })();
