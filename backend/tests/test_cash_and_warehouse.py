@@ -319,6 +319,42 @@ def test_manual_plate_cash_row_quantity_adjusts_stock_and_amount(client: TestCli
     assert client.get("/warehouse/plate-stock", headers=auth_headers).json()["quantity"] == 5
 
 
+def test_warehouse_monthly_history_tracks_incoming_made_and_defects(client: TestClient, auth_headers: dict[str, str]):
+    current_month = date.today().strftime("%Y-%m")
+
+    assert client.post("/warehouse/plate-stock/add", json={"amount": 10}, headers=auth_headers).status_code == 200
+    sale_response = client.post(
+        "/cash/plate-rows",
+        json={"client_name": "История", "quantity": 2},
+        headers=auth_headers,
+    )
+    assert sale_response.status_code == 200, sale_response.text
+    assert client.post("/warehouse/plate-stock/defect", headers=auth_headers).status_code == 200
+
+    monthly_response = client.get(
+        "/warehouse/plate-stock/monthly",
+        params={"month_from": current_month, "month_to": current_month},
+        headers=auth_headers,
+    )
+    assert monthly_response.status_code == 200, monthly_response.text
+    row = monthly_response.json()["rows"][0]
+    assert row["month"] == current_month
+    assert row["opening_balance"] == 0
+    assert row["incoming"] == 10
+    assert row["made"] == 2
+    assert row["defects"] == 1
+    assert row["closing_balance"] == 7
+
+    movements_response = client.get(
+        "/warehouse/plate-stock/movements",
+        params={"month_from": current_month, "month_to": current_month},
+        headers=auth_headers,
+    )
+    assert movements_response.status_code == 200, movements_response.text
+    movement_types = [row["movement_type"] for row in movements_response.json()["rows"]]
+    assert {"STOCK_IN", "PLATE_CASH_SALE", "DEFECT"} <= set(movement_types)
+
+
 def test_cash_rows_can_be_filtered_by_business_date(client: TestClient, auth_headers: dict[str, str]):
     create_paid_plate_order(client, auth_headers)
 

@@ -201,6 +201,18 @@ async def ensure_schema_compatibility(engine: AsyncEngine) -> None:
             );
         """))
         await conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS plate_stock_movements (
+                id SERIAL PRIMARY KEY,
+                created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+                movement_type VARCHAR(32) NOT NULL,
+                quantity_delta INTEGER NOT NULL,
+                balance_after INTEGER NOT NULL,
+                source_type VARCHAR(64),
+                source_id INTEGER,
+                note VARCHAR(255)
+            );
+        """))
+        await conn.execute(text("""
             CREATE TABLE IF NOT EXISTS plate_reservations (
                 id SERIAL PRIMARY KEY,
                 order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,

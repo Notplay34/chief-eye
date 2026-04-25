@@ -34,6 +34,116 @@
     });
   }
 
+  function monthKey(date) {
+    var y = date.getFullYear();
+    var m = date.getMonth() + 1;
+    return y + '-' + (m < 10 ? '0' : '') + m;
+  }
+
+  function addMonths(date, amount) {
+    return new Date(date.getFullYear(), date.getMonth() + amount, 1);
+  }
+
+  function formatMonth(value) {
+    if (!value) return '';
+    var parts = value.split('-');
+    if (parts.length !== 2) return value;
+    return parts[1] + '.' + parts[0];
+  }
+
+  function formatDateTime(value) {
+    if (!value) return '';
+    var d = new Date(value);
+    if (isNaN(d.getTime())) return value;
+    return d.toLocaleString('ru-RU');
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function movementLabel(type) {
+    var labels = {
+      STOCK_IN: 'Приход',
+      ORDER_COMPLETED: 'Изготовили по заказу',
+      PLATE_CASH_SALE: 'Продажа в кассе номеров',
+      PLATE_CASH_RETURN: 'Возврат на склад',
+      DEFECT: 'Брак',
+      ORDER_ROLLBACK: 'Откат заказа'
+    };
+    return labels[type] || type || '';
+  }
+
+  function historyQuery() {
+    var from = document.getElementById('historyFrom');
+    var to = document.getElementById('historyTo');
+    var params = [];
+    if (from && from.value) params.push('month_from=' + encodeURIComponent(from.value));
+    if (to && to.value) params.push('month_to=' + encodeURIComponent(to.value));
+    return params.length ? '?' + params.join('&') : '';
+  }
+
+  function loadHistory() {
+    var query = historyQuery();
+    fetchApi(api + '/warehouse/plate-stock/monthly' + query)
+      .then(function (r) { return parseJsonResponse(r, ''); })
+      .then(function (data) {
+        var body = document.getElementById('warehouseMonthlyBody');
+        if (!body) return;
+        var rows = data.rows || [];
+        if (!rows.length) {
+          body.innerHTML = '<tr><td colspan="6" class="warehouse-empty">Нет данных за выбранный период.</td></tr>';
+          return;
+        }
+        body.innerHTML = rows.map(function (row) {
+          return '<tr>' +
+            '<td>' + formatMonth(row.month) + '</td>' +
+            '<td>' + row.opening_balance + '</td>' +
+            '<td>' + row.incoming + '</td>' +
+            '<td>' + row.made + '</td>' +
+            '<td>' + row.defects + '</td>' +
+            '<td>' + row.closing_balance + '</td>' +
+            '</tr>';
+        }).join('');
+      })
+      .catch(function (e) {
+        var body = document.getElementById('warehouseMonthlyBody');
+        if (body) body.innerHTML = '<tr><td colspan="6" class="warehouse-empty">Ошибка: ' + (e.message || '') + '</td></tr>';
+      });
+
+    fetchApi(api + '/warehouse/plate-stock/movements' + query)
+      .then(function (r) { return parseJsonResponse(r, ''); })
+      .then(function (data) {
+        var body = document.getElementById('warehouseMovementsBody');
+        if (!body) return;
+        var rows = data.rows || [];
+        if (!rows.length) {
+          body.innerHTML = '<tr><td colspan="5" class="warehouse-empty">Движений за выбранный период нет.</td></tr>';
+          return;
+        }
+        body.innerHTML = rows.map(function (row) {
+          var delta = Number(row.quantity_delta || 0);
+          var deltaText = (delta > 0 ? '+' : '') + delta;
+          return '<tr>' +
+            '<td>' + formatDateTime(row.created_at) + '</td>' +
+            '<td>' + escapeHtml(movementLabel(row.movement_type)) + '</td>' +
+            '<td class="' + (delta < 0 ? 'warehouse-delta-neg' : 'warehouse-delta-pos') + '">' + deltaText + '</td>' +
+            '<td>' + row.balance_after + '</td>' +
+            '<td>' + escapeHtml(row.note || '') + '</td>' +
+            '</tr>';
+        }).join('');
+      })
+      .catch(function (e) {
+        var body = document.getElementById('warehouseMovementsBody');
+        if (body) body.innerHTML = '<tr><td colspan="5" class="warehouse-empty">Ошибка: ' + (e.message || '') + '</td></tr>';
+      });
+  }
+
   function load() {
     var hint = ' Проверьте nginx: маршрут /warehouse должен проксироваться на backend.';
     fetchApi(api + '/warehouse/plate-stock')
@@ -111,6 +221,7 @@
       .then(function () {
         msg('Добавлено ' + amount + ' шт.');
         load();
+        loadHistory();
         setTimeout(function () { msg(''); }, 3000);
       })
       .catch(function (e) {
@@ -125,6 +236,7 @@
       .then(function () {
         msg('Списано 1 шт (брак).');
         load();
+        loadHistory();
         setTimeout(function () { msg(''); }, 3000);
       })
       .catch(function (e) {
@@ -132,5 +244,14 @@
       });
   });
 
+  var now = new Date();
+  var fromInput = document.getElementById('historyFrom');
+  var toInput = document.getElementById('historyTo');
+  if (fromInput) fromInput.value = monthKey(addMonths(now, -11));
+  if (toInput) toInput.value = monthKey(now);
+  var historyBtn = document.getElementById('btnHistoryApply');
+  if (historyBtn) historyBtn.addEventListener('click', loadHistory);
+
   load();
+  loadHistory();
 })();

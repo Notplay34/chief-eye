@@ -36,9 +36,11 @@ from app.services.cash_service import (
     withdraw_state_duty_commissions as withdraw_state_duty_commissions_service,
 )
 from app.services.warehouse_service import (
+    ORDER_ROLLBACK,
     adjust_stock_for_plate_cash_row,
     get_or_create_stock,
     plate_quantity_from_order,
+    record_stock_movement,
     release_reservation_for_order,
 )
 
@@ -277,8 +279,18 @@ async def _rollback_order_payment_for_cash_row(db: AsyncSession, row: CashRow) -
                 await release_reservation_for_order(db, order.id)
             elif order.status == OrderStatus.COMPLETED and order.need_plate:
                 stock = await get_or_create_stock(db)
-                stock.quantity += plate_quantity_from_order(order)
+                quantity = plate_quantity_from_order(order)
+                stock.quantity += quantity
                 db.add(stock)
+                await record_stock_movement(
+                    db,
+                    movement_type=ORDER_ROLLBACK,
+                    quantity_delta=quantity,
+                    balance_after=stock.quantity,
+                    source_type="order",
+                    source_id=order.id,
+                    note="Откат оплаты заказа",
+                )
             order.status = OrderStatus.AWAITING_PAYMENT
             db.add(order)
     elif row.source_type == ORDER_PLATE_EXTRA_CASH_ROW:

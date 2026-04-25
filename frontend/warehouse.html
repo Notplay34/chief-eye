@@ -60,6 +60,57 @@
       </div>
     </div>
     </div>
+
+    <div class="warehouse-card warehouse-card--history">
+      <div class="warehouse-history-header">
+        <div>
+          <h2>История по месяцам</h2>
+          <p class="warehouse-stat-label">На начало месяца, приход, изготовлено, брак и остаток на конец.</p>
+        </div>
+        <div class="warehouse-history-filter">
+          <input type="month" id="historyFrom">
+          <input type="month" id="historyTo">
+          <button type="button" class="btn btn--secondary" id="btnHistoryApply">Показать</button>
+        </div>
+      </div>
+      <div class="warehouse-history-table-wrap">
+        <table class="warehouse-history-table">
+          <thead>
+            <tr>
+              <th>Месяц</th>
+              <th>Начало</th>
+              <th>Пришло</th>
+              <th>Сделали</th>
+              <th>Брак</th>
+              <th>Конец</th>
+            </tr>
+          </thead>
+          <tbody id="warehouseMonthlyBody">
+            <tr><td colspan="6" class="warehouse-empty">Загрузка…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="warehouse-card warehouse-card--history">
+      <h2>Журнал движений</h2>
+      <div class="warehouse-history-table-wrap">
+        <table class="warehouse-history-table">
+          <thead>
+            <tr>
+              <th>Дата</th>
+              <th>Операция</th>
+              <th>Изменение</th>
+              <th>Остаток</th>
+              <th>Комментарий</th>
+            </tr>
+          </thead>
+          <tbody id="warehouseMovementsBody">
+            <tr><td colspan="5" class="warehouse-empty">Загрузка…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <script src="auth.js"></script>

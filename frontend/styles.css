@@ -2636,6 +2636,75 @@ body {
   border-color: rgba(185, 28, 28, 0.16);
 }
 
+.warehouse-history-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.warehouse-history-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.warehouse-history-filter input {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+
+.warehouse-history-table-wrap {
+  margin-top: var(--space-4);
+  overflow-x: auto;
+}
+
+.warehouse-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-body);
+}
+
+.warehouse-history-table th,
+.warehouse-history-table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.warehouse-history-table th:first-child,
+.warehouse-history-table td:first-child,
+.warehouse-history-table th:nth-child(2),
+.warehouse-history-table td:nth-child(2):not(.warehouse-delta-neg):not(.warehouse-delta-pos) {
+  text-align: left;
+}
+
+.warehouse-history-table th {
+  background: var(--color-surface-alt);
+  font-weight: 700;
+  font-size: var(--text-caption);
+}
+
+.warehouse-empty {
+  text-align: center !important;
+  color: var(--color-text-muted);
+}
+
+.warehouse-delta-pos {
+  color: var(--color-income);
+  font-weight: 700;
+}
+
+.warehouse-delta-neg {
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
 .admin section,
 .users #listContent {
   overflow-x: auto;

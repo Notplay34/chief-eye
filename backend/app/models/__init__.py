@@ -8,6 +8,7 @@ from app.models.cash_shift import CashShift, ShiftStatus
 from app.models.cash_row import CashRow
 from app.models.plate_cash_row import PlateCashRow
 from app.models.plate_stock import PlateStock
+from app.models.plate_stock_movement import PlateStockMovement
 from app.models.plate_reservation import PlateReservation
 from app.models.plate_defect import PlateDefect
 from app.models.form_history import FormHistory
@@ -32,6 +33,7 @@ __all__ = [
     "Plate",
     "PlateStatus",
     "PlateStock",
+    "PlateStockMovement",
     "PlateReservation",
     "PlateDefect",
     "FormHistory",
