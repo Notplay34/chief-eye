@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,6 +36,7 @@ from app.services.cash_service import (
     withdraw_state_duty_commissions as withdraw_state_duty_commissions_service,
 )
 from app.services.warehouse_service import (
+    adjust_stock_for_plate_cash_row,
     get_or_create_stock,
     plate_quantity_from_order,
     release_reservation_for_order,
@@ -43,6 +44,7 @@ from app.services.warehouse_service import (
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/cash", tags=["cash"])
+PLATE_CASH_UNIT_PRICE = Decimal("1500")
 
 
 def _apply_date_filters(query, model, business_date: Optional[date], date_from: Optional[date], date_to: Optional[date]):
@@ -410,6 +412,7 @@ async def delete_cash_row(
 
 class PlateCashRowCreate(BaseModel):
     client_name: str = ""
+    quantity: int = Field(default=0, ge=0, le=100)
     amount: float = 0
 
 
@@ -484,6 +487,7 @@ async def withdraw_state_duty_commissions(
 
 class PlateCashRowUpdate(BaseModel):
     client_name: Optional[str] = None
+    quantity: Optional[int] = Field(default=None, ge=0, le=100)
     amount: Optional[float] = None
 
 
@@ -492,6 +496,7 @@ def _plate_row_to_dict(row: PlateCashRow) -> dict:
         "id": row.id,
         "created_at": row.created_at.isoformat() if row.created_at else None,
         "client_name": row.client_name or "",
+        "quantity": int(row.quantity or 0),
         "amount": float(row.amount),
         "source_type": row.source_type,
         "source_date": row.source_date.isoformat() if row.source_date else None,
@@ -524,12 +529,18 @@ async def create_plate_cash_row(
     user: UserInfo = Depends(RequirePlateAccess),
 ):
     """Добавить строку в кассу номеров (сумма может быть отрицательной)."""
+    amount = PLATE_CASH_UNIT_PRICE * body.quantity if body.quantity > 0 else Decimal(str(body.amount))
     row = PlateCashRow(
         client_name=(body.client_name or "").strip(),
-        amount=Decimal(str(body.amount)),
+        quantity=body.quantity,
+        amount=amount,
     )
     db.add(row)
-    await db.flush()
+    try:
+        await adjust_stock_for_plate_cash_row(db, body.quantity)
+        await db.flush()
+    except ServiceError as exc:
+        _raise_service_error(exc)
     return _plate_row_to_dict(row)
 
 
@@ -547,8 +558,17 @@ async def update_plate_cash_row(
         raise HTTPException(status_code=404, detail="Строка не найдена")
     if body.client_name is not None:
         row.client_name = body.client_name.strip()
+    if body.quantity is not None:
+        delta = body.quantity - int(row.quantity or 0)
+        try:
+            await adjust_stock_for_plate_cash_row(db, delta)
+        except ServiceError as exc:
+            _raise_service_error(exc)
+        row.quantity = body.quantity
     if body.amount is not None:
         row.amount = Decimal(str(body.amount))
+    if int(row.quantity or 0) > 0:
+        row.amount = PLATE_CASH_UNIT_PRICE * int(row.quantity or 0)
     db.add(row)
     await db.flush()
     return _plate_row_to_dict(row)
@@ -565,6 +585,11 @@ async def delete_plate_cash_row(
     row = r.scalar_one_or_none()
     if not row:
         raise HTTPException(status_code=404, detail="Строка не найдена")
+    if int(row.quantity or 0) > 0:
+        try:
+            await adjust_stock_for_plate_cash_row(db, -int(row.quantity or 0))
+        except ServiceError as exc:
+            _raise_service_error(exc)
     if row.source_type == PLATE_PAYOUT_TRANSFER and row.source_batch:
         payout_id = None
         if ":" in row.source_batch:

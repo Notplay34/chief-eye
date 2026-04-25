@@ -1793,9 +1793,11 @@ body {
 .cash-table .col-name { min-width: 120px; max-width: 220px; width: 18%; }
 .plate-cash-table .col-amount,
 .cash-table .col-num { width: 82px; min-width: 82px; max-width: 100px; text-align: right; }
+.plate-cash-table .col-quantity { width: 64px; min-width: 64px; max-width: 72px; text-align: center; }
 .plate-transfer-table .col-quantity { width: 72px; min-width: 72px; text-align: center; }
 .plate-cash-table .col-amount input,
 .cash-table .col-num input { text-align: right; min-width: 0; width: 100%; }
+.plate-cash-table .col-quantity input { text-align: center; min-width: 0; width: 100%; }
 .plate-cash-table .col-del,
 .cash-table .col-del { width: 32px; padding: var(--space-1); text-align: center; }
 /* Касса (павильон 1): компактный вид, вписывается в общий стиль */

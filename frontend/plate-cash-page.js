@@ -5,6 +5,7 @@
 
   var rows = [];
   var activeDate = todayKey();
+  var PLATE_UNIT_PRICE = 1500;
 
   function msg(text, isErr) {
     var el = document.getElementById('plateCashMsg');
@@ -16,6 +17,11 @@
   function numVal(value) {
     var parsed = parseFloat(String(value).replace(/\s/g, '').replace('₽', '').replace(',', '.'));
     return isNaN(parsed) ? 0 : parsed;
+  }
+
+  function quantityVal(value) {
+    var parsed = parseInt(String(value || '').replace(/\s/g, ''), 10);
+    return isNaN(parsed) || parsed < 0 ? 0 : parsed;
   }
 
   function fmt(value) {
@@ -130,6 +136,42 @@
     return input;
   }
 
+  function makeQuantityInput(row) {
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.setAttribute('inputmode', 'numeric');
+    input.placeholder = '0';
+    input.value = quantityVal(row.quantity) > 0 ? String(quantityVal(row.quantity)) : '';
+    input.dataset.rowId = String(row.id);
+    input.addEventListener('blur', function () {
+      var id = parseInt(this.dataset.rowId, 10);
+      var value = quantityVal(this.value);
+      var previous = rows.find(function (item) { return item.id === id; });
+      if (!previous) return;
+      if (quantityVal(previous.quantity) === value) return;
+
+      var payload = { quantity: value };
+      if (value > 0) payload.amount = value * PLATE_UNIT_PRICE;
+      this.value = value > 0 ? String(value) : '';
+
+      patchRow(id, payload)
+        .then(function (updated) {
+          updateRowInList(id, updated);
+          render();
+          msg(value > 0 ? 'Номера списаны со склада.' : 'Списание номеров отменено.');
+          setTimeout(function () { msg(''); }, 2000);
+        })
+        .catch(function (e) {
+          input.value = quantityVal(previous.quantity) > 0 ? String(quantityVal(previous.quantity)) : '';
+          msg('Ошибка: ' + (e.message || 'не удалось сохранить'), true);
+        });
+    });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') this.blur();
+    });
+    return input;
+  }
+
   function renderRow(row) {
     var tr = document.createElement('tr');
     tr.dataset.rowId = String(row.id);
@@ -138,6 +180,11 @@
     tdName.className = 'col-name';
     tdName.appendChild(makeInput(row, 'client_name', false));
     tr.appendChild(tdName);
+
+    var tdQuantity = document.createElement('td');
+    tdQuantity.className = 'col-quantity';
+    tdQuantity.appendChild(makeQuantityInput(row));
+    tr.appendChild(tdQuantity);
 
     var tdAmount = document.createElement('td');
     tdAmount.className = 'col-amount ' + (numVal(row.amount) < 0 ? 'col-amount--negative' : numVal(row.amount) > 0 ? 'col-amount--positive' : 'col-amount--zero');
@@ -175,7 +222,7 @@
     tbody.innerHTML = '';
     if (!rows.length) {
       var emptyRow = document.createElement('tr');
-      emptyRow.innerHTML = '<td colspan="3" class="plate-cash-msg">Нет строк. Нажмите «Добавить строку». Сумма может быть отрицательной.</td>';
+      emptyRow.innerHTML = '<td colspan="4" class="plate-cash-msg">Нет строк. Нажмите «Добавить строку». Сумма может быть отрицательной.</td>';
       tbody.appendChild(emptyRow);
     } else {
       var lastDay = null;
@@ -185,7 +232,7 @@
           lastDay = currentDay;
           var separator = document.createElement('tr');
           separator.className = 'day-sep';
-          separator.innerHTML = '<td colspan="3">' + dayLabel(currentDay) + '</td>';
+          separator.innerHTML = '<td colspan="4">' + dayLabel(currentDay) + '</td>';
           tbody.appendChild(separator);
         }
         tbody.appendChild(renderRow(row));
@@ -224,7 +271,7 @@
       })
       .catch(function (e) {
         document.getElementById('plateCashBody').innerHTML =
-          '<tr><td colspan="3" class="plate-cash-msg err">Ошибка загрузки: ' + (e.message || '') + '</td></tr>';
+          '<tr><td colspan="4" class="plate-cash-msg err">Ошибка загрузки: ' + (e.message || '') + '</td></tr>';
       });
   }
 
@@ -253,7 +300,7 @@
     fetchApi(api + '/cash/plate-rows', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_name: '', amount: 0 })
+      body: JSON.stringify({ client_name: '', quantity: 0, amount: 0 })
     })
       .then(function (r) {
         if (!r.ok) {

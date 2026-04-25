@@ -275,6 +275,50 @@ def test_paying_plate_payouts_moves_money_between_cash_tables(client: TestClient
     assert open_payouts_after_delete_response.json()["total"] == 1500.0
 
 
+def test_manual_plate_cash_row_quantity_adjusts_stock_and_amount(client: TestClient, auth_headers: dict[str, str]):
+    add_stock_response = client.post("/warehouse/plate-stock/add", json={"amount": 5}, headers=auth_headers)
+    assert add_stock_response.status_code == 200, add_stock_response.text
+
+    create_response = client.post(
+        "/cash/plate-rows",
+        json={"client_name": "Ручная продажа", "quantity": 2, "amount": 1},
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 200, create_response.text
+    row = create_response.json()
+    assert row["quantity"] == 2
+    assert row["amount"] == 3000.0
+    assert client.get("/warehouse/plate-stock", headers=auth_headers).json()["quantity"] == 3
+
+    update_response = client.patch(
+        f"/cash/plate-rows/{row['id']}",
+        json={"quantity": 3},
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 200, update_response.text
+    assert update_response.json()["quantity"] == 3
+    assert update_response.json()["amount"] == 4500.0
+    assert client.get("/warehouse/plate-stock", headers=auth_headers).json()["quantity"] == 2
+
+    failed_update_response = client.patch(
+        f"/cash/plate-rows/{row['id']}",
+        json={"quantity": 6},
+        headers=auth_headers,
+    )
+    assert failed_update_response.status_code == 400, failed_update_response.text
+    assert client.get("/warehouse/plate-stock", headers=auth_headers).json()["quantity"] == 2
+
+    zero_response = client.patch(
+        f"/cash/plate-rows/{row['id']}",
+        json={"quantity": 0, "amount": 777},
+        headers=auth_headers,
+    )
+    assert zero_response.status_code == 200, zero_response.text
+    assert zero_response.json()["quantity"] == 0
+    assert zero_response.json()["amount"] == 777.0
+    assert client.get("/warehouse/plate-stock", headers=auth_headers).json()["quantity"] == 5
+
+
 def test_cash_rows_can_be_filtered_by_business_date(client: TestClient, auth_headers: dict[str, str]):
     create_paid_plate_order(client, auth_headers)
 
