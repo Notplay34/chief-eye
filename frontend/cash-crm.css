@@ -477,6 +477,7 @@
 
 /* ----- ИТОГО В КАССЕ — KPI-блок ----- */
 .cash-crm__total-card {
+  order: -1;
   width: auto;
   background: #f8fafc;
   border-radius: 16px;
@@ -484,10 +485,10 @@
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
   border: 1px solid #eef2f7;
   display: grid;
-  grid-template-columns: minmax(220px, 0.8fr) minmax(280px, 1fr) minmax(260px, 0.9fr);
+  grid-template-columns: minmax(240px, 0.75fr) minmax(280px, 1fr) minmax(280px, 0.9fr);
   column-gap: 18px;
-  row-gap: 8px;
-  align-items: start;
+  row-gap: 10px;
+  align-items: stretch;
 }
 
 @media (min-width: 1025px) {
@@ -497,15 +498,20 @@
 }
 
 .cash-crm__total-label {
+  grid-column: 1;
+  grid-row: 1;
   font-size: 0.6875rem;
   font-weight: 600;
   color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 1px;
-  margin-bottom: 8px;
+  margin: 0;
 }
 
 .cash-crm__total-value {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: start;
   font-size: 30px;
   font-weight: 700;
   color: #111827;
@@ -521,9 +527,16 @@
   grid-row: 1 / span 2;
 }
 
-.cash-payout__chip,
+.cash-payout__chip {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: start;
+  margin-top: 0;
+}
+
 .cash-payout__panel {
   grid-column: 3;
+  grid-row: 2;
 }
 
 @media (max-width: 1180px) {
@@ -562,7 +575,7 @@
   }
 
   .cash-crm__total-card {
-    grid-template-columns: minmax(190px, 0.8fr) minmax(250px, 1fr) minmax(230px, 0.9fr);
+    grid-template-columns: minmax(210px, 0.75fr) minmax(250px, 1fr) minmax(250px, 0.9fr);
     padding: 16px;
   }
 
@@ -580,7 +593,7 @@
 .cash-duty-commission {
   display: grid;
   gap: 10px;
-  margin: 18px 0;
+  margin: 0;
   padding: 14px;
   border: 1px solid var(--color-border, #ded8cc);
   border-radius: 8px;
