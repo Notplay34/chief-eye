@@ -160,6 +160,7 @@
       page.btnAcceptCash.textContent = 'Оплата принята';
       window.lastOrderId = order.id;
       window.lastOrderDocuments = page.state.selectedDocuments.filter(function (item) { return !item.paymentOnly; }).map(function (item) { return item.template; });
+      page.state.loadedFromHistory = false;
       if (typeof page.loadFormHistory === 'function') page.loadFormHistory();
     } catch (e) {
       page.btnAcceptCash.disabled = false;
@@ -233,6 +234,10 @@
     page.setVal(inputs.stateDuty, formData.state_duty != null ? formData.state_duty : '');
     page.setVal(inputs.needPlate, formData.need_plate);
     page.setVal(inputs.plateQuantity, formData.plate_quantity != null ? formData.plate_quantity : 1);
+    window.lastOrderId = null;
+    window.lastOrderDocuments = null;
+    page.state.loadedFromHistory = true;
+    if (page.orderIdDisplay) page.orderIdDisplay.textContent = 'Данные из истории';
     page.state.selectedDocuments = (formData.documents || []).map(function (item) {
       return { template: item.template || '', label: item.label || item.template || '', price: page.num(item.price) };
     });
@@ -276,11 +281,37 @@
     }
   };
 
-  page.doPrint = function () {
+  page.createDraftOrderForPrint = async function () {
+    var resOrder = await page.fetchApi(page.apiBaseUrl + '/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(page.buildOrderPayload())
+    });
+    if (!resOrder.ok) await page.extractError(resOrder);
+    var order = await resOrder.json();
+    window.lastOrderId = order.id;
+    window.lastOrderDocuments = page.state.selectedDocuments.filter(function (item) { return !item.paymentOnly; }).map(function (item) { return item.template; });
+    if (page.orderIdDisplay) {
+      page.orderIdDisplay.textContent = 'Заказ: ' + (order.public_id || order.id);
+      page.orderIdDisplay.style.fontWeight = '600';
+    }
+    if (typeof page.loadFormHistory === 'function') page.loadFormHistory();
+    return order.id;
+  };
+
+  page.doPrint = async function () {
     var orderId = window.lastOrderId;
     if (!orderId) {
-      alert('Сначала примите оплату по заказу.');
-      return;
+      if (!page.state.loadedFromHistory) {
+        alert('Сначала примите оплату по заказу.');
+        return;
+      }
+      try {
+        orderId = await page.createDraftOrderForPrint();
+      } catch (e) {
+        page.showError(e.message || 'Не удалось создать заказ для печати');
+        return;
+      }
     }
     var templates = window.lastOrderDocuments || [];
     if (!templates.length) {

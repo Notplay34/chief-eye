@@ -319,16 +319,22 @@
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: 1fr;
+  min-height: 128px;
 }
 
 .cash-crm__placeholder {
   grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  min-height: 128px;
   padding: 40px 24px !important;
   justify-content: center;
   text-align: center;
-  color: #6b7280;
-  font-size: 0.875rem;
+  color: #374151;
+  font-size: 0.9375rem;
+  line-height: 1.5;
   border: none !important;
+  background: #fff;
 }
 
 /* ----- New row animation ----- */
