@@ -117,6 +117,14 @@ def test_intermediate_plate_money_is_payable_only_after_client_issue(client: Tes
     assert payouts["quantity"] == 2
     assert payouts["rows"][0]["client_name"] == "Петров Пётр Петрович"
 
+    transfers_before_cashier_move = client.get("/cash/plate-transfers", headers=auth_headers)
+    assert transfers_before_cashier_move.status_code == 200, transfers_before_cashier_move.text
+    assert transfers_before_cashier_move.json()["total"] == 0.0
+    assert transfers_before_cashier_move.json()["rows"] == []
+
+    blocked_before_cashier_move = client.post("/cash/plate-transfers/pay", headers=auth_headers)
+    assert blocked_before_cashier_move.status_code == 400, blocked_before_cashier_move.text
+
     pay_payouts_response = client.post("/cash/plate-payouts/pay", headers=auth_headers)
     assert pay_payouts_response.status_code == 200, pay_payouts_response.text
     assert pay_payouts_response.json()["count"] == 1
@@ -151,6 +159,71 @@ def test_intermediate_plate_money_is_payable_only_after_client_issue(client: Tes
     plate_rows_response = client.get("/cash/plate-rows", headers=auth_headers)
     assert plate_rows_response.status_code == 200, plate_rows_response.text
     assert plate_rows_response.json()["rows"] == []
+
+
+def test_plate_transfer_pays_only_issued_clients_from_intermediate_cash(client: TestClient, auth_headers: dict[str, str]):
+    add_stock_response = client.post("/warehouse/plate-stock/add", json={"amount": 2}, headers=auth_headers)
+    assert add_stock_response.status_code == 200, add_stock_response.text
+
+    first_order = create_paid_plate_order(client, auth_headers)
+    second_order = create_paid_plate_order(client, auth_headers)
+
+    move_response = client.post("/cash/plate-payouts/pay", headers=auth_headers)
+    assert move_response.status_code == 200, move_response.text
+    assert move_response.json()["count"] == 2
+    assert move_response.json()["total"] == 3000.0
+
+    first_progress = client.patch(
+        f"/orders/{first_order['id']}/status",
+        json={"status": "PLATE_IN_PROGRESS"},
+        headers=auth_headers,
+    )
+    assert first_progress.status_code == 200, first_progress.text
+    first_complete = client.patch(
+        f"/orders/{first_order['id']}/status",
+        json={"status": "COMPLETED"},
+        headers=auth_headers,
+    )
+    assert first_complete.status_code == 200, first_complete.text
+
+    ready_transfers = client.get("/cash/plate-transfers", headers=auth_headers)
+    assert ready_transfers.status_code == 200, ready_transfers.text
+    assert ready_transfers.json()["total"] == 1500.0
+    assert ready_transfers.json()["quantity"] == 1
+    assert len(ready_transfers.json()["rows"]) == 1
+
+    pay_ready_response = client.post("/cash/plate-transfers/pay", headers=auth_headers)
+    assert pay_ready_response.status_code == 200, pay_ready_response.text
+    assert pay_ready_response.json()["count"] == 1
+    assert pay_ready_response.json()["total"] == 1500.0
+
+    plate_rows_response = client.get("/cash/plate-rows", headers=auth_headers)
+    assert plate_rows_response.status_code == 200, plate_rows_response.text
+    assert plate_rows_response.json()["total"] == 1500.0
+    assert len(plate_rows_response.json()["rows"]) == 1
+
+    transfers_after_first_pay = client.get("/cash/plate-transfers", headers=auth_headers)
+    assert transfers_after_first_pay.status_code == 200, transfers_after_first_pay.text
+    assert transfers_after_first_pay.json()["total"] == 0.0
+    assert transfers_after_first_pay.json()["rows"] == []
+
+    second_progress = client.patch(
+        f"/orders/{second_order['id']}/status",
+        json={"status": "PLATE_IN_PROGRESS"},
+        headers=auth_headers,
+    )
+    assert second_progress.status_code == 200, second_progress.text
+    second_complete = client.patch(
+        f"/orders/{second_order['id']}/status",
+        json={"status": "COMPLETED"},
+        headers=auth_headers,
+    )
+    assert second_complete.status_code == 200, second_complete.text
+
+    transfers_after_second_issue = client.get("/cash/plate-transfers", headers=auth_headers)
+    assert transfers_after_second_issue.status_code == 200, transfers_after_second_issue.text
+    assert transfers_after_second_issue.json()["total"] == 1500.0
+    assert transfers_after_second_issue.json()["quantity"] == 1
 
 
 def test_deleting_paid_order_cash_row_rolls_back_related_cash_and_analytics(client: TestClient, auth_headers: dict[str, str]):
