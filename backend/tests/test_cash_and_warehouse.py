@@ -128,6 +128,90 @@ def test_paid_plate_order_is_available_for_end_of_day_transfer_before_issue(clie
     assert plate_rows_response.json()["rows"] == []
 
 
+def test_deleting_paid_order_cash_row_rolls_back_related_cash_and_analytics(client: TestClient, auth_headers: dict[str, str]):
+    order = create_paid_plate_order(client, auth_headers)
+
+    cash_rows_response = client.get("/cash/rows", headers=auth_headers)
+    assert cash_rows_response.status_code == 200, cash_rows_response.text
+    cash_row = next(row for row in cash_rows_response.json() if row["source_batch"] == str(order["id"]))
+
+    payouts_response = client.get("/cash/plate-payouts", headers=auth_headers)
+    assert payouts_response.status_code == 200, payouts_response.text
+    assert payouts_response.json()["total"] == 1500.0
+
+    analytics_response = client.get("/analytics/dashboard?period=month", headers=auth_headers)
+    assert analytics_response.status_code == 200, analytics_response.text
+    assert analytics_response.json()["overview"]["orders_count"] == 1
+
+    delete_response = client.delete(f"/cash/rows/{cash_row['id']}", headers=auth_headers)
+    assert delete_response.status_code == 204, delete_response.text
+
+    payouts_after_delete = client.get("/cash/plate-payouts", headers=auth_headers)
+    assert payouts_after_delete.status_code == 200, payouts_after_delete.text
+    assert payouts_after_delete.json()["total"] == 0.0
+    assert payouts_after_delete.json()["rows"] == []
+
+    payments_response = client.get(f"/orders/{order['id']}/payments", headers=auth_headers)
+    assert payments_response.status_code == 200, payments_response.text
+    assert payments_response.json()["total_paid"] == 0
+
+    detail_response = client.get(f"/orders/{order['id']}/detail", headers=auth_headers)
+    assert detail_response.status_code == 200, detail_response.text
+    assert detail_response.json()["status"] == "AWAITING_PAYMENT"
+
+    analytics_after_delete = client.get("/analytics/dashboard?period=month", headers=auth_headers)
+    assert analytics_after_delete.status_code == 200, analytics_after_delete.text
+    assert analytics_after_delete.json()["overview"]["orders_count"] == 0
+    assert float(analytics_after_delete.json()["overview"]["turnover_total"]) == 0.0
+
+
+def test_deleting_paid_order_cash_row_removes_transferred_plate_cash_rows(client: TestClient, auth_headers: dict[str, str]):
+    stock_response = client.post("/warehouse/plate-stock/add", json={"amount": 3}, headers=auth_headers)
+    assert stock_response.status_code == 200, stock_response.text
+
+    order = create_paid_plate_order(client, auth_headers)
+    cash_row = next(
+        row for row in client.get("/cash/rows", headers=auth_headers).json()
+        if row["source_batch"] == str(order["id"])
+    )
+    in_progress_response = client.patch(
+        f"/orders/{order['id']}/status",
+        json={"status": "PLATE_IN_PROGRESS"},
+        headers=auth_headers,
+    )
+    assert in_progress_response.status_code == 200, in_progress_response.text
+    complete_response = client.patch(
+        f"/orders/{order['id']}/status",
+        json={"status": "COMPLETED"},
+        headers=auth_headers,
+    )
+    assert complete_response.status_code == 200, complete_response.text
+    assert client.get("/warehouse/plate-stock", headers=auth_headers).json()["quantity"] == 2
+
+    transfer_response = client.post("/cash/plate-payouts/pay", headers=auth_headers)
+    assert transfer_response.status_code == 200, transfer_response.text
+
+    pay_response = client.post("/cash/plate-transfers/pay", headers=auth_headers)
+    assert pay_response.status_code == 200, pay_response.text
+
+    plate_rows_response = client.get("/cash/plate-rows", headers=auth_headers)
+    assert plate_rows_response.status_code == 200, plate_rows_response.text
+    assert plate_rows_response.json()["total"] == 1500.0
+
+    delete_response = client.delete(f"/cash/rows/{cash_row['id']}", headers=auth_headers)
+    assert delete_response.status_code == 204, delete_response.text
+
+    plate_rows_after_delete = client.get("/cash/plate-rows", headers=auth_headers)
+    assert plate_rows_after_delete.status_code == 200, plate_rows_after_delete.text
+    assert plate_rows_after_delete.json()["total"] == 0
+    assert plate_rows_after_delete.json()["rows"] == []
+
+    transfers_after_delete = client.get("/cash/plate-transfers", headers=auth_headers)
+    assert transfers_after_delete.status_code == 200, transfers_after_delete.text
+    assert transfers_after_delete.json()["total"] == 0.0
+    assert client.get("/warehouse/plate-stock", headers=auth_headers).json()["quantity"] == 3
+
+
 def test_paying_plate_payouts_moves_money_between_cash_tables(client: TestClient, auth_headers: dict[str, str]):
     client.post("/warehouse/plate-stock/add", json={"amount": 3}, headers=auth_headers)
 

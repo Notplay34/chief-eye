@@ -9,7 +9,11 @@ from app.models import CashRow, DocumentPrice, FormHistory, Order, OrderStatus, 
 from app.schemas.order import OrderCreate
 from app.schemas.payment import PayOrderResponse
 from app.services.audit_service import write_audit_log
-from app.services.cash_service import ensure_workday_shift
+from app.services.cash_service import (
+    ORDER_PAYMENT_CASH_ROW,
+    ORDER_PLATE_EXTRA_CASH_ROW,
+    ensure_workday_shift,
+)
 from app.services.errors import ServiceError
 from app.services.order_status import can_transition
 from app.services.order_validation import validate_create_order_data
@@ -293,6 +297,8 @@ async def accept_order_payment(db: AsyncSession, order: Order, user: UserInfo) -
             insurance=amounts["insurance"],
             plates=amounts["plates"],
             total=amounts["total"],
+            source_type=ORDER_PAYMENT_CASH_ROW,
+            source_batch=str(order.id),
         )
     )
     db.add(FormHistory(order_id=order.id, form_data=order.form_data))
@@ -362,6 +368,8 @@ async def record_plate_extra_payment(db: AsyncSession, order: Order, amount: Dec
             insurance=Decimal("0"),
             plates=amount,
             total=amount,
+            source_type=ORDER_PLATE_EXTRA_CASH_ROW,
+            source_batch=str(order.id),
         )
     )
     await db.flush()

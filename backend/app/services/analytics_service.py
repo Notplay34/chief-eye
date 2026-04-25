@@ -8,11 +8,17 @@ from typing import Iterable, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Employee, Order, Payment, PaymentType
+from app.models import Employee, Order, OrderStatus, Payment, PaymentType
 from app.services.errors import ServiceError
 
 PLATE_TEMPLATE = "number.docx"
 ZERO = Decimal("0")
+REVENUE_ORDER_STATUSES = {
+    OrderStatus.PAID,
+    OrderStatus.PLATE_IN_PROGRESS,
+    OrderStatus.PLATE_READY,
+    OrderStatus.COMPLETED,
+}
 
 
 def _to_decimal(value: object) -> Decimal:
@@ -202,7 +208,13 @@ def _quarter_label(day: date) -> str:
 async def _fetch_orders(db: AsyncSession, start: date, end: date) -> list[Order]:
     start_dt, end_dt = _period_bounds(start, end)
     result = await db.execute(
-        select(Order).where(Order.created_at >= start_dt, Order.created_at < end_dt).order_by(Order.created_at)
+        select(Order)
+        .where(
+            Order.created_at >= start_dt,
+            Order.created_at < end_dt,
+            Order.status.in_(REVENUE_ORDER_STATUSES),
+        )
+        .order_by(Order.created_at)
     )
     return result.scalars().all()
 

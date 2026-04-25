@@ -11,13 +11,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.logging_config import get_logger
 from app.api.auth import RequireCashAccess, RequirePlateAccess, UserInfo
-from app.models import CashRow, CashShift, PlateCashRow, PlatePayout, ShiftStatus
+from app.models import CashRow, CashShift, Order, OrderStatus, Payment, PaymentType, PlateCashRow, PlatePayout, ShiftStatus
 from app.schemas.cash import (
     ShiftOpen, ShiftClose, ShiftResponse, ShiftCurrentResponse,
     CashRowCreate, CashRowUpdate, CashRowResponse,
 )
 from app.services.errors import ServiceError
 from app.services.cash_service import (
+    ORDER_PAYMENT_CASH_ROW,
+    ORDER_PLATE_EXTRA_CASH_ROW,
     can_manage_pavilion_cash,
     close_shift as close_shift_service,
     get_cash_day_summary as get_cash_day_summary_service,
@@ -33,7 +35,12 @@ from app.services.cash_service import (
     transfer_plate_payouts_to_intermediate as transfer_plate_payouts_to_intermediate_service,
     withdraw_state_duty_commissions as withdraw_state_duty_commissions_service,
 )
-from app.services.warehouse_service import adjust_stock_for_manual_cash_row
+from app.services.warehouse_service import (
+    adjust_stock_for_manual_cash_row,
+    get_or_create_stock,
+    plate_quantity_from_order,
+    release_reservation_for_order,
+)
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/cash", tags=["cash"])
@@ -151,6 +158,146 @@ def _cash_row_to_dict(row: CashRow) -> dict:
     }
 
 
+def _cash_row_order_id(row: CashRow) -> Optional[int]:
+    if row.source_type not in {ORDER_PAYMENT_CASH_ROW, ORDER_PLATE_EXTRA_CASH_ROW} or not row.source_batch:
+        return None
+    try:
+        return int(row.source_batch)
+    except ValueError:
+        return None
+
+
+async def _reduce_intermediate_cash_row(db: AsyncSession, batch: str, amount: Decimal) -> None:
+    transfer_row = (
+        await db.execute(
+            select(CashRow).where(
+                CashRow.source_type == PLATE_PAYOUT_INTERMEDIATE,
+                CashRow.source_batch == batch,
+            )
+        )
+    ).scalar_one_or_none()
+    if not transfer_row:
+        return
+    transfer_row.plates = Decimal(str(transfer_row.plates or 0)) + amount
+    transfer_row.total = Decimal(str(transfer_row.total or 0)) + amount
+    if transfer_row.plates == 0 and transfer_row.total == 0:
+        await db.delete(transfer_row)
+    else:
+        db.add(transfer_row)
+
+
+async def _reduce_plate_cash_rows(db: AsyncSession, payout: PlatePayout, amount: Decimal) -> None:
+    if not payout.transfer_batch:
+        return
+    rows = (
+        await db.execute(
+            select(PlateCashRow)
+            .where(
+                PlateCashRow.source_type == PLATE_PAYOUT_TRANSFER,
+                or_(
+                    PlateCashRow.source_batch == payout.transfer_batch,
+                    PlateCashRow.source_batch == f"{payout.transfer_batch}:{payout.id}",
+                ),
+            )
+            .order_by(PlateCashRow.created_at.desc(), PlateCashRow.id.desc())
+        )
+    ).scalars().all()
+    remaining = amount
+    for plate_row in rows:
+        if remaining <= 0:
+            break
+        plate_row_amount = Decimal(str(plate_row.amount or 0))
+        if plate_row_amount <= remaining:
+            remaining -= plate_row_amount
+            await db.delete(plate_row)
+        else:
+            plate_row.amount = plate_row_amount - remaining
+            remaining = Decimal("0")
+            db.add(plate_row)
+
+
+async def _remove_plate_payout_for_cash_row(db: AsyncSession, row: CashRow) -> None:
+    amount = Decimal(str(row.plates or 0))
+    if amount <= 0:
+        return
+
+    q = select(PlatePayout)
+    order_id = _cash_row_order_id(row)
+
+    if order_id is not None:
+        q = q.where(PlatePayout.order_id == order_id)
+    else:
+        q = q.where(PlatePayout.client_name == (row.client_name or ""))
+
+    payouts = (await db.execute(q.order_by(PlatePayout.created_at, PlatePayout.id))).scalars().all()
+    if not payouts:
+        return
+
+    if order_id is None and len(payouts) != 1:
+        return
+
+    remaining = amount
+    for payout in payouts:
+        if remaining <= 0:
+            break
+        payout_amount = Decimal(str(payout.amount or 0))
+        take = payout_amount if payout_amount <= remaining else remaining
+        if payout.transfer_batch:
+            await _reduce_intermediate_cash_row(db, payout.transfer_batch, take)
+            await _reduce_plate_cash_rows(db, payout, take)
+        if payout_amount <= take:
+            remaining -= payout_amount
+            await db.delete(payout)
+        else:
+            payout.amount = payout_amount - take
+            remaining = Decimal("0")
+            db.add(payout)
+
+
+async def _rollback_order_payment_for_cash_row(db: AsyncSession, row: CashRow) -> None:
+    order_id = _cash_row_order_id(row)
+    if order_id is None:
+        return
+
+    if row.source_type == ORDER_PAYMENT_CASH_ROW:
+        await db.execute(
+            delete(Payment).where(
+                Payment.order_id == order_id,
+                Payment.type.in_([PaymentType.STATE_DUTY, PaymentType.INCOME_PAVILION1]),
+            )
+        )
+        order = (await db.execute(select(Order).where(Order.id == order_id))).scalar_one_or_none()
+        if order and order.status in {
+            OrderStatus.PAID,
+            OrderStatus.PLATE_IN_PROGRESS,
+            OrderStatus.PLATE_READY,
+            OrderStatus.COMPLETED,
+        }:
+            if order.status in {OrderStatus.PLATE_IN_PROGRESS, OrderStatus.PLATE_READY}:
+                await release_reservation_for_order(db, order.id)
+            elif order.status == OrderStatus.COMPLETED and order.need_plate:
+                stock = await get_or_create_stock(db)
+                stock.quantity += plate_quantity_from_order(order)
+                db.add(stock)
+            order.status = OrderStatus.AWAITING_PAYMENT
+            db.add(order)
+    elif row.source_type == ORDER_PLATE_EXTRA_CASH_ROW:
+        payment = (
+            await db.execute(
+                select(Payment)
+                .where(
+                    Payment.order_id == order_id,
+                    Payment.type == PaymentType.INCOME_PAVILION2,
+                    Payment.amount == Decimal(str(row.plates or 0)),
+                )
+                .order_by(Payment.created_at.desc(), Payment.id.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if payment:
+            await db.delete(payment)
+
+
 @router.get("/rows", response_model=list)
 async def list_cash_rows(
     limit: int = Query(500, ge=1, le=2000),
@@ -252,6 +399,8 @@ async def delete_cash_row(
             await adjust_stock_for_manual_cash_row(db, -int(row.plate_quantity or 0))
         except ServiceError as exc:
             _raise_service_error(exc)
+    await _remove_plate_payout_for_cash_row(db, row)
+    await _rollback_order_payment_for_cash_row(db, row)
     if row.source_type in {PLATE_PAYOUT_INTERMEDIATE, PLATE_PAYOUT_TRANSFER} and row.source_batch:
         await db.execute(
             delete(PlateCashRow).where(
