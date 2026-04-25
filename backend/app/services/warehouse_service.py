@@ -108,3 +108,21 @@ async def register_plate_defect(db: AsyncSession) -> dict:
     await db.flush()
     return {"quantity": stock.quantity, "defect": 1}
 
+
+async def adjust_stock_for_manual_cash_row(db: AsyncSession, delta: int) -> None:
+    if delta == 0:
+        return
+    stock = await get_or_create_stock(db)
+    if delta > 0:
+        reserved_total = await reserved_quantity(db)
+        available = stock.quantity - reserved_total
+        if available < delta:
+            raise ServiceError(
+                f"Недостаточно заготовок на складе. Доступно: {available}, нужно: {delta}",
+                status_code=400,
+            )
+        stock.quantity -= delta
+    else:
+        stock.quantity += abs(delta)
+    db.add(stock)
+    await db.flush()

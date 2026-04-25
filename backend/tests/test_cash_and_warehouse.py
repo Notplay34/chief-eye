@@ -207,6 +207,43 @@ def test_cash_rows_can_be_filtered_by_business_date(client: TestClient, auth_hea
     assert old_response.json() == []
 
 
+def test_manual_cash_row_plate_quantity_adjusts_stock(client: TestClient, auth_headers: dict[str, str]):
+    add_stock_response = client.post("/warehouse/plate-stock/add", json={"amount": 5}, headers=auth_headers)
+    assert add_stock_response.status_code == 200, add_stock_response.text
+
+    create_response = client.post(
+        "/cash/rows",
+        json={"client_name": "Ручная продажа", "plates": "3000", "plate_quantity": 2, "total": "3000"},
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 200, create_response.text
+    row = create_response.json()
+    assert row["plate_quantity"] == 2
+    assert client.get("/warehouse/plate-stock", headers=auth_headers).json()["quantity"] == 3
+
+    update_response = client.patch(
+        f"/cash/rows/{row['id']}",
+        json={"plate_quantity": 4},
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 200, update_response.text
+    assert update_response.json()["plate_quantity"] == 4
+    assert client.get("/warehouse/plate-stock", headers=auth_headers).json()["quantity"] == 1
+
+    failed_update_response = client.patch(
+        f"/cash/rows/{row['id']}",
+        json={"plate_quantity": 6},
+        headers=auth_headers,
+    )
+    assert failed_update_response.status_code == 400, failed_update_response.text
+    assert client.get("/cash/rows", headers=auth_headers).json()[0]["plate_quantity"] == 4
+    assert client.get("/warehouse/plate-stock", headers=auth_headers).json()["quantity"] == 1
+
+    delete_response = client.delete(f"/cash/rows/{row['id']}", headers=auth_headers)
+    assert delete_response.status_code == 204, delete_response.text
+    assert client.get("/warehouse/plate-stock", headers=auth_headers).json()["quantity"] == 5
+
+
 def test_plate_extra_payment_uses_workday_cash_bucket_automatically(client: TestClient, auth_headers: dict[str, str]):
     order = create_paid_plate_order(client, auth_headers)
 
