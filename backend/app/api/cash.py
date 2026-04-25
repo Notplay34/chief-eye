@@ -691,7 +691,9 @@ async def list_plate_transfers(
     _ensure_pavilion_cash_access(user, 1)
     q = (
         select(PlatePayout)
+        .join(Order, Order.id == PlatePayout.order_id)
         .where(PlatePayout.transferred_at.is_not(None), PlatePayout.paid_at.is_(None))
+        .where(Order.status == OrderStatus.COMPLETED)
         .order_by(PlatePayout.transferred_at, PlatePayout.created_at)
     )
     r = await db.execute(q)

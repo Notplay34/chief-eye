@@ -43,7 +43,7 @@
     bodyEl.innerHTML = '';
 
     if (!rows.length) {
-      bodyEl.innerHTML = '<tr><td colspan="3" class="plate-cash-msg">Промежуточная касса пуста.</td></tr>';
+      bodyEl.innerHTML = '<tr><td colspan="3" class="plate-cash-msg">Нет выданных номеров к передаче. Строки появятся после кнопки «Выдано клиенту» у оператора номеров.</td></tr>';
       return;
     }
 
@@ -74,7 +74,7 @@
 
   btnPay.addEventListener('click', function () {
     if (!rows.length) return;
-    if (!confirm('Передать деньги в павильон номеров? После этого строки появятся в кассе номеров.')) return;
+    if (!confirm('Выдать деньги в кассу номеров по выданным клиентам? После этого строки появятся в кассе номеров.')) return;
     setMsg('');
     fetchApi(api + '/cash/plate-transfers/pay', { method: 'POST' })
       .then(function (r) {
@@ -82,7 +82,7 @@
         return r.json();
       })
       .then(function (res) {
-        setMsg('Передано: ' + (res.count || 0) + ' строк, ' + money(res.total || 0) + '.');
+        setMsg('Выдано в кассу номеров: ' + (res.count || 0) + ' строк, ' + money(res.total || 0) + '.');
         load();
       })
       .catch(function (e) {

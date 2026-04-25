@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth import UserInfo
-from app.models import CashDayReconciliation, CashRow, CashShift, Payment, PlateCashRow, PlatePayout, ShiftStatus
+from app.models import CashDayReconciliation, CashRow, CashShift, Order, OrderStatus, Payment, PlateCashRow, PlatePayout, ShiftStatus
 from app.models.employee import EmployeeRole
 from app.services.audit_service import write_audit_log
 from app.services.errors import ServiceError
@@ -461,7 +461,9 @@ async def transfer_plate_payouts_to_intermediate(db: AsyncSession, user: UserInf
 async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
     result = await db.execute(
         select(PlatePayout)
+        .join(Order, Order.id == PlatePayout.order_id)
         .where(PlatePayout.transferred_at.is_not(None), PlatePayout.paid_at.is_(None))
+        .where(Order.status == OrderStatus.COMPLETED)
         .order_by(PlatePayout.transferred_at, PlatePayout.created_at)
     )
     payouts = result.scalars().all()
