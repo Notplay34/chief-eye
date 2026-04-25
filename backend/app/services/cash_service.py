@@ -16,6 +16,7 @@ from app.services.errors import ServiceError
 from app.services.settings_service import SPECIAL_STATE_DUTY_BASE, get_state_duty_settings
 
 STATE_DUTY_COMMISSION_WITHDRAWAL = "STATE_DUTY_COMMISSION_WITHDRAWAL"
+PLATE_PAYOUT_INTERMEDIATE = "PLATE_PAYOUT_INTERMEDIATE"
 PLATE_PAYOUT_TRANSFER = "PLATE_PAYOUT_TRANSFER"
 
 
@@ -395,13 +396,15 @@ async def close_shift(db: AsyncSession, user: UserInfo, shift_id: int, closing_b
     return shift_to_dict(shift)
 
 
-async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
+async def transfer_plate_payouts_to_intermediate(db: AsyncSession, user: UserInfo) -> dict:
     result = await db.execute(
-        select(PlatePayout).where(PlatePayout.paid_at.is_(None)).order_by(PlatePayout.created_at)
+        select(PlatePayout)
+        .where(PlatePayout.transferred_at.is_(None), PlatePayout.paid_at.is_(None))
+        .order_by(PlatePayout.created_at)
     )
     payouts = result.scalars().all()
     if not payouts:
-        raise ServiceError("Нет номеров к выдаче", status_code=400)
+        raise ServiceError("Нет денег за номера к переносу", status_code=400)
 
     total: Decimal = sum((payout.amount for payout in payouts), Decimal("0"))
     if total <= 0:
@@ -425,20 +428,60 @@ async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
             insurance=Decimal("0"),
             plates=-total,
             total=-total,
-            source_type=PLATE_PAYOUT_TRANSFER,
+            source_type=PLATE_PAYOUT_INTERMEDIATE,
             source_date=now.date(),
             source_batch=batch_id,
         )
     )
 
     for payout in payouts:
+        payout.transferred_at = now
+        payout.transferred_by_id = user.id
+        payout.transfer_batch = batch_id
+        db.add(payout)
+
+    await db.flush()
+    await write_audit_log(
+        db,
+        user=user,
+        event_type="plate_payouts_transferred_to_intermediate",
+        entity_type="plate_payout_batch",
+        entity_id=None,
+        payload={
+            "count": len(payouts),
+            "total": float(total),
+            "order_ids": [payout.order_id for payout in payouts],
+        },
+    )
+    return {"count": len(payouts), "total": float(total), "batch": batch_id}
+
+
+async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
+    result = await db.execute(
+        select(PlatePayout)
+        .where(PlatePayout.transferred_at.is_not(None), PlatePayout.paid_at.is_(None))
+        .order_by(PlatePayout.transferred_at, PlatePayout.created_at)
+    )
+    payouts = result.scalars().all()
+    if not payouts:
+        raise ServiceError("Нет денег в промежуточной кассе к передаче", status_code=400)
+
+    total: Decimal = sum((payout.amount for payout in payouts), Decimal("0"))
+    if total <= 0:
+        raise ServiceError("Сумма к передаче нулевая", status_code=400)
+
+    now = datetime.utcnow()
+    batch_id = uuid4().hex
+    for payout in payouts:
+        if not payout.transfer_batch:
+            payout.transfer_batch = batch_id
         db.add(
             PlateCashRow(
                 client_name=_fio_initials(payout.client_name),
                 amount=payout.amount,
                 source_type=PLATE_PAYOUT_TRANSFER,
                 source_date=now.date(),
-                source_batch=batch_id,
+                source_batch=f"{payout.transfer_batch}:{payout.id}",
             )
         )
         payout.paid_at = now

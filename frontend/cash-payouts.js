@@ -45,7 +45,7 @@
     bodyEl.innerHTML = '';
     if (!rows.length) {
       var tr = document.createElement('tr');
-      tr.innerHTML = '<td colspan="3" class="cash-payout__empty">Нет номеров к выдаче.</td>';
+      tr.innerHTML = '<td colspan="3" class="cash-payout__empty">Нет денег за номера к переносу.</td>';
       bodyEl.appendChild(tr);
     } else {
       rows.forEach(function (r) {
@@ -53,7 +53,8 @@
         var date = r.created_at ? r.created_at.substring(0, 10).split('-').reverse().join('.') : '';
         tr.innerHTML =
           '<td>' + escapeHtml(date) + '</td>' +
-          '<td>' + (r.client_name ? escapeHtml(r.client_name) : '—') + '</td>' +
+          '<td>' + (r.client_short_name || r.client_name ? escapeHtml(r.client_short_name || r.client_name) : '—') +
+          (r.quantity ? ' · ' + escapeHtml(r.quantity) + ' шт' : '') + '</td>' +
           '<td class="cash-payout__amount">' + formatMoney(r.amount) + '</td>';
         bodyEl.appendChild(tr);
       });
@@ -94,7 +95,7 @@
   }
 
   function pay() {
-    if (!confirm('Выдать деньги оператору номеров за все невыплаченные номера?')) return;
+    if (!confirm('Перенести все деньги за номера из кассы документов в промежуточную кассу?')) return;
     setMsg('', false);
     fetchApi(API + '/cash/plate-payouts/pay', { method: 'POST' })
       .then(function (r) {
@@ -106,11 +107,11 @@
         return r.json();
       })
       .then(function (res) {
-        setMsg('Выдано за ' + (res.count || 0) + ' заказ(ов), сумма ' + formatMoney(res.total || 0) + '.', false);
+        setMsg('Перенесено за ' + (res.count || 0) + ' заказ(ов), сумма ' + formatMoney(res.total || 0) + '.', false);
         load();
       })
       .catch(function (e) {
-        setMsg('Ошибка выдачи: ' + (e.message || ''), true);
+        setMsg('Ошибка переноса: ' + (e.message || ''), true);
       });
   }
 

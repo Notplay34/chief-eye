@@ -146,6 +146,15 @@ def test_full_order_journey_exercises_documents_cash_plates_and_analytics(
     assert pay_payouts_response.status_code == 200, pay_payouts_response.text
     assert pay_payouts_response.json()["total"] == 3700.0
 
+    transfer_response = client.get("/cash/plate-transfers", headers=auth_headers)
+    assert transfer_response.status_code == 200, transfer_response.text
+    assert transfer_response.json()["total"] == 3700.0
+    assert transfer_response.json()["rows"][0]["quantity"] == 2
+
+    pay_transfers_response = client.post("/cash/plate-transfers/pay", headers=auth_headers)
+    assert pay_transfers_response.status_code == 200, pay_transfers_response.text
+    assert pay_transfers_response.json()["total"] == 3700.0
+
     plate_cash_response = client.get("/cash/plate-rows", headers=auth_headers)
     assert plate_cash_response.status_code == 200, plate_cash_response.text
     assert plate_cash_response.json()["total"] == 3700.0

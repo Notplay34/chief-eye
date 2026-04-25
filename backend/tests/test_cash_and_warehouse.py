@@ -122,10 +122,16 @@ def test_paying_plate_payouts_moves_money_between_cash_tables(client: TestClient
     assert open_payouts_response.json()["rows"] == []
     assert open_payouts_response.json()["total"] == 0.0
 
+    transfer_response = client.get("/cash/plate-transfers", headers=auth_headers)
+    assert transfer_response.status_code == 200, transfer_response.text
+    assert transfer_response.json()["total"] == 1500.0
+    assert transfer_response.json()["rows"][0]["client_short_name"] == "Петров П.П."
+    assert transfer_response.json()["rows"][0]["quantity"] == 1
+
     plate_rows_response = client.get("/cash/plate-rows", headers=auth_headers)
     assert plate_rows_response.status_code == 200, plate_rows_response.text
-    assert plate_rows_response.json()["total"] == 1500.0
-    assert plate_rows_response.json()["rows"][0]["client_name"] == "Петров П.П."
+    assert plate_rows_response.json()["total"] == 0.0
+    assert plate_rows_response.json()["rows"] == []
 
     cash_rows_response = client.get("/cash/rows", headers=auth_headers)
     assert cash_rows_response.status_code == 200, cash_rows_response.text
@@ -138,6 +144,16 @@ def test_paying_plate_payouts_moves_money_between_cash_tables(client: TestClient
     assert payout_rows[0]["plates"] == -1500.0
     assert payout_rows[0]["total"] == -1500.0
 
+    pay_transfers_response = client.post("/cash/plate-transfers/pay", headers=auth_headers)
+    assert pay_transfers_response.status_code == 200, pay_transfers_response.text
+    assert pay_transfers_response.json()["count"] == 1
+    assert pay_transfers_response.json()["total"] == 1500.0
+
+    plate_rows_response = client.get("/cash/plate-rows", headers=auth_headers)
+    assert plate_rows_response.status_code == 200, plate_rows_response.text
+    assert plate_rows_response.json()["total"] == 1500.0
+    assert plate_rows_response.json()["rows"][0]["client_name"] == "Петров П.П."
+
     delete_response = client.delete(f"/cash/rows/{payout_rows[0]['id']}", headers=auth_headers)
     assert delete_response.status_code == 204, delete_response.text
 
@@ -145,6 +161,10 @@ def test_paying_plate_payouts_moves_money_between_cash_tables(client: TestClient
     assert plate_rows_after_delete_response.status_code == 200, plate_rows_after_delete_response.text
     assert plate_rows_after_delete_response.json()["rows"] == []
     assert plate_rows_after_delete_response.json()["total"] == 0.0
+
+    open_payouts_after_delete_response = client.get("/cash/plate-payouts", headers=auth_headers)
+    assert open_payouts_after_delete_response.status_code == 200, open_payouts_after_delete_response.text
+    assert open_payouts_after_delete_response.json()["total"] == 1500.0
 
 
 def test_cash_rows_can_be_filtered_by_business_date(client: TestClient, auth_headers: dict[str, str]):

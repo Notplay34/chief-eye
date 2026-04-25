@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="page-auth-guard.js"></script>
+  <title>Деньги за номера</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=PT+Serif:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="appHeader"></div>
+  <div class="plate-cash-page">
+    <header class="header">
+      <div>
+        <h1 class="header__title">Деньги за номера</h1>
+        <p class="header__subtitle">Промежуточная касса: деньги уже убраны из кассы документов, но ещё не переданы в павильон номеров.</p>
+      </div>
+    </header>
+
+    <section class="plate-cash-kpi" id="plateTransferKpi">
+      <div>
+        <div class="cash-payout__label">К передаче в павильон номеров</div>
+        <div class="cash-payout__total" id="plateTransferTotal">0 ₽</div>
+      </div>
+      <div class="plate-transfer__meta" id="plateTransferMeta">0 человек · 0 шт</div>
+      <button type="button" class="btn btn--primary" id="btnPlateTransferPay" disabled>Передать в павильон номеров</button>
+    </section>
+
+    <p id="plateTransferMsg" class="plate-cash-msg"></p>
+
+    <div class="plate-cash-table-wrap">
+      <table class="plate-cash-table plate-transfer-table" id="plateTransferTable">
+        <thead>
+          <tr>
+            <th class="col-name">Клиент</th>
+            <th class="col-quantity">Шт</th>
+            <th class="col-amount">Сумма</th>
+          </tr>
+        </thead>
+        <tbody id="plateTransferBody">
+          <tr><td colspan="3" class="plate-cash-msg">Загрузка…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="header-common.js"></script>
+  <script src="plate-transfer-page.js"></script>
+</body>
+</html>

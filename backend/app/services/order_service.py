@@ -479,7 +479,14 @@ async def _ensure_plate_payout_for_completed_order(db: AsyncSession, order: Orde
 
     form_data = order.form_data or {}
     client_name = (form_data.get("client_fio") or form_data.get("client_legal_name") or "").strip() or "—"
-    db.add(PlatePayout(order_id=order.id, client_name=client_name, amount=plate_amount))
+    db.add(
+        PlatePayout(
+            order_id=order.id,
+            client_name=client_name,
+            quantity=plate_quantity_from_order(order),
+            amount=plate_amount,
+        )
+    )
     await db.flush()
     await write_audit_log(
         db,

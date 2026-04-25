@@ -130,6 +130,12 @@ def get_menu_items(role: str) -> List[dict]:
             "href": "cash-shifts.html",
             "group": "Касса (павильон 1)",
         })
+        items.append({
+            "id": "plate_transfer",
+            "label": "Деньги за номера",
+            "href": "plate-transfer.html",
+            "group": "Касса (павильон 1)",
+        })
 
     # Управление: аналитика и админка — только директор; аккаунты — только директор
     if can_access_resource(role, Resource.ANALYTICS):

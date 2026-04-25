@@ -5,7 +5,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import delete, select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -23,11 +23,14 @@ from app.services.cash_service import (
     get_cash_day_summary as get_cash_day_summary_service,
     get_current_shift_summary as get_current_shift_summary_service,
     get_state_duty_commission_summary as get_state_duty_commission_summary_service,
+    _fio_initials,
+    PLATE_PAYOUT_INTERMEDIATE,
     PLATE_PAYOUT_TRANSFER,
     open_shift as open_shift_service,
     pay_plate_payouts as pay_plate_payouts_service,
     reconcile_cash_day as reconcile_cash_day_service,
     shift_to_dict,
+    transfer_plate_payouts_to_intermediate as transfer_plate_payouts_to_intermediate_service,
     withdraw_state_duty_commissions as withdraw_state_duty_commissions_service,
 )
 
@@ -230,13 +233,26 @@ async def delete_cash_row(
     row = r.scalar_one_or_none()
     if not row:
         raise HTTPException(status_code=404, detail="Строка не найдена")
-    if row.source_type == PLATE_PAYOUT_TRANSFER and row.source_batch:
+    if row.source_type in {PLATE_PAYOUT_INTERMEDIATE, PLATE_PAYOUT_TRANSFER} and row.source_batch:
         await db.execute(
             delete(PlateCashRow).where(
                 PlateCashRow.source_type == PLATE_PAYOUT_TRANSFER,
-                PlateCashRow.source_batch == row.source_batch,
+                or_(
+                    PlateCashRow.source_batch == row.source_batch,
+                    PlateCashRow.source_batch.like(f"{row.source_batch}:%"),
+                ),
             )
         )
+        payouts = (
+            await db.execute(select(PlatePayout).where(PlatePayout.transfer_batch == row.source_batch))
+        ).scalars().all()
+        for payout in payouts:
+            payout.transferred_at = None
+            payout.transferred_by_id = None
+            payout.transfer_batch = None
+            payout.paid_at = None
+            payout.paid_by_id = None
+            db.add(payout)
     await db.delete(row)
     await db.flush()
 
@@ -400,6 +416,23 @@ async def delete_plate_cash_row(
     row = r.scalar_one_or_none()
     if not row:
         raise HTTPException(status_code=404, detail="Строка не найдена")
+    if row.source_type == PLATE_PAYOUT_TRANSFER and row.source_batch:
+        payout_id = None
+        if ":" in row.source_batch:
+            try:
+                payout_id = int(row.source_batch.rsplit(":", 1)[1])
+            except ValueError:
+                payout_id = None
+        q = select(PlatePayout)
+        if payout_id is not None:
+            q = q.where(PlatePayout.id == payout_id)
+        else:
+            q = q.where(PlatePayout.transfer_batch == row.source_batch)
+        payouts = (await db.execute(q)).scalars().all()
+        for payout in payouts:
+            payout.paid_at = None
+            payout.paid_by_id = None
+            db.add(payout)
     await db.delete(row)
     await db.flush()
 
@@ -412,7 +445,12 @@ def _payout_to_dict(row: PlatePayout) -> dict:
         "id": row.id,
         "created_at": row.created_at.isoformat() if row.created_at else None,
         "client_name": row.client_name or "",
+        "client_short_name": _fio_initials(row.client_name),
+        "quantity": int(row.quantity or 1),
         "amount": float(row.amount),
+        "transferred_at": row.transferred_at.isoformat() if row.transferred_at else None,
+        "transferred_by_id": row.transferred_by_id,
+        "transfer_batch": row.transfer_batch,
         "paid_at": row.paid_at.isoformat() if row.paid_at else None,
         "paid_by_id": row.paid_by_id,
     }
@@ -423,33 +461,74 @@ async def list_plate_payouts(
     db: AsyncSession = Depends(get_db),
     user: UserInfo = Depends(RequireCashAccess),
 ):
-    """Невыданные суммы за номера (для кассы павильона 1)."""
+    """Деньги за номера, ещё лежащие в кассе документов."""
     _ensure_pavilion_cash_access(user, 1)
-    q = select(PlatePayout).where(PlatePayout.paid_at.is_(None)).order_by(PlatePayout.created_at)
+    q = (
+        select(PlatePayout)
+        .where(PlatePayout.transferred_at.is_(None), PlatePayout.paid_at.is_(None))
+        .order_by(PlatePayout.created_at)
+    )
     r = await db.execute(q)
     rows = r.scalars().all()
     total = sum((row.amount for row in rows), Decimal("0"))
+    quantity = sum((int(row.quantity or 1) for row in rows), 0)
     return {
         "rows": [_payout_to_dict(row) for row in rows],
         "total": float(total),
+        "quantity": quantity,
     }
 
 
 @router.post("/plate-payouts/pay")
-async def pay_plate_payouts(
+async def transfer_plate_payouts_to_intermediate(
     db: AsyncSession = Depends(get_db),
     user: UserInfo = Depends(RequireCashAccess),
 ):
     """
-    Выдать деньги оператору номеров:
-    - уменьшить кассу документов на сумму всех невыплаченных номеров;
-    - добавить по каждой записи строку в кассу номеров;
-    - пометить записи как выплаченные.
+    Перенести деньги за номера из кассы документов в промежуточную кассу.
     """
+    _ensure_pavilion_cash_access(user, 1)
+    try:
+        result = await transfer_plate_payouts_to_intermediate_service(db, user)
+    except ServiceError as exc:
+        _raise_service_error(exc)
+    logger.info("Перенос денег за номера: строк=%s сумма=%s", result["count"], result["total"])
+    return result
+
+
+@router.get("/plate-transfers")
+async def list_plate_transfers(
+    db: AsyncSession = Depends(get_db),
+    user: UserInfo = Depends(RequireCashAccess),
+):
+    """Промежуточная касса номеров: деньги перенесены из кассы документов, но ещё не переданы павильону номеров."""
+    _ensure_pavilion_cash_access(user, 1)
+    q = (
+        select(PlatePayout)
+        .where(PlatePayout.transferred_at.is_not(None), PlatePayout.paid_at.is_(None))
+        .order_by(PlatePayout.transferred_at, PlatePayout.created_at)
+    )
+    r = await db.execute(q)
+    rows = r.scalars().all()
+    total = sum((row.amount for row in rows), Decimal("0"))
+    quantity = sum((int(row.quantity or 1) for row in rows), 0)
+    return {
+        "rows": [_payout_to_dict(row) for row in rows],
+        "total": float(total),
+        "quantity": quantity,
+    }
+
+
+@router.post("/plate-transfers/pay")
+async def pay_plate_transfers(
+    db: AsyncSession = Depends(get_db),
+    user: UserInfo = Depends(RequireCashAccess),
+):
+    """Передать деньги из промежуточной кассы в павильон номеров."""
     _ensure_pavilion_cash_access(user, 1)
     try:
         result = await pay_plate_payouts_service(db, user)
     except ServiceError as exc:
         _raise_service_error(exc)
-    logger.info("Выдача денег за номера: строк=%s сумма=%s", result["count"], result["total"])
+    logger.info("Передача денег в павильон номеров: строк=%s сумма=%s", result["count"], result["total"])
     return result

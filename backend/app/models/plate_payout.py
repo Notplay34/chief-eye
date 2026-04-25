@@ -16,7 +16,10 @@ class PlatePayout(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     order_id: Mapped[int] = mapped_column(Integer, ForeignKey("orders.id"), nullable=False)
     client_name: Mapped[str] = mapped_column(String(255), default="", nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    transferred_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    transferred_by_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("employees.id"), nullable=True)
+    transfer_batch: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     paid_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     paid_by_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("employees.id"), nullable=True)
-

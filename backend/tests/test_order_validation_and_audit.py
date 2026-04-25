@@ -131,11 +131,19 @@ def test_audit_log_records_key_actions(client: TestClient, auth_headers: dict[st
     assert client.patch(f"/orders/{order_id}/status", json={"status": "PLATE_IN_PROGRESS"}, headers=auth_headers).status_code == 200
     assert client.patch(f"/orders/{order_id}/status", json={"status": "COMPLETED"}, headers=auth_headers).status_code == 200
     assert client.post("/cash/plate-payouts/pay", headers=auth_headers).status_code == 200
+    assert client.post("/cash/plate-transfers/pay", headers=auth_headers).status_code == 200
 
     logs_response = client.get("/audit/logs", headers=auth_headers)
     assert logs_response.status_code == 200, logs_response.text
     event_types = {row["event_type"] for row in logs_response.json()}
-    assert {"order_created", "order_paid", "plate_payout_created", "order_status_changed", "plate_payouts_paid"} <= event_types
+    assert {
+        "order_created",
+        "order_paid",
+        "plate_payout_created",
+        "order_status_changed",
+        "plate_payouts_transferred_to_intermediate",
+        "plate_payouts_paid",
+    } <= event_types
 
 
 def test_plate_operator_is_forced_to_plate_only_contour(client: TestClient, auth_headers: dict[str, str]):

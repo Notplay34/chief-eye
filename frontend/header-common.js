@@ -41,6 +41,7 @@
     if (role === 'ROLE_OPERATOR' || role === 'ROLE_MANAGER' || role === 'ROLE_ADMIN') {
       menu_items.push({ id: 'form_p1', label: 'Подготовка документов', href: 'index.html' });
       menu_items.push({ id: 'cash_p1', label: 'Касса', href: 'cash-shifts.html' });
+      menu_items.push({ id: 'plate_transfer', label: 'Деньги за номера', href: 'plate-transfer.html' });
     }
     if (role === 'ROLE_PLATE_OPERATOR' || role === 'ROLE_MANAGER' || role === 'ROLE_ADMIN') {
       menu_items.push({ id: 'plates', label: 'Невыданные номера', href: 'plate-operator.html' });
@@ -69,7 +70,7 @@
   function getGroupKey(item) {
     var href = item.href || '';
     if (/index\.html|plate-operator\.html|warehouse\.html/i.test(href)) return 'Работа';
-    if (/cash-shifts\.html|plate-cash\.html/i.test(href)) return 'Деньги';
+    if (/cash-shifts\.html|plate-transfer\.html|plate-cash\.html/i.test(href)) return 'Деньги';
     if (/analytics|admin\.html|users\.html/i.test(href)) return 'Управление';
     return 'Профиль';
   }

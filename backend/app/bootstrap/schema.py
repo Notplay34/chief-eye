@@ -160,10 +160,31 @@ async def ensure_schema_compatibility(engine: AsyncEngine) -> None:
                 created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
                 order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
                 client_name VARCHAR(255) NOT NULL DEFAULT '',
+                quantity INTEGER NOT NULL DEFAULT 1,
                 amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+                transferred_at TIMESTAMP WITHOUT TIME ZONE,
+                transferred_by_id INTEGER REFERENCES employees(id),
+                transfer_batch VARCHAR(64),
                 paid_at TIMESTAMP WITHOUT TIME ZONE,
                 paid_by_id INTEGER REFERENCES employees(id)
             );
+        """))
+        await conn.execute(text("""
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='plate_payouts' AND column_name='quantity') THEN
+                    ALTER TABLE plate_payouts ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='plate_payouts' AND column_name='transferred_at') THEN
+                    ALTER TABLE plate_payouts ADD COLUMN transferred_at TIMESTAMP WITHOUT TIME ZONE;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='plate_payouts' AND column_name='transferred_by_id') THEN
+                    ALTER TABLE plate_payouts ADD COLUMN transferred_by_id INTEGER REFERENCES employees(id);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='plate_payouts' AND column_name='transfer_batch') THEN
+                    ALTER TABLE plate_payouts ADD COLUMN transfer_batch VARCHAR(64);
+                END IF;
+            END $$;
         """))
         await conn.execute(text("""
             CREATE TABLE IF NOT EXISTS plate_stock (
