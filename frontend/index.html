@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="page-auth-guard.js?v=287-clean"></script>
+  <script src="page-auth-guard.js?v=288-payment-block"></script>
   <title>Подготовка документов</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=PT+Serif:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=287-clean">
+  <link rel="stylesheet" href="styles.css?v=288-payment-block">
 </head>
 <body>
   <div class="app">
@@ -335,50 +335,49 @@
           </div>
         </fieldset>
 
-        <fieldset class="form-section">
-          <legend class="form-section__title">Документы и оплата</legend>
-          <div class="form-row form-row--add-doc">
-            <div class="field field--full">
-              <label class="field__label" for="docSelect">Добавить документы</label>
-              <div id="docSelect" class="document-checklist" role="group" aria-label="Документы из прейскуранта">
-                <span class="document-checklist__loading">Загрузка прейскуранта...</span>
-              </div>
-            </div>
-            <button type="button" class="btn btn--add-doc" id="btnAddDoc">Добавить выбранные</button>
-          </div>
-          <div class="form-row amounts">
-            <div class="field">
-              <label class="field__label" for="stateDuty">Госпошлина, ₽</label>
-              <input type="number" id="stateDuty" class="field__input field__input--number" min="0" step="1" value="0" placeholder="0">
-              <div class="state-duty-note" id="stateDutyNote" hidden>
-                <span>В заявление: <strong id="stateDutyBaseHint">0 ₽</strong></span>
-                <span>В кассу с комиссией: <strong id="stateDutyCashHint">0 ₽</strong></span>
-                <span>Комиссия: <strong id="stateDutyCommissionHint">0 ₽</strong></span>
-              </div>
-            </div>
-            <div class="field field--plate">
-              <div class="plate-option">
-                <label class="toggle-label">
-                  <input type="checkbox" id="needPlate" class="toggle-label__input" autocomplete="off">
-                  <span class="toggle-label__box"></span>
-                  <span class="toggle-label__text">Изготовление номера</span>
-                </label>
-                <span class="plate-option__qty">
-                  <select id="plateQuantity" class="field__select field__select--sm" title="Количество">
-                    <option value="1">1 шт — 1 500 ₽</option>
-                    <option value="2">2 шт — 3 000 ₽</option>
-                  </select>
-                </span>
-              </div>
-            </div>
-          </div>
-        </fieldset>
       </section>
 
-      <aside class="work-sidebar" aria-label="Итоги заказа">
-        <!-- Автозаполняемый блок: итоги и действия -->
-        <section class="card card--summary" id="summaryCard">
-          <h2 class="card__title">К оплате</h2>
+      <aside class="work-sidebar" aria-label="Документы, оплата и итоги">
+        <section class="card card--summary card--payment-workflow" id="summaryCard">
+          <h2 class="card__title">Документы и оплата</h2>
+          <div class="payment-workflow">
+            <div class="form-row form-row--add-doc">
+              <div class="field field--full">
+                <label class="field__label" for="docSelect">Добавить документы</label>
+                <div id="docSelect" class="document-checklist" role="group" aria-label="Документы из прейскуранта">
+                  <span class="document-checklist__loading">Загрузка прейскуранта...</span>
+                </div>
+              </div>
+              <button type="button" class="btn btn--add-doc" id="btnAddDoc">Добавить выбранные</button>
+            </div>
+            <div class="form-row amounts">
+              <div class="field">
+                <label class="field__label" for="stateDuty">Госпошлина, ₽</label>
+                <input type="number" id="stateDuty" class="field__input field__input--number" min="0" step="1" value="0" placeholder="0">
+                <div class="state-duty-note" id="stateDutyNote" hidden>
+                  <span>В заявление: <strong id="stateDutyBaseHint">0 ₽</strong></span>
+                  <span>В кассу с комиссией: <strong id="stateDutyCashHint">0 ₽</strong></span>
+                  <span>Комиссия: <strong id="stateDutyCommissionHint">0 ₽</strong></span>
+                </div>
+              </div>
+              <div class="field field--plate">
+                <div class="plate-option">
+                  <label class="toggle-label">
+                    <input type="checkbox" id="needPlate" class="toggle-label__input" autocomplete="off">
+                    <span class="toggle-label__box"></span>
+                    <span class="toggle-label__text">Изготовление номера</span>
+                  </label>
+                  <span class="plate-option__qty">
+                    <select id="plateQuantity" class="field__select field__select--sm" title="Количество">
+                      <option value="1">1 шт — 1 500 ₽</option>
+                      <option value="2">2 шт — 3 000 ₽</option>
+                    </select>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <h3 class="payment-total-title">К оплате</h3>
           <div class="summary">
             <div class="summary__row summary__row--stacked">
               <div class="summary__row-main">
@@ -453,14 +452,14 @@
     </footer>
   </div>
 
-  <script src="auth.js?v=287-clean"></script>
-  <script src="header-common.js?v=287-clean"></script>
-  <script src="dashboard.js?v=287-clean"></script>
-  <script src="form-page/context.js?v=287-clean"></script>
-  <script src="form-page/helpers.js?v=287-clean"></script>
-  <script src="form-page/render.js?v=287-clean"></script>
-  <script src="form-page/api.js?v=287-clean"></script>
-  <script src="form-page/init.js?v=287-clean"></script>
-  <script src="app.js?v=287-clean"></script>
+  <script src="auth.js?v=288-payment-block"></script>
+  <script src="header-common.js?v=288-payment-block"></script>
+  <script src="dashboard.js?v=288-payment-block"></script>
+  <script src="form-page/context.js?v=288-payment-block"></script>
+  <script src="form-page/helpers.js?v=288-payment-block"></script>
+  <script src="form-page/render.js?v=288-payment-block"></script>
+  <script src="form-page/api.js?v=288-payment-block"></script>
+  <script src="form-page/init.js?v=288-payment-block"></script>
+  <script src="app.js?v=288-payment-block"></script>
 </body>
 </html>

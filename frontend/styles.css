@@ -725,6 +725,23 @@ body {
   align-items: end;
 }
 
+.payment-workflow .form-row {
+  margin-bottom: var(--space-4);
+}
+
+.payment-workflow .form-row:last-child {
+  margin-bottom: 0;
+}
+
+.card--payment-workflow .form-row--add-doc {
+  grid-template-columns: 1fr;
+}
+
+.card--payment-workflow .btn--add-doc {
+  width: 100%;
+  margin-bottom: 0;
+}
+
 .btn--add-doc { margin-bottom: var(--space-1); }
 
 .document-checklist {
@@ -2370,11 +2387,27 @@ body {
   border-color: rgba(17, 106, 91, 0.28);
 }
 
+.card--payment-workflow {
+  background:
+    linear-gradient(180deg, rgba(231, 242, 239, 0.72), rgba(255, 255, 255, 0.96) 170px),
+    var(--color-surface);
+  box-shadow: 0 18px 52px rgba(17, 106, 91, 0.12);
+}
+
 .card--summary .card__title {
   font-family: var(--font-sans);
   font-size: 1rem;
   padding-bottom: var(--space-2);
   margin-bottom: var(--space-4);
+}
+
+.payment-total-title {
+  margin: var(--space-5) 0 var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid rgba(17, 106, 91, 0.16);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  line-height: 1.25;
 }
 
 .summary__row--total {
