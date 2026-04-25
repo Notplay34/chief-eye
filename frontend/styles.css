@@ -451,14 +451,19 @@ body {
   position: absolute;
   top: 100%;
   right: 0;
-  margin-top: var(--space-1);
-  min-width: 12rem;
-  background: var(--color-surface);
+  margin-top: var(--space-2);
+  width: 20rem;
+  max-width: min(20rem, calc(100vw - 32px));
+  max-height: min(76vh, 620px);
+  overflow: auto;
+  background:
+    linear-gradient(180deg, rgba(231, 242, 239, 0.72), rgba(255, 255, 255, 0) 120px),
+    var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 18px 50px rgba(26, 29, 33, 0.14);
   z-index: 100;
-  padding: var(--space-2);
+  padding: var(--space-3);
 }
 .header__dropdown {
   display: none;
@@ -467,31 +472,50 @@ body {
   display: block;
 }
 .header__dropdown-group {
-  font-size: var(--text-caption);
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 800;
   color: var(--color-text-muted);
-  padding: var(--space-2) var(--space-3) var(--space-1);
-  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-1) var(--space-1);
+  margin-top: var(--space-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 .header__dropdown-group:first-child {
   margin-top: 0;
 }
+.header__dropdown-inner {
+  display: grid;
+  gap: var(--space-1);
+}
 .header__dropdown-inner a {
-  display: block;
+  display: grid;
+  gap: 2px;
   padding: var(--space-2) var(--space-3);
   color: var(--color-text);
   text-decoration: none;
   border-radius: var(--radius-sm);
-  font-size: var(--text-body);
+  font-size: 0.92rem;
+  line-height: 1.25;
+  border: 1px solid transparent;
 }
 .header__dropdown-inner a:hover {
-  background: var(--color-primary-soft);
+  background: rgba(17, 106, 91, 0.08);
   color: var(--color-primary);
+  border-color: rgba(17, 106, 91, 0.13);
 }
 .header__dropdown-inner a.header__dropdown-link--active {
   background: var(--color-primary-soft);
   color: var(--color-primary);
   font-weight: 600;
+  border-color: rgba(17, 106, 91, 0.16);
+}
+.header__dropdown-link-label {
+  font-weight: 700;
+}
+.header__dropdown-link-note {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  line-height: 1.25;
 }
 .header__dropdown-inner hr {
   border: none;

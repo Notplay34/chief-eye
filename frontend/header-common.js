@@ -75,6 +75,25 @@
     return 'Профиль';
   }
 
+  function getMenuMeta(item) {
+    var id = item.id || '';
+    var map = {
+      form_p1: { label: 'Документы', note: 'Оформление заказов' },
+      plates: { label: 'Номера', note: 'Выдача и статусы' },
+      warehouse: { label: 'Склад', note: 'Заготовки номеров' },
+      cash_p1: { label: 'Касса', note: 'Документы и госпошлины' },
+      plate_cash: { label: 'Касса номеров', note: 'Павильон 2' },
+      plate_transfer: { label: 'Перенос денег', note: 'Деньги за номера' },
+      analytics_docs: { label: 'Документы', note: 'Аналитика' },
+      analytics_plates: { label: 'Номера', note: 'Аналитика' },
+      admin: { label: 'Админка', note: 'Настройки' },
+      users: { label: 'Аккаунты', note: 'Пользователи' },
+      password: { label: 'Пароль', note: 'Профиль' },
+      logout: { label: 'Выйти', note: 'Завершить сеанс' }
+    };
+    return map[id] || { label: item.label || 'Раздел', note: '' };
+  }
+
   function renderHeader() {
     var userNameEl = document.getElementById('headerUserName');
     if (userNameEl && me) userNameEl.textContent = me.name || me.login || 'Аккаунт';
@@ -108,9 +127,17 @@
       inner.appendChild(groupEl);
       items.forEach(function (item) {
         if (!item.label && !item.href) return;
+        var meta = getMenuMeta(item);
         var a = document.createElement('a');
+        var labelEl = document.createElement('span');
+        var noteEl = document.createElement('span');
         a.href = item.href || '#';
-        a.textContent = item.label;
+        labelEl.className = 'header__dropdown-link-label';
+        labelEl.textContent = meta.label;
+        noteEl.className = 'header__dropdown-link-note';
+        noteEl.textContent = meta.note;
+        a.appendChild(labelEl);
+        if (meta.note) a.appendChild(noteEl);
         if (item.href && item.href === currentPage) a.classList.add('header__dropdown-link--active');
         a.setAttribute('data-action', item.action || '');
         a.setAttribute('data-id', item.id || '');
