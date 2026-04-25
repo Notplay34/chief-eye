@@ -107,7 +107,7 @@
 
 .cash-crm__grid-header {
   display: grid;
-  grid-template-columns: minmax(170px, 1.55fr) minmax(54px, 0.42fr) repeat(5, minmax(88px, 0.78fr)) minmax(104px, 0.86fr) 44px;
+  grid-template-columns: minmax(190px, 1.6fr) repeat(5, minmax(96px, 0.82fr)) minmax(112px, 0.9fr) 44px;
   position: sticky;
   top: 0;
   z-index: 2;
@@ -126,7 +126,7 @@
 
 .cash-crm__grid-body {
   display: grid;
-  grid-template-columns: minmax(170px, 1.55fr) minmax(54px, 0.42fr) repeat(5, minmax(88px, 0.78fr)) minmax(104px, 0.86fr) 44px;
+  grid-template-columns: minmax(190px, 1.6fr) repeat(5, minmax(96px, 0.82fr)) minmax(112px, 0.9fr) 44px;
   grid-auto-rows: 52px;
 }
 
@@ -153,12 +153,6 @@
 }
 
 .cash-crm__grid-cell--num {
-  justify-content: flex-end;
-  text-align: right;
-  min-width: 0;
-}
-
-.cash-crm__grid-cell--qty {
   justify-content: flex-end;
   text-align: right;
   min-width: 0;
@@ -217,10 +211,6 @@
   text-align: right;
   padding-left: 4px;
   padding-right: 4px;
-}
-
-.cash-crm__input--qty {
-  max-width: 42px;
 }
 
 .cash-crm__input--num::-webkit-outer-spin-button,

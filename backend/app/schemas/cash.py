@@ -40,7 +40,6 @@ class ShiftCurrentResponse(BaseModel):
 # Таблица кассы: строки с редактируемыми ячейками
 class CashRowCreate(BaseModel):
     client_name: str = ""
-    plate_quantity: int = Field(default=0, ge=0, le=100)
     application: Decimal = Decimal("0")
     state_duty: Decimal = Decimal("0")
     dkp: Decimal = Decimal("0")
@@ -51,7 +50,6 @@ class CashRowCreate(BaseModel):
 
 class CashRowUpdate(BaseModel):
     client_name: Optional[str] = None
-    plate_quantity: Optional[int] = Field(default=None, ge=0, le=100)
     application: Optional[Decimal] = None
     state_duty: Optional[Decimal] = None
     dkp: Optional[Decimal] = None
@@ -65,7 +63,6 @@ class CashRowResponse(BaseModel):
 
     id: int
     client_name: str
-    plate_quantity: int
     application: Decimal
     state_duty: Decimal
     dkp: Decimal

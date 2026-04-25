@@ -96,7 +96,6 @@ async def ensure_schema_compatibility(engine: AsyncEngine) -> None:
                 id SERIAL PRIMARY KEY,
                 created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
                 client_name VARCHAR(255) NOT NULL DEFAULT '',
-                plate_quantity INTEGER NOT NULL DEFAULT 0,
                 application NUMERIC(12,2) NOT NULL DEFAULT 0,
                 state_duty NUMERIC(12,2) NOT NULL DEFAULT 0,
                 dkp NUMERIC(12,2) NOT NULL DEFAULT 0,
@@ -110,9 +109,6 @@ async def ensure_schema_compatibility(engine: AsyncEngine) -> None:
             BEGIN
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='cash_rows' AND column_name='created_at') THEN
                     ALTER TABLE cash_rows ADD COLUMN created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'utc');
-                END IF;
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='cash_rows' AND column_name='plate_quantity') THEN
-                    ALTER TABLE cash_rows ADD COLUMN plate_quantity INTEGER NOT NULL DEFAULT 0;
                 END IF;
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='cash_rows' AND column_name='source_type') THEN
                     ALTER TABLE cash_rows ADD COLUMN source_type VARCHAR(64);

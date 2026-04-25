@@ -1,7 +1,7 @@
 /**
  * Касса павильона 1.
  * По образу «Кассы номеров», но с колонками:
- * ФИО, Шт, Заявление, Госпошлина, ДКП, Страховка, Номера, Итого.
+ * ФИО, Заявление, Госпошлина, ДКП, Страховка, Номера, Итого.
  * Источник строк:
  *  - автоматически: при «Принять наличные» по заказу (backend пишет в cash_rows);
  *  - вручную: кнопка «Добавить строку» + редактирование;
@@ -44,15 +44,6 @@
     // Для 0 отображаем пустоту (чтобы не захламлять таблицу)
     if (num === 0) return '';
     return num.toFixed(2);
-  }
-
-  function parseQuantity(raw) {
-    if (raw === null || raw === undefined) return 0;
-    var s = String(raw).trim();
-    if (!s) return 0;
-    var n = parseInt(s.replace(/\s/g, ''), 10);
-    if (!isFinite(n) || n < 0) return 0;
-    return n;
   }
 
   function totalFromRow(row) {
@@ -261,45 +252,6 @@
     return input;
   }
 
-  function buildQuantityInput(row) {
-    var input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'cash-crm__input cash-crm__input--num cash-crm__input--qty';
-    input.dataset.rowId = String(row.id);
-    input.setAttribute('inputmode', 'numeric');
-    input.placeholder = '0';
-    input.value = Number(row.plate_quantity || 0) > 0 ? String(row.plate_quantity) : '';
-
-    input.addEventListener('blur', function () {
-      var id = parseInt(this.dataset.rowId, 10);
-      if (isNaN(id)) return;
-      var currentRow = rows.find(function (r) { return r.id === id; });
-      if (!currentRow) return;
-
-      var raw = this.value;
-      var quantity = parseQuantity(raw);
-      this.value = quantity > 0 ? String(quantity) : '';
-      if (Number(currentRow.plate_quantity || 0) === quantity) return;
-
-      patchRow(id, { plate_quantity: quantity })
-        .then(function (updated) {
-          replaceRow(id, updated);
-          input.value = Number(updated.plate_quantity || 0) > 0 ? String(updated.plate_quantity) : '';
-          msg(quantity > 0 ? 'Номера списаны со склада' : 'Списание номеров отменено', 'ok');
-        })
-        .catch(function (e) {
-          input.value = Number(currentRow.plate_quantity || 0) > 0 ? String(currentRow.plate_quantity) : '';
-          msg('Ошибка: ' + (e.message || 'не удалось списать номера'), 'err');
-        });
-    });
-
-    input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') this.blur();
-    });
-
-    return input;
-  }
-
   function renderTotal() {
     var total = rows.reduce(function (sum, r) {
       return sum + totalFromRow(r);
@@ -407,11 +359,6 @@
     cellName.className = 'cash-crm__grid-cell cash-crm__grid-cell--name';
     cellName.appendChild(buildCellInput(row, 'client_name', false));
     rowEl.appendChild(cellName);
-
-    var cellQty = document.createElement('div');
-    cellQty.className = 'cash-crm__grid-cell cash-crm__grid-cell--qty';
-    cellQty.appendChild(buildQuantityInput(row));
-    rowEl.appendChild(cellQty);
 
     ['application', 'state_duty', 'dkp', 'insurance', 'plates'].forEach(function (key) {
       var cell = document.createElement('div');
@@ -547,7 +494,6 @@
         dkp: 0,
         insurance: 0,
         plates: 0,
-        plate_quantity: 0,
         total: 0,
       }),
     })

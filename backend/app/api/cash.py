@@ -36,7 +36,6 @@ from app.services.cash_service import (
     withdraw_state_duty_commissions as withdraw_state_duty_commissions_service,
 )
 from app.services.warehouse_service import (
-    adjust_stock_for_manual_cash_row,
     get_or_create_stock,
     plate_quantity_from_order,
     release_reservation_for_order,
@@ -145,7 +144,6 @@ def _cash_row_to_dict(row: CashRow) -> dict:
         "id": row.id,
         "created_at": row.created_at.isoformat() if row.created_at else None,
         "client_name": row.client_name or "",
-        "plate_quantity": int(row.plate_quantity or 0),
         "application": float(row.application),
         "state_duty": float(row.state_duty),
         "dkp": float(row.dkp),
@@ -326,7 +324,6 @@ async def create_cash_row(
     _ensure_pavilion_cash_access(user, 1)
     row = CashRow(
         client_name=body.client_name or "",
-        plate_quantity=body.plate_quantity,
         application=body.application,
         state_duty=body.state_duty,
         dkp=body.dkp,
@@ -335,11 +332,7 @@ async def create_cash_row(
         total=body.total,
     )
     db.add(row)
-    try:
-        await adjust_stock_for_manual_cash_row(db, body.plate_quantity)
-        await db.flush()
-    except ServiceError as exc:
-        _raise_service_error(exc)
+    await db.flush()
     return _cash_row_to_dict(row)
 
 
@@ -358,13 +351,6 @@ async def update_cash_row(
         raise HTTPException(status_code=404, detail="Строка не найдена")
     if body.client_name is not None:
         row.client_name = body.client_name
-    if body.plate_quantity is not None:
-        delta = body.plate_quantity - int(row.plate_quantity or 0)
-        try:
-            await adjust_stock_for_manual_cash_row(db, delta)
-        except ServiceError as exc:
-            _raise_service_error(exc)
-        row.plate_quantity = body.plate_quantity
     if body.application is not None:
         row.application = body.application
     if body.state_duty is not None:
@@ -394,11 +380,6 @@ async def delete_cash_row(
     row = r.scalar_one_or_none()
     if not row:
         raise HTTPException(status_code=404, detail="Строка не найдена")
-    if int(row.plate_quantity or 0) > 0:
-        try:
-            await adjust_stock_for_manual_cash_row(db, -int(row.plate_quantity or 0))
-        except ServiceError as exc:
-            _raise_service_error(exc)
     await _remove_plate_payout_for_cash_row(db, row)
     await _rollback_order_payment_for_cash_row(db, row)
     if row.source_type in {PLATE_PAYOUT_INTERMEDIATE, PLATE_PAYOUT_TRANSFER} and row.source_batch:
