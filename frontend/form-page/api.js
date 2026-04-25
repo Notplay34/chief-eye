@@ -241,9 +241,7 @@
     var trusteeBody = page.el('trusteeBody');
     if (sellerBody) sellerBody.classList.toggle('form-section__body--closed', !(inputs.hasSeller && inputs.hasSeller.checked));
     if (trusteeBody) trusteeBody.classList.toggle('form-section__body--closed', !(inputs.hasTrustee && inputs.hasTrustee.checked));
-    page.renderDocumentsList();
-    if (page.renderDocumentChecklist) page.renderDocumentChecklist();
-    page.syncFromMainForm();
+    page.syncPlateToDocuments();
   };
 
   page.loadFormHistory = async function () {
