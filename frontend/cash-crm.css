@@ -823,8 +823,7 @@
 }
 
 .cash-crm__header-card,
-.cash-crm__table-card,
-.cash-crm__total-card {
+.cash-crm__table-card {
   border: 1px solid var(--color-border, #ddd8ce);
   border-radius: 18px;
   background: var(--color-surface, #fff);
@@ -833,6 +832,14 @@
 
 .cash-crm__header-card {
   padding: 24px;
+}
+
+.cash-crm__header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .cash-crm__title {
@@ -928,15 +935,47 @@
 }
 
 .cash-crm__total-card {
-  width: 300px;
-  background: linear-gradient(180deg, #ffffff, #f9fbf8);
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
+  gap: 18px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
-.cash-crm__total-label {
+.cash-crm__total-summary,
+.cash-duty-commission,
+.cash-payout-card {
+  min-width: 0;
+  min-height: 190px;
+  padding: 22px;
+  border: 1px solid var(--color-border, #ddd8ce);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfaf7 100%);
+  box-shadow: 0 14px 38px rgba(42, 37, 27, 0.055);
+}
+
+.cash-crm__total-summary {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  align-content: stretch;
+}
+
+.cash-crm__total-label,
+.cash-duty-commission__label,
+.cash-payout__chip span {
   color: var(--color-text-muted, #6b7280);
+  font-size: 0.73rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+  text-transform: uppercase;
 }
 
 .cash-crm__total-value {
+  align-self: end;
   color: var(--color-primary, #116a5b);
 }
 
@@ -949,9 +988,10 @@
 }
 
 .cash-payout__chip {
-  border: 1px solid rgba(17, 106, 91, 0.16);
-  background: var(--color-primary-soft, #e7f2ef);
-  color: var(--color-primary, #116a5b);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted, #6b7280);
 }
 
 .cash-payout__chip:disabled {
@@ -960,14 +1000,36 @@
 }
 
 .cash-payout__panel {
-  border: 1px solid var(--color-border, #ddd8ce);
+  border: 0;
   box-shadow: none;
 }
 
 @media (max-width: 1024px) {
   .cash-crm__total-card {
     width: 100%;
+    grid-template-columns: 1fr;
     position: static;
+  }
+
+  .cash-crm__total-summary,
+  .cash-duty-commission,
+  .cash-payout-card {
+    grid-column: 1;
+  }
+}
+
+@media (max-width: 900px) {
+  .cash-crm__header-card {
+    align-items: flex-start;
+  }
+
+  .cash-crm__header-text,
+  .cash-crm__header-actions {
+    flex: 1 1 100%;
+  }
+
+  .cash-crm__header-actions {
+    justify-content: flex-start;
   }
 }
 
