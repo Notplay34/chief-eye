@@ -3478,3 +3478,568 @@ body {
     min-width: 0;
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* 30. Unified redesign layer                                                  */
+/* -------------------------------------------------------------------------- */
+:root {
+  --color-primary: #0f766e;
+  --color-primary-hover: #0b5f59;
+  --color-primary-soft: rgba(15, 118, 110, 0.09);
+  --color-primary-strong: #083f3b;
+  --color-accent-blue: #2563eb;
+  --color-accent-blue-soft: rgba(37, 99, 235, 0.09);
+  --color-income: #15803d;
+  --color-success: #16a34a;
+  --color-warning: #b7791f;
+  --color-danger: #dc2626;
+  --color-danger-bg: #fff1f2;
+  --color-bg: #f5f7fb;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f8fafc;
+  --color-surface-elevated: #ffffff;
+  --color-text: #111827;
+  --color-text-muted: #64748b;
+  --color-border: #dbe3ef;
+  --color-border-soft: rgba(100, 116, 139, 0.16);
+  --color-border-strong: #b8c4d4;
+  --color-table-header: #f8fafc;
+  --color-hover: #f1f5f9;
+  --color-input-bg: #ffffff;
+  --focus-ring: rgba(15, 118, 110, 0.16);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 10px 28px rgba(15, 23, 42, 0.07);
+  --shadow-lg: 0 22px 56px rgba(15, 23, 42, 0.12);
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #111827;
+  --color-surface: #182131;
+  --color-surface-alt: #202a3a;
+  --color-surface-elevated: #243044;
+  --color-text: #edf2f7;
+  --color-text-muted: #a8b3c5;
+  --color-border: rgba(203, 213, 225, 0.18);
+  --color-border-soft: rgba(203, 213, 225, 0.1);
+  --color-border-strong: rgba(203, 213, 225, 0.3);
+  --color-table-header: #202a3a;
+  --color-hover: rgba(255, 255, 255, 0.055);
+  --color-input-bg: #151e2d;
+  --color-danger-bg: rgba(220, 38, 38, 0.14);
+}
+
+html {
+  background: var(--color-bg);
+}
+
+body {
+  background: var(--color-bg);
+  letter-spacing: 0;
+}
+
+.app,
+.plate-page,
+.plate-cash-page,
+.cash-page,
+.warehouse-page,
+.admin,
+.users {
+  width: min(100%, 1400px);
+  max-width: 1400px;
+  padding: 20px;
+  gap: 16px;
+}
+
+#appHeader + .app,
+#appHeader + .plate-page,
+#appHeader + .plate-cash-page,
+#appHeader + .cash-page,
+#appHeader + .warehouse-page,
+#appHeader + .admin,
+#appHeader + .users {
+  padding-top: 0;
+}
+
+.header {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
+
+.header--dashboard {
+  position: sticky;
+  top: 12px;
+  z-index: 90;
+  width: min(calc(100% - 40px), 1400px);
+  margin: 12px auto 16px;
+  backdrop-filter: blur(12px);
+}
+
+.header__title,
+.card__title,
+.account__content h1,
+.login-card h1 {
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+}
+
+.header__title {
+  font-size: 1.28rem;
+  font-weight: 750;
+}
+
+.header__subtitle {
+  margin-top: 2px;
+  font-size: 0.84rem;
+}
+
+.header__menu-btn,
+.theme-toggle,
+.history-menu__trigger,
+.list-pager__btn,
+.cash-date-filter__btn,
+.header__dropdown-inner a,
+.btn {
+  border-radius: var(--radius-md);
+}
+
+.card,
+.admin-block,
+.settings-card,
+.warehouse-card,
+.analytics-block,
+.analytics-card,
+.plate-cash-kpi,
+.plate-transfer-history,
+.data-table-wrap,
+.plate-cash-table-wrap,
+.cash-table-wrap,
+.plate-table,
+.orders-table,
+.users #listContent,
+.account__hero,
+.modal__box {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.card,
+.admin-block,
+.settings-card,
+.warehouse-card,
+.analytics-block,
+.analytics-card,
+.plate-transfer-history,
+.users #listContent,
+.account__hero {
+  padding: 18px;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.card--primary::before {
+  display: none;
+}
+
+.main-content--p1 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  gap: 16px;
+  align-items: start;
+}
+
+.work-sidebar {
+  display: grid;
+  gap: 16px;
+  position: sticky;
+  top: 92px;
+}
+
+.card__title {
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 1rem;
+  font-weight: 760;
+}
+
+.card__title-row {
+  margin-bottom: 16px;
+}
+
+.form-section {
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+  border-bottom-color: var(--color-border);
+}
+
+.form-section--togglable {
+  border-color: var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-alt);
+}
+
+.form-section--togglable .form-section__toggle {
+  padding: 12px 14px;
+}
+
+.form-section--togglable .form-section__toggle:hover {
+  background: var(--color-hover);
+}
+
+.form-section--togglable .form-section__body {
+  padding: 0 14px 14px;
+}
+
+.form-section--togglable .form-section__body .form-grid,
+.document-group {
+  border-top-color: var(--color-border);
+}
+
+.form-section__title,
+.document-group__title {
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.document-group__title::before {
+  background: var(--color-primary);
+}
+
+.field__input,
+.field__select,
+.modal__box input,
+.modal__box select,
+.admin input,
+.admin select,
+.users input,
+.users select,
+.list-pager select,
+.list-pager input,
+.cash-date-filter__input {
+  min-height: 40px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-input-bg);
+  color: var(--color-text);
+  box-shadow: none;
+}
+
+.field__input,
+.field__select {
+  padding: 9px 11px;
+}
+
+.field__input:focus,
+.field__select:focus,
+.modal__box input:focus,
+.modal__box select:focus,
+.admin input:focus,
+.admin select:focus,
+.users input:focus,
+.users select:focus,
+.cash-date-filter__input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  background: var(--color-input-bg);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.field__label {
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.toggle-label__box,
+.document-checklist__box {
+  border-color: var(--color-border-strong);
+}
+
+.document-checklist {
+  border-color: var(--color-border);
+  background: var(--color-surface-alt);
+  padding: 10px;
+}
+
+.document-checklist__item {
+  border-color: var(--color-border);
+  border-radius: var(--radius-md);
+  min-height: 42px;
+}
+
+.document-checklist__item:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.btn {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: 1px solid transparent;
+  font-weight: 720;
+}
+
+.btn:not(.btn--primary):not(.btn--danger),
+.btn--secondary,
+.btn-refresh,
+.users .btn {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.btn:not(.btn--primary):not(.btn--danger):hover:not(:disabled),
+.btn--secondary:hover:not(:disabled),
+.btn-refresh:hover:not(:disabled),
+.users .btn:hover:not(:disabled) {
+  background: var(--color-hover);
+  border-color: var(--color-border-strong);
+}
+
+.btn--primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.summary__row,
+.data-table th,
+.data-table td,
+.analytics-table th,
+.analytics-table td,
+.plate-table th,
+.plate-table td,
+.plate-cash-table th,
+.plate-cash-table td,
+.cash-table th,
+.cash-table td,
+.warehouse-history-table th,
+.warehouse-history-table td,
+.admin table th,
+.admin table td,
+.users .users-table th,
+.users .users-table td {
+  border-color: var(--color-border);
+}
+
+.data-table th,
+.analytics-table th,
+.plate-table th,
+.plate-cash-table th,
+.cash-table th,
+.warehouse-history-table th,
+.admin table th,
+.users .users-table th {
+  background: var(--color-table-header);
+  color: var(--color-text-muted);
+  font-size: 0.74rem;
+  font-weight: 760;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.data-table td,
+.analytics-table td,
+.plate-table td,
+.plate-cash-table td,
+.cash-table td,
+.warehouse-history-table td,
+.admin table td,
+.users .users-table td {
+  background: var(--color-surface);
+}
+
+.data-table tbody tr:hover td,
+.analytics-table tbody tr:hover td,
+.plate-table tr:hover td,
+.plate-cash-table tbody tr:not(.day-sep):hover td,
+.cash-table tbody tr:not(.day-sep):hover td,
+.warehouse-history-table tbody tr:hover td,
+.admin table tbody tr:hover td,
+.users .users-table tbody tr:hover td {
+  background: var(--color-hover);
+}
+
+.kpi-card,
+.warehouse-kpi,
+.plate-transfer-ready__item,
+.plate-transfer-ready__empty,
+.form-history-list__item,
+.state-duty-note {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+}
+
+.kpi-card--highlight,
+.warehouse-kpi--available {
+  border-color: rgba(15, 118, 110, 0.28);
+  background: var(--color-primary-soft);
+}
+
+.analytics-toolbar,
+.plate-cash-toolbar--main,
+.warehouse-history-header,
+.filter-row,
+.settings-grid,
+.users-grid {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  padding: 12px;
+}
+
+.analytics-filter,
+.settings-grid label,
+.users .modal__box label {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 720;
+}
+
+.warehouse-grid,
+.warehouse-kpi-grid,
+.users-grid,
+.kpi-grid {
+  gap: 14px;
+}
+
+.warehouse-stat,
+.analytics-card__value,
+.kpi-card__value,
+.cash-payout__total,
+.plate-cash-kpi .cash-payout__total {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.plate-cash-kpi {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+}
+
+.plate-transfer-workspace {
+  gap: 16px;
+}
+
+.plate-transfer-history__head {
+  border-bottom-color: var(--color-border);
+}
+
+.plate-transfer-history__day-btn:hover {
+  background: var(--color-hover);
+}
+
+.header__dropdown {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+}
+
+.header__dropdown-inner a:hover,
+.header__dropdown-inner a.header__dropdown-link--active {
+  background: var(--color-primary-soft);
+  border-color: rgba(15, 118, 110, 0.22);
+  color: var(--color-primary);
+}
+
+.badge,
+.plate-table .status {
+  border-radius: 999px;
+  font-weight: 720;
+}
+
+.loading,
+.analytics-empty,
+.warehouse-empty,
+.empty-msg,
+.plate-cash-msg,
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 1180px) {
+  .main-content--p1 {
+    grid-template-columns: 1fr;
+  }
+
+  .work-sidebar {
+    position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .plate-cash-kpi {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .app,
+  .plate-page,
+  .plate-cash-page,
+  .cash-page,
+  .warehouse-page,
+  .admin,
+  .users {
+    padding: 12px;
+  }
+
+  .header--dashboard {
+    top: 8px;
+    width: calc(100% - 24px);
+    margin: 8px auto 12px;
+  }
+
+  .header,
+  .card,
+  .admin-block,
+  .settings-card,
+  .warehouse-card,
+  .analytics-card,
+  .analytics-block {
+    padding: 14px;
+  }
+
+  .work-sidebar {
+    display: grid;
+    grid-template-columns: 1fr;
+    padding-bottom: 0;
+  }
+
+  .card--summary {
+    position: static;
+    padding: 14px;
+  }
+
+  .card--summary .card__title,
+  .card--summary .summary__row:not(.summary__row--total),
+  .card--summary .summary__hint {
+    display: block;
+  }
+
+  .card--summary .actions--stacked {
+    grid-template-columns: 1fr;
+  }
+}

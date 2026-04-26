@@ -1216,6 +1216,200 @@
   background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-alt) 100%);
 }
 
+/* -------------------------------------------------------------------------- */
+/* Unified redesign alignment                                                  */
+/* -------------------------------------------------------------------------- */
+.cash-crm-body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+.cash-crm {
+  width: min(100%, 1400px);
+  max-width: 1400px;
+  padding: 0 20px 20px;
+}
+
+.cash-crm__header-card,
+.cash-crm__table-card,
+.cash-crm__total-summary,
+.cash-duty-commission,
+.cash-payout-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.cash-crm__header-card {
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.cash-crm__title {
+  color: var(--color-text);
+  font-size: 1.28rem;
+  font-weight: 750;
+  letter-spacing: 0;
+}
+
+.cash-crm__subtitle,
+.cash-crm__grid-header .cash-crm__grid-cell,
+.cash-crm__total-label,
+.cash-duty-commission__label,
+.cash-payout__label,
+.cash-payout__chip,
+.cash-payout__chip span,
+.cash-payout__date,
+.cash-payout__client small,
+.cash-payout__empty,
+.cash-crm__msg {
+  color: var(--color-text-muted);
+}
+
+.cash-crm__btn-add,
+.cash-duty-commission__btn,
+.cash-payout__btn {
+  min-height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 720;
+}
+
+.cash-crm__btn-add:hover,
+.cash-duty-commission__btn:hover:not(:disabled),
+.cash-payout__btn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.cash-date-filter__input,
+.cash-date-filter__btn {
+  border-radius: var(--radius-md);
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.cash-date-filter__btn:hover {
+  background: var(--color-hover);
+  border-color: var(--color-border-strong);
+  color: var(--color-primary);
+}
+
+.cash-crm__grid-header,
+.cash-crm__grid-row-day .cash-crm__grid-cell {
+  background: var(--color-table-header);
+  border-bottom-color: var(--color-border);
+}
+
+.cash-crm__grid-header .cash-crm__grid-cell {
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+}
+
+.cash-crm__grid-row .cash-crm__grid-cell {
+  border-bottom-color: var(--color-border);
+}
+
+.cash-crm__grid-row:hover .cash-crm__grid-cell,
+.cash-crm__grid-row:hover.cash-crm__grid-row--new .cash-crm__grid-cell {
+  background: var(--color-hover);
+}
+
+.cash-crm__grid-cell--name,
+.cash-crm__grid-cell--del,
+.cash-crm__placeholder {
+  background: var(--color-surface);
+}
+
+.cash-crm__input {
+  min-height: 34px;
+  border-radius: var(--radius-sm);
+  border-color: var(--color-border);
+  background: var(--color-input-bg);
+  color: var(--color-text);
+}
+
+.cash-crm__input:hover {
+  border-color: var(--color-border-strong);
+}
+
+.cash-crm__input:focus {
+  border-color: var(--color-primary);
+  background: var(--color-input-bg);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.cash-crm__row-total,
+.cash-crm__total-value,
+.cash-payout__amount,
+.cash-payout__client,
+.cash-duty-commission__value,
+.cash-payout__total {
+  color: var(--color-text);
+}
+
+.cash-crm__row-total.cash-crm__row-total--zero,
+.cash-crm__btn-del {
+  color: var(--color-text-muted);
+}
+
+.cash-crm__row-total.cash-crm__row-total--negative,
+.cash-crm__msg.err,
+.cash-payout__msg.err,
+.cash-crm__btn-del:hover {
+  color: var(--color-danger);
+}
+
+.cash-crm__row-total.cash-crm__row-total--positive,
+.cash-crm__msg.ok,
+.cash-payout__msg.ok,
+.cash-payout__chip strong {
+  color: var(--color-income);
+}
+
+.cash-crm__btn-del {
+  border-radius: var(--radius-sm);
+}
+
+.cash-crm__btn-del:hover {
+  background: var(--color-danger-bg);
+}
+
+.cash-crm__msg,
+.cash-payout__table td {
+  border-color: var(--color-border);
+}
+
+.cash-crm__total-card {
+  gap: 14px;
+}
+
+.cash-crm__total-summary,
+.cash-duty-commission,
+.cash-payout-card {
+  min-height: 178px;
+  padding: 18px;
+  background: var(--color-surface);
+}
+
+.cash-payout__panel {
+  border-color: var(--color-border);
+}
+
+:root[data-theme="dark"] .cash-crm__header-card,
+:root[data-theme="dark"] .cash-crm__table-card,
+:root[data-theme="dark"] .cash-crm__total-summary,
+:root[data-theme="dark"] .cash-duty-commission,
+:root[data-theme="dark"] .cash-payout-card,
+:root[data-theme="dark"] .cash-crm__grid-cell--name,
+:root[data-theme="dark"] .cash-crm__grid-cell--del,
+:root[data-theme="dark"] .cash-crm__placeholder {
+  background: var(--color-surface);
+}
+
 :root[data-theme="dark"] .cash-crm__total-summary::before {
   background: linear-gradient(180deg, var(--color-primary), rgba(88, 199, 184, 0.16));
 }
