@@ -1,4 +1,30 @@
 (function () {
+  var THEME_KEY = 'eye_w_theme';
+
+  function getStoredTheme() {
+    try {
+      return localStorage.getItem(THEME_KEY) || 'light';
+    } catch (_) {
+      return 'light';
+    }
+  }
+
+  function applyTheme(theme) {
+    var next = theme === 'dark' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    try {
+      localStorage.setItem(THEME_KEY, next);
+    } catch (_) {}
+    var btn = document.getElementById('btnThemeToggle');
+    if (btn) {
+      btn.textContent = next === 'dark' ? '☀' : '◐';
+      btn.title = next === 'dark' ? 'Светлая тема' : 'Тёмная тема';
+      btn.setAttribute('aria-label', btn.title);
+    }
+  }
+
+  applyTheme(getStoredTheme());
+
   var APP_HEADER_HTML = [
     '<header class="header header--dashboard">',
     '  <div class="header__row">',
@@ -6,6 +32,7 @@
     '      <h1 class="header__title">РегДок</h1>',
     '    </div>',
     '    <div class="header__actions">',
+    '      <button type="button" class="theme-toggle" id="btnThemeToggle" aria-label="Тёмная тема" title="Тёмная тема">◐</button>',
     '      <div class="header__menu-wrap">',
     '        <span class="header__user-name" id="headerUserName" title="Открыть меню">—</span>',
     '        <button type="button" class="header__menu-btn" id="btnMenu" aria-label="Меню" title="Меню">⋮</button>',
@@ -198,6 +225,15 @@
       if (btnMenu) btnMenu.addEventListener('click', function (e) { e.stopPropagation(); toggleMenu(); });
       var userNameEl = document.getElementById('headerUserName');
       if (userNameEl) userNameEl.addEventListener('click', function (e) { e.stopPropagation(); toggleMenu(); });
+      var btnTheme = document.getElementById('btnThemeToggle');
+      if (btnTheme) {
+        applyTheme(getStoredTheme());
+        btnTheme.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+          applyTheme(current === 'dark' ? 'light' : 'dark');
+        });
+      }
       var logoutLink = document.getElementById('headerLogoutLink');
       if (logoutLink) {
         logoutLink.addEventListener('click', function (e) {
