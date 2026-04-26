@@ -30,7 +30,7 @@
     '  <div class="header__row">',
     '    <div class="header__brand">',
     '      <a class="header__home" id="headerHome" href="index.html" title="На главную">',
-    '        <img class="header__logo" src="assets/logo-mark.svg" alt="" aria-hidden="true">',
+    '        <img class="header__logo" src="assets/logo-mark.svg?v=304-logo-mark" alt="" aria-hidden="true">',
     '        <span class="header__title">РегДок</span>',
     '      </a>',
     '    </div>',
