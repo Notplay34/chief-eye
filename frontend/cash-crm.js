@@ -307,13 +307,14 @@
     var totalEl = document.getElementById('stateDutyCommissionTotal');
     var btn = document.getElementById('btnWithdrawStateDutyCommission');
     var msgEl = document.getElementById('stateDutyCommissionMsg');
-    if (totalEl) totalEl.textContent = formatNumOnly(summary.withdrawal_total || summary.state_duty_total || 0) + ' ₽';
+    var withdrawalTotal = Number(summary.withdrawal_total != null ? summary.withdrawal_total : (summary.state_duty_total || 0));
+    if (totalEl) totalEl.textContent = formatNumOnly(withdrawalTotal) + ' ₽';
     if (btn) btn.disabled = !summary.can_withdraw;
     if (msgEl) {
-      if (summary.withdrawn) {
-        msgEl.textContent = 'Госпошлины за день уже списаны.';
+      if (withdrawalTotal <= 0 && summary.withdrawn) {
+        msgEl.textContent = 'Все госпошлины за день списаны.';
         msgEl.className = 'cash-duty-commission__msg cash-duty-commission__msg--ok';
-      } else if (Number(summary.withdrawal_total || summary.state_duty_total || 0) <= 0) {
+      } else if (withdrawalTotal <= 0) {
         msgEl.textContent = 'Госпошлин к списанию пока нет.';
         msgEl.className = 'cash-duty-commission__msg';
       } else {

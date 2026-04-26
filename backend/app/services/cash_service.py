@@ -185,24 +185,34 @@ async def get_state_duty_commission_summary(
         Decimal("0"),
     )
     state_duty_total = sum((Decimal(str(row.state_duty or 0)) for row in rows), Decimal("0"))
-    withdrawal = (
+    withdrawals = (
         await db.execute(
             select(CashRow).where(
                 CashRow.source_type == STATE_DUTY_COMMISSION_WITHDRAWAL,
                 CashRow.source_date == day,
-            )
+            ).order_by(CashRow.created_at.desc())
         )
-    ).scalar_one_or_none()
+    ).scalars().all()
+    withdrawn_total = sum(
+        (
+            max(Decimal("0"), -Decimal(str(row.state_duty or row.total or 0)))
+            for row in withdrawals
+        ),
+        Decimal("0"),
+    )
+    withdrawal_total = max(Decimal("0"), state_duty_total - withdrawn_total)
+    latest_withdrawal = withdrawals[0] if withdrawals else None
 
     return {
         "business_date": day.isoformat(),
         "commission_total": float(commission_total),
         "state_duty_total": float(state_duty_total),
-        "withdrawal_total": float(state_duty_total),
-        "withdrawn": withdrawal is not None,
-        "withdrawn_row_id": withdrawal.id if withdrawal else None,
-        "withdrawn_at": withdrawal.created_at.isoformat() if withdrawal and withdrawal.created_at else None,
-        "can_withdraw": state_duty_total > 0 and withdrawal is None,
+        "withdrawn_total": float(withdrawn_total),
+        "withdrawal_total": float(withdrawal_total),
+        "withdrawn": latest_withdrawal is not None,
+        "withdrawn_row_id": latest_withdrawal.id if latest_withdrawal else None,
+        "withdrawn_at": latest_withdrawal.created_at.isoformat() if latest_withdrawal and latest_withdrawal.created_at else None,
+        "can_withdraw": withdrawal_total > 0,
     }
 
 
@@ -213,10 +223,10 @@ async def withdraw_state_duty_commissions(
 ) -> dict:
     summary = await get_state_duty_commission_summary(db, user, business_date)
     day = date.fromisoformat(summary["business_date"])
-    if summary["withdrawn"]:
-        return summary
-    total = Decimal(str(summary.get("withdrawal_total") or summary.get("state_duty_total") or 0))
+    total = Decimal(str(summary["withdrawal_total"] if "withdrawal_total" in summary else summary.get("state_duty_total", 0)))
     if total <= 0:
+        if summary["withdrawn"]:
+            return summary
         raise ServiceError("За выбранный день нет госпошлин к списанию", status_code=400)
 
     row = CashRow(

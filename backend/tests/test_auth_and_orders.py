@@ -208,6 +208,9 @@ def test_state_duty_settings_and_commission_withdrawal(client: TestClient, auth_
     repeat_response = client.post("/cash/state-duty-commissions/withdraw", json={}, headers=auth_headers)
     assert repeat_response.status_code == 200, repeat_response.text
     assert repeat_response.json()["withdrawn"] is True
+    assert repeat_response.json()["withdrawn_total"] == 2250.0
+    assert repeat_response.json()["withdrawal_total"] == 0.0
+    assert repeat_response.json()["can_withdraw"] is False
 
     cash_rows_response = client.get("/cash/rows", headers=auth_headers)
     assert cash_rows_response.status_code == 200, cash_rows_response.text
@@ -218,6 +221,32 @@ def test_state_duty_settings_and_commission_withdrawal(client: TestClient, auth_
     assert len(commission_rows) == 1
     assert commission_rows[0]["state_duty"] == -2250.0
     assert commission_rows[0]["total"] == -2250.0
+
+    late_order = client.post("/orders", json=make_order_payload(), headers=auth_headers)
+    assert late_order.status_code == 200, late_order.text
+    late_pay = client.post(f"/orders/{late_order.json()['id']}/pay", headers=auth_headers)
+    assert late_pay.status_code == 200, late_pay.text
+
+    late_summary_response = client.get("/cash/state-duty-commissions", headers=auth_headers)
+    assert late_summary_response.status_code == 200, late_summary_response.text
+    late_summary = late_summary_response.json()
+    assert late_summary["state_duty_total"] == 2950.0
+    assert late_summary["withdrawn_total"] == 2250.0
+    assert late_summary["withdrawal_total"] == 700.0
+    assert late_summary["can_withdraw"] is True
+
+    late_withdraw_response = client.post("/cash/state-duty-commissions/withdraw", json={}, headers=auth_headers)
+    assert late_withdraw_response.status_code == 200, late_withdraw_response.text
+    assert late_withdraw_response.json()["withdrawn_total"] == 2950.0
+    assert late_withdraw_response.json()["withdrawal_total"] == 0.0
+
+    cash_rows_after_late_response = client.get("/cash/rows", headers=auth_headers)
+    assert cash_rows_after_late_response.status_code == 200, cash_rows_after_late_response.text
+    commission_rows_after_late = [
+        row for row in cash_rows_after_late_response.json()
+        if row["source_type"] == "STATE_DUTY_COMMISSION_WITHDRAWAL"
+    ]
+    assert sorted(row["state_duty"] for row in commission_rows_after_late) == [-2250.0, -700.0]
 
 
 def test_state_duty_commission_summary_follows_cash_row_deletion(client: TestClient, auth_headers: dict[str, str]):
