@@ -73,13 +73,30 @@
     ].join('');
   }
 
-  function renderOverview(overview, previous) {
-    var cards = [
-      card('Мой доход', formatMoney(overview.income_total), deltaText(overview.income_total, previous.income_total, 'money'), 'primary'),
-      card('Оборот в кассе', formatMoney(overview.turnover_total), 'Все принятые деньги, включая госпошлину', 'turnover'),
-      card('Заказы', String(overview.orders_count || 0), deltaText(overview.orders_count, previous.orders_count, 'count')),
-      card('Средний чек', formatMoney(overview.average_check), deltaText(overview.average_check, previous.average_check, 'money')),
-    ];
+  function renderOverview(overview, previous, kind) {
+    var cards;
+    if (kind === 'docs') {
+      cards = [
+        card('Доход по документам', formatMoney(overview.income_total), deltaText(overview.income_total, previous.income_total, 'money'), 'primary'),
+        card('Принято госпошлины', formatMoney(overview.state_duty_cash_total), 'Проходная сумма, не доход павильона', 'turnover'),
+        card('Заказы', String(overview.orders_count || 0), deltaText(overview.orders_count, previous.orders_count, 'count')),
+        card('Средний чек', formatMoney(overview.average_check), deltaText(overview.average_check, previous.average_check, 'money')),
+      ];
+    } else if (kind === 'plates') {
+      cards = [
+        card('Доход по номерам', formatMoney(overview.income_total), deltaText(overview.income_total, previous.income_total, 'money'), 'primary'),
+        card('Комплекты', String(overview.numbers_units || 0), deltaText(overview.numbers_units, previous.numbers_units, 'count'), 'turnover'),
+        card('Заказы с номерами', String(overview.numbers_orders_count || 0), deltaText(overview.numbers_orders_count, previous.numbers_orders_count, 'count')),
+        card('Средний чек номеров', formatMoney(overview.average_check), deltaText(overview.average_check, previous.average_check, 'money')),
+      ];
+    } else {
+      cards = [
+        card('Мой доход', formatMoney(overview.income_total), deltaText(overview.income_total, previous.income_total, 'money'), 'primary'),
+        card('Оборот в кассе', formatMoney(overview.turnover_total), 'Все принятые деньги, включая госпошлину', 'turnover'),
+        card('Заказы', String(overview.orders_count || 0), deltaText(overview.orders_count, previous.orders_count, 'count')),
+        card('Средний чек', formatMoney(overview.average_check), deltaText(overview.average_check, previous.average_check, 'money')),
+      ];
+    }
 
     return '<section class="analytics-grid analytics-grid--cards">' + cards.join('') + '</section>';
   }
@@ -93,31 +110,61 @@
     ].join('');
   }
 
-  function renderIncomeBreakdown(overview) {
-    var plateTotal = Number(overview.plates_income || 0) + Number(overview.plate_extra_income || 0);
-    var rows = [];
-    if (Number(overview.docs_income || 0) > 0) rows.push(moneyRow('Документы', overview.docs_income));
-    if (Number(overview.state_duty_commission_income || 0) > 0) rows.push(moneyRow('Комиссия госпошлин', overview.state_duty_commission_income));
-    if (Number(overview.plates_income || 0) > 0) rows.push(moneyRow('Изготовление номеров', overview.plates_income));
-    if (Number(overview.plate_extra_income || 0) > 0) rows.push(moneyRow('Доплаты за номера', overview.plate_extra_income));
-    if (!rows.length) rows.push('<div class="analytics-empty">Дохода за выбранный период пока нет.</div>');
+  function breakdownCopy(kind) {
+    if (kind === 'docs') {
+      return {
+        title: 'Доход по документам',
+        subtitle: 'Документы и комиссия госпошлины. Номера в этот раздел не попадают.',
+        total: 'Итого по документам',
+      };
+    }
+    if (kind === 'plates') {
+      return {
+        title: 'Доход по номерам',
+        subtitle: 'Изготовление номеров и доплаты. Госпошлина и документы здесь не учитываются.',
+        total: 'Итого по номерам',
+      };
+    }
+    return {
+      title: 'Из чего собрался доход',
+      subtitle: 'Здесь только ваши деньги. Госпошлина ниже показана отдельно как проходная сумма.',
+      total: 'Итого мой доход',
+    };
+  }
 
+  function renderPassThrough(overview, kind) {
+    if (kind === 'plates') return '';
     return [
-      '<section class="analytics-panel analytics-panel--breakdown">',
-      '  <div class="analytics-panel__header">',
-      '    <h2>Из чего собрался доход</h2>',
-      '    <p>Здесь только ваши деньги. Госпошлина ниже показана отдельно как проходная сумма.</p>',
-      '  </div>',
-      '  <div class="analytics-money-list">',
-      rows.join(''),
-      moneyRow('Итого мой доход', overview.income_total, 'total'),
-      '  </div>',
       '  <div class="analytics-pass-through">',
       '    <h3>Проходные деньги</h3>',
       moneyRow('Госпошлина к списанию/перечислению', overview.state_duty_total || 0),
       moneyRow('Принято госпошлины в кассу', overview.state_duty_cash_total || overview.state_duty_total || 0),
       '  </div>',
-      Number(overview.numbers_orders_count || 0) ? '<p class="analytics-panel__note">Номера: заказов ' + escapeHtml(overview.numbers_orders_count) + ', комплектов ' + escapeHtml(overview.numbers_units || 0) + ', сумма ' + escapeHtml(formatMoney(plateTotal)) + '.</p>' : '',
+    ].join('');
+  }
+
+  function renderIncomeBreakdown(overview, kind) {
+    var plateTotal = Number(overview.plates_income || 0) + Number(overview.plate_extra_income || 0);
+    var copy = breakdownCopy(kind);
+    var rows = [];
+    if (kind !== 'plates' && Number(overview.docs_income || 0) > 0) rows.push(moneyRow('Документы', overview.docs_income));
+    if (kind !== 'plates' && Number(overview.state_duty_commission_income || 0) > 0) rows.push(moneyRow('Комиссия госпошлин', overview.state_duty_commission_income));
+    if (kind !== 'docs' && Number(overview.plates_income || 0) > 0) rows.push(moneyRow('Изготовление номеров', overview.plates_income));
+    if (kind !== 'docs' && Number(overview.plate_extra_income || 0) > 0) rows.push(moneyRow('Доплаты за номера', overview.plate_extra_income));
+    if (!rows.length) rows.push('<div class="analytics-empty">Дохода за выбранный период пока нет.</div>');
+
+    return [
+      '<section class="analytics-panel analytics-panel--breakdown">',
+      '  <div class="analytics-panel__header">',
+      '    <h2>', escapeHtml(copy.title), '</h2>',
+      '    <p>', escapeHtml(copy.subtitle), '</p>',
+      '  </div>',
+      '  <div class="analytics-money-list">',
+      rows.join(''),
+      moneyRow(copy.total, overview.income_total, 'total'),
+      '  </div>',
+      renderPassThrough(overview, kind),
+      kind !== 'docs' && Number(overview.numbers_orders_count || 0) ? '<p class="analytics-panel__note">Номера: заказов ' + escapeHtml(overview.numbers_orders_count) + ', комплектов ' + escapeHtml(overview.numbers_units || 0) + ', сумма ' + escapeHtml(formatMoney(plateTotal)) + '.</p>' : '',
       '</section>',
     ].join('');
   }
@@ -181,12 +228,15 @@
     ].join('');
   }
 
-  function renderServices(rows) {
+  function renderServices(rows, kind) {
+    var subtitle = 'Услуги и комиссии, отсортированные по сумме.';
+    if (kind === 'docs') subtitle = 'Только документы и комиссия госпошлины, без номеров.';
+    if (kind === 'plates') subtitle = 'Только изготовление номеров и доплаты, без госпошлины.';
     return [
       '<section class="analytics-panel">',
       '  <div class="analytics-panel__header">',
       '    <h2>Что приносит деньги</h2>',
-      '    <p>Услуги и комиссии, отсортированные по сумме.</p>',
+      '    <p>', escapeHtml(subtitle), '</p>',
       '  </div>',
       rows && rows.length ? [
         '  <div class="analytics-table-wrap">',
@@ -271,14 +321,14 @@
   function renderDashboard(root, state, dashboard) {
     root.innerHTML = [
       renderFilters(state),
-      renderOverview(dashboard.overview, dashboard.previous_overview),
+      renderOverview(dashboard.overview, dashboard.previous_overview, state.kind),
       '<div class="analytics-grid analytics-grid--main">',
       '  <div class="analytics-stack">',
-      renderIncomeBreakdown(dashboard.overview),
+      renderIncomeBreakdown(dashboard.overview, state.kind),
       renderTrend(dashboard.monthly_trend || []),
       '  </div>',
       '  <div class="analytics-stack">',
-      renderServices(dashboard.top_services || []),
+      renderServices(dashboard.top_services || [], state.kind),
       renderEmployees(dashboard.employee_stats || []),
       '  </div>',
       '</div>',

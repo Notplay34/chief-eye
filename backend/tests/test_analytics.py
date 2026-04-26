@@ -91,22 +91,28 @@ def test_analytics_dashboard_supports_docs_and_plates_scopes(client: TestClient,
 
     docs_response = client.get("/analytics/dashboard?period=month&kind=docs", headers=auth_headers)
     assert docs_response.status_code == 200, docs_response.text
-    docs = docs_response.json()["overview"]
+    docs_data = docs_response.json()
+    docs = docs_data["overview"]
     assert as_float(docs["income_total"]) == 700.0
     assert as_float(docs["plates_income"]) == 0.0
     assert as_float(docs["plate_extra_income"]) == 0.0
     assert as_float(docs["state_duty_total"]) == 500.0
     assert as_float(docs["state_duty_cash_total"]) == 650.0
     assert as_float(docs["state_duty_commission_income"]) == 150.0
+    assert docs["numbers_orders_count"] == 0
+    assert {row["label"] for row in docs_data["top_services"]} == {"Заявление", "Комиссия госпошлины"}
 
     plates_response = client.get("/analytics/dashboard?period=month&kind=plates", headers=auth_headers)
     assert plates_response.status_code == 200, plates_response.text
-    plates = plates_response.json()["overview"]
+    plates_data = plates_response.json()
+    plates = plates_data["overview"]
     assert as_float(plates["income_total"]) == 1800.0
     assert as_float(plates["docs_income"]) == 0.0
     assert as_float(plates["state_duty_total"]) == 0.0
+    assert as_float(plates["state_duty_cash_total"]) == 0.0
     assert as_float(plates["state_duty_commission_income"]) == 0.0
     assert plates["numbers_orders_count"] == 1
+    assert {row["label"] for row in plates_data["top_services"]} == {"Изготовление номера", "Доплата за номера"}
 
 
 def test_analytics_ignores_extra_payments_for_problem_orders(client: TestClient, auth_headers: dict[str, str]):

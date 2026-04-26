@@ -356,6 +356,8 @@ def _build_employee_stats(
 def _build_top_services(orders: list[Order], extra_payments: list[Payment], kind: str) -> list[dict]:
     stats: dict[str, dict] = {}
     for order in orders:
+        if not _scope_match(order, kind):
+            continue
         _state_duty_base, state_duty_commission, _state_duty_cash = _state_duty_parts(order)
         for item in _docs_for_order(order):
             template = (item.get("template") or "").strip().lower()
