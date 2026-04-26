@@ -1417,3 +1417,122 @@
 :root[data-theme="dark"] .cash-crm__total-summary::after {
   background: radial-gradient(circle, rgba(88, 199, 184, 0.14), transparent 68%);
 }
+
+/* -------------------------------------------------------------------------- */
+/* Mobile hardening                                                            */
+/* -------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  .cash-crm {
+    width: 100%;
+    max-width: none;
+    padding: 0 12px 12px;
+  }
+
+  .cash-crm__header-card {
+    align-items: stretch;
+    gap: 14px;
+    padding: 14px;
+  }
+
+  .cash-crm__header-text,
+  .cash-crm__header-actions {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .cash-crm__header-actions,
+  .cash-date-filter {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .cash-crm__btn-add,
+  .cash-date-filter__input,
+  .cash-date-filter__btn,
+  .cash-duty-commission__btn,
+  .cash-payout__btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .cash-crm__main {
+    gap: 12px;
+  }
+
+  .cash-crm__total-card {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .cash-crm__total-summary,
+  .cash-duty-commission,
+  .cash-payout-card {
+    min-height: auto;
+    padding: 14px;
+  }
+
+  .cash-crm__total-value {
+    margin-top: 6px;
+    font-size: clamp(1.85rem, 9vw, 2.35rem);
+  }
+
+  .cash-crm__total-note {
+    max-width: none;
+  }
+
+  .cash-crm__table-card {
+    overflow: hidden;
+  }
+
+  .cash-crm__table-wrap {
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cash-crm__grid {
+    min-width: 920px;
+  }
+
+  .cash-crm__grid-cell--name,
+  .cash-crm__grid-cell--del {
+    position: static;
+    box-shadow: none;
+  }
+
+  .cash-crm__table-card .list-pager {
+    padding: 12px;
+  }
+
+  .cash-payout__panel-body {
+    max-height: 260px;
+  }
+}
+
+@media (max-width: 520px) {
+  .cash-crm {
+    padding: 0 8px 8px;
+  }
+
+  .cash-crm__header-card,
+  .cash-crm__total-summary,
+  .cash-duty-commission,
+  .cash-payout-card {
+    padding: 12px;
+  }
+
+  .cash-crm__subtitle {
+    font-size: 0.8rem;
+  }
+
+  .cash-crm__grid {
+    min-width: 860px;
+  }
+
+  .cash-crm__grid-header,
+  .cash-crm__grid-body {
+    grid-template-columns: minmax(160px, 1.35fr) repeat(5, minmax(82px, 0.74fr)) minmax(104px, 0.9fr) 44px;
+  }
+}

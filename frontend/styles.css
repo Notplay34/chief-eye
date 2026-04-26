@@ -4048,3 +4048,392 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* 31. Mobile hardening layer                                                  */
+/* -------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  html,
+  body {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  .app,
+  .plate-page,
+  .plate-cash-page,
+  .cash-page,
+  .warehouse-page,
+  .admin,
+  .users {
+    width: 100%;
+    max-width: none;
+    min-height: 100svh;
+    padding: 12px;
+  }
+
+  #appHeader + .app,
+  #appHeader + .plate-page,
+  #appHeader + .plate-cash-page,
+  #appHeader + .cash-page,
+  #appHeader + .warehouse-page,
+  #appHeader + .admin,
+  #appHeader + .users {
+    padding-top: 0;
+  }
+
+  .header,
+  .header--dashboard {
+    position: static;
+    width: 100%;
+    margin: 8px 0 12px;
+    padding: 14px;
+    border-radius: var(--radius-lg);
+  }
+
+  .header--dashboard .header__row,
+  .header--dashboard .header__brand,
+  .header__actions {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .header--dashboard .header__row {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header--dashboard .header__brand {
+    justify-content: space-between;
+    flex-wrap: nowrap;
+  }
+
+  .header__actions {
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .header__title {
+    min-width: 0;
+    font-size: 1.12rem;
+    line-height: 1.2;
+  }
+
+  .header__subtitle {
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  .header__user-name {
+    max-width: min(48vw, 220px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .header__menu-wrap {
+    margin-left: auto;
+  }
+
+  .header__dropdown {
+    position: fixed;
+    top: 66px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+    max-height: calc(100svh - 84px);
+  }
+
+  .main-content--p1,
+  .main-content--p2,
+  .plate-transfer-workspace,
+  .warehouse-grid,
+  .users-grid,
+  .settings-grid,
+  .analytics-toolbar,
+  .plate-cash-toolbar--main,
+  .warehouse-kpi-grid,
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .work-sidebar {
+    position: static;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding-bottom: 0;
+  }
+
+  .card,
+  .admin-block,
+  .settings-card,
+  .warehouse-card,
+  .analytics-block,
+  .analytics-card,
+  .plate-transfer-history,
+  .users #listContent,
+  .account__hero,
+  .modal__box {
+    padding: 14px;
+    border-radius: var(--radius-lg);
+  }
+
+  .card__title-row,
+  .analytics-section__header,
+  .warehouse-history-header,
+  .plate-cash-toolbar,
+  .cash-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .card__title-row .card__title {
+    width: 100%;
+  }
+
+  .history-menu {
+    width: 100%;
+  }
+
+  .history-menu__trigger {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .history-menu__popover {
+    position: fixed;
+    inset: 76px 12px auto;
+    width: auto;
+    max-height: calc(100svh - 96px);
+  }
+
+  .form-grid,
+  .form-row,
+  .form-row.amounts,
+  .form-grid--wide,
+  .form-grid--dkp {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .field,
+  .field--full,
+  .mini-field,
+  .mini-field--issued-by,
+  .mini-field--date,
+  .mini-field--code {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .field__input,
+  .field__select,
+  .field__input--series,
+  .field__input--doc-number,
+  .field__input--date,
+  .field__input--division,
+  .field__input--phone {
+    width: 100%;
+    max-width: none;
+    min-height: 44px;
+  }
+
+  .document-group__row,
+  .document-group__row--passport,
+  .vehicle-doc .document-group__row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .document-group__row--passport .mini-field:nth-child(1),
+  .document-group__row--passport .mini-field:nth-child(2),
+  .document-group__row--passport .mini-field--issued-by,
+  .document-group__row:not(.document-group__row--passport) .mini-field {
+    flex: none;
+    grid-column: auto;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .vehicle-docs,
+  .document-checklist,
+  .plate-cash-kpi {
+    grid-template-columns: 1fr;
+  }
+
+  .plate-option {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .actions,
+  .actions--stacked,
+  .row-actions,
+  .btn-group {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .btn,
+  .btn-sm,
+  .cash-date-filter__btn,
+  .history-menu__nav,
+  .plate-cash-kpi .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .cash-date-filter,
+  .warehouse-history-filter,
+  .analytics-section__controls {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .cash-date-filter__input,
+  .warehouse-history-filter input,
+  .analytics-section__controls select {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .list-pager {
+    justify-content: stretch;
+    gap: 8px;
+    white-space: normal;
+  }
+
+  .list-pager__size,
+  .list-pager__page,
+  .list-pager__range {
+    width: 100%;
+    justify-content: space-between;
+    text-align: left;
+  }
+
+  .list-pager select,
+  .list-pager input {
+    min-height: 40px;
+  }
+
+  .list-pager__btn {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 40px;
+  }
+
+  .data-table-wrap,
+  .analytics-table-wrap,
+  .plate-cash-table-wrap,
+  .cash-table-wrap,
+  .warehouse-history-table-wrap,
+  .admin section,
+  .users #listContent {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .analytics-table,
+  .plate-cash-table,
+  .warehouse-history-table,
+  .admin table,
+  .users-table {
+    min-width: 680px;
+  }
+
+  .modal {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal__box {
+    width: 100%;
+    max-width: none;
+    max-height: calc(100svh - 24px);
+    overflow: auto;
+    border-radius: 18px 18px 0 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .app,
+  .plate-page,
+  .plate-cash-page,
+  .cash-page,
+  .warehouse-page,
+  .admin,
+  .users {
+    padding: 8px;
+  }
+
+  .header,
+  .header--dashboard,
+  .card,
+  .admin-block,
+  .settings-card,
+  .warehouse-card,
+  .analytics-block,
+  .analytics-card,
+  .plate-transfer-history,
+  .users #listContent,
+  .account__hero {
+    padding: 12px;
+  }
+
+  .header__actions {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .theme-toggle,
+  .header__menu-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .header__user-name {
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .header__menu-wrap {
+    justify-self: end;
+  }
+
+  .header__dropdown {
+    top: 60px;
+    left: 8px;
+    right: 8px;
+    max-height: calc(100svh - 72px);
+  }
+
+  .card__title {
+    font-size: 0.98rem;
+  }
+
+  .summary__value--total {
+    font-size: 1.45rem;
+  }
+
+  .plate-table td {
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .analytics-table,
+  .plate-cash-table,
+  .warehouse-history-table,
+  .admin table,
+  .users-table {
+    min-width: 620px;
+  }
+}
