@@ -194,6 +194,18 @@ async def ensure_schema_compatibility(engine: AsyncEngine) -> None:
             END $$;
         """))
         await conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS intermediate_plate_transfers (
+                id SERIAL PRIMARY KEY,
+                created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+                client_name VARCHAR(255) NOT NULL DEFAULT '',
+                quantity INTEGER NOT NULL DEFAULT 0,
+                amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+                created_by_id INTEGER REFERENCES employees(id),
+                paid_at TIMESTAMP WITHOUT TIME ZONE,
+                paid_by_id INTEGER REFERENCES employees(id)
+            );
+        """))
+        await conn.execute(text("""
             CREATE TABLE IF NOT EXISTS plate_stock (
                 id SERIAL PRIMARY KEY,
                 quantity INTEGER NOT NULL DEFAULT 0,

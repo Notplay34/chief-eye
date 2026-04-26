@@ -7,6 +7,7 @@ from app.models.plate import Plate, PlateStatus
 from app.models.cash_shift import CashShift, ShiftStatus
 from app.models.cash_row import CashRow
 from app.models.plate_cash_row import PlateCashRow
+from app.models.intermediate_plate_transfer import IntermediatePlateTransfer
 from app.models.plate_stock import PlateStock
 from app.models.plate_stock_movement import PlateStockMovement
 from app.models.plate_reservation import PlateReservation
@@ -21,6 +22,7 @@ __all__ = [
     "Base",
     "CashRow",
     "PlateCashRow",
+    "IntermediatePlateTransfer",
     "CashShift",
     "ShiftStatus",
     "DocumentPrice",

@@ -11,11 +11,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.logging_config import get_logger
 from app.api.auth import RequireCashAccess, RequirePlateAccess, UserInfo
-from app.models import CashRow, CashShift, Order, OrderStatus, Payment, PaymentType, PlateCashRow, PlatePayout, ShiftStatus
+from app.models import (
+    CashRow,
+    CashShift,
+    IntermediatePlateTransfer,
+    Order,
+    OrderStatus,
+    Payment,
+    PaymentType,
+    PlateCashRow,
+    PlatePayout,
+    ShiftStatus,
+)
 from app.schemas.cash import (
     ShiftOpen, ShiftClose, ShiftResponse, ShiftCurrentResponse,
     CashRowCreate, CashRowUpdate, CashRowResponse,
 )
+from app.services.audit_service import write_audit_log
 from app.services.errors import ServiceError
 from app.services.cash_service import (
     ORDER_PAYMENT_CASH_ROW,
@@ -504,6 +516,12 @@ class PlateCashRowUpdate(BaseModel):
     amount: Optional[float] = None
 
 
+class ManualPlateTransferCreate(BaseModel):
+    client_name: str = ""
+    quantity: int = Field(default=0, ge=0, le=100)
+    amount: Decimal = Field(gt=0)
+
+
 def _plate_row_to_dict(row: PlateCashRow) -> dict:
     return {
         "id": row.id,
@@ -612,6 +630,8 @@ async def delete_plate_cash_row(
 
 def _payout_to_dict(row: PlatePayout) -> dict:
     return {
+        "row_type": "auto",
+        "row_key": f"auto:{row.id}",
         "id": row.id,
         "created_at": row.created_at.isoformat() if row.created_at else None,
         "client_name": row.client_name or "",
@@ -623,6 +643,32 @@ def _payout_to_dict(row: PlatePayout) -> dict:
         "transfer_batch": row.transfer_batch,
         "paid_at": row.paid_at.isoformat() if row.paid_at else None,
         "paid_by_id": row.paid_by_id,
+    }
+
+
+def _payout_transfer_to_dict(row: PlatePayout, order_status: OrderStatus) -> dict:
+    data = _payout_to_dict(row)
+    data["order_status"] = order_status.value
+    data["ready_to_pay"] = order_status == OrderStatus.COMPLETED
+    return data
+
+
+def _manual_transfer_to_dict(row: IntermediatePlateTransfer) -> dict:
+    return {
+        "row_type": "manual",
+        "row_key": f"manual:{row.id}",
+        "id": row.id,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+        "client_name": row.client_name or "",
+        "client_short_name": _fio_initials(row.client_name) or row.client_name,
+        "quantity": int(row.quantity or 0),
+        "amount": float(row.amount),
+        "transferred_at": row.created_at.isoformat() if row.created_at else None,
+        "transferred_by_id": row.created_by_id,
+        "transfer_batch": None,
+        "paid_at": row.paid_at.isoformat() if row.paid_at else None,
+        "paid_by_id": row.paid_by_id,
+        "ready_to_pay": True,
     }
 
 
@@ -672,21 +718,129 @@ async def list_plate_transfers(
     """Промежуточная касса номеров: деньги перенесены из кассы документов, но ещё не переданы павильону номеров."""
     _ensure_pavilion_cash_access(user, 1)
     q = (
-        select(PlatePayout)
+        select(PlatePayout, Order.status)
         .join(Order, Order.id == PlatePayout.order_id)
         .where(PlatePayout.transferred_at.is_not(None), PlatePayout.paid_at.is_(None))
-        .where(Order.status == OrderStatus.COMPLETED)
         .order_by(PlatePayout.transferred_at, PlatePayout.created_at)
     )
     r = await db.execute(q)
-    rows = r.scalars().all()
-    total = sum((row.amount for row in rows), Decimal("0"))
-    quantity = sum((int(row.quantity or 1) for row in rows), 0)
+    payout_rows = r.all()
+    manual_rows = (
+        await db.execute(
+            select(IntermediatePlateTransfer)
+            .where(IntermediatePlateTransfer.paid_at.is_(None))
+            .order_by(IntermediatePlateTransfer.created_at, IntermediatePlateTransfer.id)
+        )
+    ).scalars().all()
+    rows = [_payout_transfer_to_dict(row, status) for row, status in payout_rows] + [_manual_transfer_to_dict(row) for row in manual_rows]
+    total = sum((Decimal(str(row["amount"])) for row in rows), Decimal("0"))
+    quantity = sum((int(row["quantity"] or 0) for row in rows), 0)
+    ready_rows = [row for row in rows if row.get("ready_to_pay")]
+    ready_total = sum((Decimal(str(row["amount"])) for row in ready_rows), Decimal("0"))
+    ready_quantity = sum((int(row["quantity"] or 0) for row in ready_rows), 0)
     return {
-        "rows": [_payout_to_dict(row) for row in rows],
+        "rows": rows,
         "total": float(total),
         "quantity": quantity,
+        "ready_total": float(ready_total),
+        "ready_quantity": ready_quantity,
+        "ready_count": len(ready_rows),
     }
+
+
+@router.post("/plate-transfers/manual")
+async def create_manual_plate_transfer(
+    body: ManualPlateTransferCreate,
+    db: AsyncSession = Depends(get_db),
+    user: UserInfo = Depends(RequireCashAccess),
+):
+    """Добавить ручную строку в промежуточную кассу номеров."""
+    _ensure_pavilion_cash_access(user, 1)
+    row = IntermediatePlateTransfer(
+        client_name=(body.client_name or "").strip(),
+        quantity=body.quantity,
+        amount=body.amount,
+        created_by_id=user.id,
+    )
+    db.add(row)
+    await db.flush()
+    await write_audit_log(
+        db,
+        user=user,
+        event_type="manual_plate_transfer_created",
+        entity_type="intermediate_plate_transfer",
+        entity_id=row.id,
+        payload={"client_name": row.client_name, "quantity": row.quantity, "amount": float(row.amount)},
+    )
+    return _manual_transfer_to_dict(row)
+
+
+@router.delete("/plate-transfers/{row_key}", status_code=204)
+async def delete_plate_transfer_row(
+    row_key: str,
+    db: AsyncSession = Depends(get_db),
+    user: UserInfo = Depends(RequireCashAccess),
+):
+    """Удалить строку из промежуточной кассы без возврата в кассу документов."""
+    _ensure_pavilion_cash_access(user, 1)
+    if ":" not in row_key:
+        raise HTTPException(status_code=400, detail="Некорректная строка")
+    row_type, raw_id = row_key.split(":", 1)
+    try:
+        row_id = int(raw_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Некорректная строка")
+
+    if row_type == "manual":
+        row = (
+            await db.execute(
+                select(IntermediatePlateTransfer).where(
+                    IntermediatePlateTransfer.id == row_id,
+                    IntermediatePlateTransfer.paid_at.is_(None),
+                )
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            raise HTTPException(status_code=404, detail="Строка не найдена")
+        await write_audit_log(
+            db,
+            user=user,
+            event_type="manual_plate_transfer_deleted",
+            entity_type="intermediate_plate_transfer",
+            entity_id=row.id,
+            payload={"client_name": row.client_name, "quantity": row.quantity, "amount": float(row.amount)},
+        )
+        await db.delete(row)
+        await db.flush()
+        return
+
+    if row_type == "auto":
+        payout = (
+            await db.execute(
+                select(PlatePayout).where(
+                    PlatePayout.id == row_id,
+                    PlatePayout.transferred_at.is_not(None),
+                    PlatePayout.paid_at.is_(None),
+                )
+            )
+        ).scalar_one_or_none()
+        if payout is None:
+            raise HTTPException(status_code=404, detail="Строка не найдена")
+        payout.paid_at = datetime.utcnow()
+        payout.paid_by_id = user.id
+        db.add(payout)
+        await write_audit_log(
+            db,
+            user=user,
+            event_type="plate_transfer_deleted",
+            entity_type="plate_payout",
+            entity_id=payout.id,
+            payload={"order_id": payout.order_id, "amount": float(payout.amount), "quantity": payout.quantity},
+        )
+        await db.flush()
+        return
+
+    raise HTTPException(status_code=400, detail="Некорректная строка")
 
 
 @router.post("/plate-transfers/pay")

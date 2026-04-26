@@ -31,6 +31,22 @@
 
     <p id="plateTransferMsg" class="plate-cash-msg"></p>
 
+    <form class="plate-transfer-form" id="plateTransferForm">
+      <label class="plate-transfer-form__field">
+        <span>Клиент / основание</span>
+        <input type="text" id="plateTransferName" placeholder="ФИО или причина" autocomplete="off">
+      </label>
+      <label class="plate-transfer-form__field plate-transfer-form__field--qty">
+        <span>Шт</span>
+        <input type="number" id="plateTransferQuantity" min="0" step="1" value="0">
+      </label>
+      <label class="plate-transfer-form__field plate-transfer-form__field--amount">
+        <span>Сумма</span>
+        <input type="number" id="plateTransferAmount" min="1" step="1" placeholder="0">
+      </label>
+      <button type="submit" class="btn btn--secondary">Добавить</button>
+    </form>
+
     <div class="plate-cash-table-wrap">
       <table class="plate-cash-table plate-transfer-table" id="plateTransferTable">
         <thead>
@@ -38,10 +54,11 @@
             <th class="col-name">Клиент</th>
             <th class="col-quantity">Шт</th>
             <th class="col-amount">Сумма</th>
+            <th class="col-del"></th>
           </tr>
         </thead>
         <tbody id="plateTransferBody">
-          <tr><td colspan="3" class="plate-cash-msg">Загрузка…</td></tr>
+          <tr><td colspan="4" class="plate-cash-msg">Загрузка…</td></tr>
         </tbody>
       </table>
     </div>
@@ -49,6 +66,6 @@
 
   <script src="auth.js"></script>
   <script src="header-common.js"></script>
-  <script src="plate-transfer-page.js?v=20260425-issued-only"></script>
+  <script src="plate-transfer-page.js?v=20260426-manual"></script>
 </body>
 </html>

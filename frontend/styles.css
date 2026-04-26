@@ -2572,6 +2572,57 @@ body {
   font-weight: 600;
 }
 
+.plate-transfer-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 96px 140px auto;
+  gap: var(--space-3);
+  align-items: end;
+  margin: 0 0 var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.plate-transfer-form__field {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+
+.plate-transfer-form input {
+  min-height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-3);
+  font: inherit;
+}
+
+.plate-transfer-table .col-name small {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.plate-transfer-table__ready .col-name small {
+  color: var(--color-primary);
+}
+
+@media (max-width: 760px) {
+  .plate-transfer-form {
+    grid-template-columns: 1fr 90px;
+  }
+
+  .plate-transfer-form__field--amount,
+  .plate-transfer-form .btn {
+    grid-column: 1 / -1;
+  }
+}
+
 .plate-cash-kpi--empty {
   border-style: dashed;
   background: var(--color-surface);

@@ -9,7 +9,18 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth import UserInfo
-from app.models import CashDayReconciliation, CashRow, CashShift, Order, OrderStatus, Payment, PlateCashRow, PlatePayout, ShiftStatus
+from app.models import (
+    CashDayReconciliation,
+    CashRow,
+    CashShift,
+    IntermediatePlateTransfer,
+    Order,
+    OrderStatus,
+    Payment,
+    PlateCashRow,
+    PlatePayout,
+    ShiftStatus,
+)
 from app.models.employee import EmployeeRole
 from app.services.audit_service import write_audit_log
 from app.services.errors import ServiceError
@@ -526,18 +537,26 @@ async def transfer_plate_payouts_to_intermediate(
 
 
 async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
-    result = await db.execute(
+    payout_result = await db.execute(
         select(PlatePayout)
         .join(Order, Order.id == PlatePayout.order_id)
         .where(PlatePayout.transferred_at.is_not(None), PlatePayout.paid_at.is_(None))
         .where(Order.status == OrderStatus.COMPLETED)
         .order_by(PlatePayout.transferred_at, PlatePayout.created_at)
     )
-    payouts = result.scalars().all()
-    if not payouts:
+    payouts = payout_result.scalars().all()
+    manual_rows = (
+        await db.execute(
+            select(IntermediatePlateTransfer)
+            .where(IntermediatePlateTransfer.paid_at.is_(None))
+            .order_by(IntermediatePlateTransfer.created_at, IntermediatePlateTransfer.id)
+        )
+    ).scalars().all()
+    if not payouts and not manual_rows:
         raise ServiceError("Нет денег в промежуточной кассе к передаче", status_code=400)
 
     total: Decimal = sum((payout.amount for payout in payouts), Decimal("0"))
+    total += sum((row.amount for row in manual_rows), Decimal("0"))
     if total <= 0:
         raise ServiceError("Сумма к передаче нулевая", status_code=400)
 
@@ -558,6 +577,20 @@ async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
         payout.paid_at = now
         payout.paid_by_id = user.id
         db.add(payout)
+    for row in manual_rows:
+        db.add(
+            PlateCashRow(
+                client_name=_fio_initials(row.client_name) or row.client_name,
+                quantity=int(row.quantity or 0),
+                amount=row.amount,
+                source_type=PLATE_PAYOUT_TRANSFER,
+                source_date=now.date(),
+                source_batch=f"manual:{row.id}",
+            )
+        )
+        row.paid_at = now
+        row.paid_by_id = user.id
+        db.add(row)
 
     await db.flush()
     await write_audit_log(
@@ -567,9 +600,10 @@ async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
         entity_type="plate_payout_batch",
         entity_id=None,
         payload={
-            "count": len(payouts),
+            "count": len(payouts) + len(manual_rows),
             "total": float(total),
             "order_ids": [payout.order_id for payout in payouts],
+            "manual_ids": [row.id for row in manual_rows],
         },
     )
-    return {"count": len(payouts), "total": float(total)}
+    return {"count": len(payouts) + len(manual_rows), "total": float(total)}
