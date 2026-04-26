@@ -345,19 +345,15 @@ async def list_cash_rows(
 
 @router.get("/rows/balance", response_model=dict)
 async def get_cash_rows_balance(
-    business_date: Optional[date] = Query(None),
     db: AsyncSession = Depends(get_db),
     user: UserInfo = Depends(RequireCashAccess),
 ):
-    """Накопительный остаток кассы документов: все строки до конца выбранного дня."""
+    """Фактический остаток кассы документов сейчас: сумма всего журнала."""
     _ensure_pavilion_cash_access(user, 1)
     q = select(func.coalesce(func.sum(CashRow.total), 0))
-    if business_date is not None:
-        _start, end = business_day_bounds_utc(business_date)
-        q = q.where(CashRow.created_at < end)
     total = (await db.execute(q)).scalar_one() or Decimal("0")
     return {
-        "business_date": business_date.isoformat() if business_date else None,
+        "business_date": None,
         "balance": float(total),
     }
 

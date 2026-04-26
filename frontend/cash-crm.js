@@ -286,9 +286,7 @@
   }
 
   function balanceUrl() {
-    var url = API + '/cash/rows/balance';
-    if (activeDate) return url + '?business_date=' + encodeURIComponent(activeDate);
-    return url;
+    return API + '/cash/rows/balance';
   }
 
   function renderPager() {

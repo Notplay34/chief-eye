@@ -714,7 +714,7 @@ def test_cash_rows_can_be_filtered_by_business_date(client: TestClient, auth_hea
     assert old_response.json() == []
 
 
-def test_cash_rows_balance_carries_previous_days(client: TestClient, auth_headers: dict[str, str], db_session):
+def test_cash_rows_balance_ignores_selected_history_date(client: TestClient, auth_headers: dict[str, str], db_session):
     async def create_cash_rows():
         db_session.add_all([
             CashRow(client_name="День 1", total=Decimal("1000"), created_at=datetime(2026, 4, 24, 12, 0, 0)),
@@ -731,7 +731,7 @@ def test_cash_rows_balance_carries_previous_days(client: TestClient, auth_header
 
     previous_day_response = client.get("/cash/rows/balance", params={"business_date": "2026-04-24"}, headers=auth_headers)
     assert previous_day_response.status_code == 200, previous_day_response.text
-    assert previous_day_response.json()["balance"] == 1000.0
+    assert previous_day_response.json()["balance"] == 1300.0
 
     all_response = client.get("/cash/rows/balance", headers=auth_headers)
     assert all_response.status_code == 200, all_response.text
