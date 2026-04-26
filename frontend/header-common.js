@@ -29,7 +29,10 @@
     '<header class="header header--dashboard">',
     '  <div class="header__row">',
     '    <div class="header__brand">',
-    '      <h1 class="header__title">РегДок</h1>',
+    '      <a class="header__home" id="headerHome" href="index.html" title="На главную">',
+    '        <img class="header__logo" src="assets/logo-mark.svg" alt="" aria-hidden="true">',
+    '        <span class="header__title">РегДок</span>',
+    '      </a>',
     '    </div>',
     '    <div class="header__actions">',
     '      <button type="button" class="theme-toggle" id="btnThemeToggle" aria-label="Тёмная тема" title="Тёмная тема">◐</button>',
@@ -222,12 +225,11 @@
       if (!me) me = buildMeFromUser();
       renderHeader();
 
-      // Клик по «РегДок» ведёт на стартовую страницу роли
-      var headerTitle = document.querySelector('.header__title');
-      if (headerTitle) {
-        headerTitle.textContent = 'РегДок';
-        headerTitle.style.cursor = 'pointer';
-        headerTitle.onclick = function () {
+      // Клик по логотипу ведёт на стартовую страницу роли.
+      var headerHome = document.getElementById('headerHome');
+      if (headerHome) {
+        headerHome.onclick = function (event) {
+          event.preventDefault();
           var user = window.getUser && window.getUser();
           var role = user && user.role;
           if (role === 'ROLE_PLATE_OPERATOR') {

@@ -416,6 +416,28 @@ body {
   gap: var(--space-4);
   flex-wrap: wrap;
 }
+.header__home {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+}
+
+.header__home:hover {
+  color: var(--color-primary);
+}
+
+.header__logo {
+  width: 36px;
+  height: 36px;
+  display: block;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+}
+
 .header--dashboard .header__title {
   margin: 0;
 }
@@ -3592,6 +3614,25 @@ body {
 .login-card h1 {
   font-family: var(--font-sans);
   letter-spacing: 0;
+}
+
+.login-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 10px;
+  color: var(--color-primary);
+  font-family: var(--font-sans);
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.login-brand img {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  box-shadow: var(--shadow-sm);
 }
 
 .header__title {
