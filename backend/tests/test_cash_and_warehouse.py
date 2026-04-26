@@ -437,6 +437,36 @@ def test_paying_plate_payouts_moves_money_between_cash_tables(client: TestClient
     assert open_payouts_after_delete_response.json()["total"] == 1500.0
 
 
+def test_deleting_plate_cash_row_does_not_return_money_to_intermediate(client: TestClient, auth_headers: dict[str, str]):
+    client.post("/warehouse/plate-stock/add", json={"amount": 2}, headers=auth_headers)
+
+    order = create_paid_plate_order(client, auth_headers)
+    client.patch(f"/orders/{order['id']}/status", json={"status": "PLATE_IN_PROGRESS"}, headers=auth_headers)
+    client.patch(f"/orders/{order['id']}/status", json={"status": "COMPLETED"}, headers=auth_headers)
+
+    move_response = client.post("/cash/plate-payouts/pay", headers=auth_headers)
+    assert move_response.status_code == 200, move_response.text
+
+    pay_response = client.post("/cash/plate-transfers/pay", headers=auth_headers)
+    assert pay_response.status_code == 200, pay_response.text
+
+    plate_rows_response = client.get("/cash/plate-rows", headers=auth_headers)
+    assert plate_rows_response.status_code == 200, plate_rows_response.text
+    plate_row = plate_rows_response.json()["rows"][0]
+
+    delete_response = client.delete(f"/cash/plate-rows/{plate_row['id']}", headers=auth_headers)
+    assert delete_response.status_code == 204, delete_response.text
+
+    plate_rows_after_delete = client.get("/cash/plate-rows", headers=auth_headers)
+    assert plate_rows_after_delete.status_code == 200, plate_rows_after_delete.text
+    assert plate_rows_after_delete.json()["rows"] == []
+
+    transfers_after_delete = client.get("/cash/plate-transfers", headers=auth_headers)
+    assert transfers_after_delete.status_code == 200, transfers_after_delete.text
+    assert transfers_after_delete.json()["total"] == 0.0
+    assert transfers_after_delete.json()["rows"] == []
+
+
 def test_manual_plate_cash_row_quantity_adjusts_stock_and_amount(client: TestClient, auth_headers: dict[str, str]):
     add_stock_response = client.post("/warehouse/plate-stock/add", json={"amount": 5}, headers=auth_headers)
     assert add_stock_response.status_code == 200, add_stock_response.text

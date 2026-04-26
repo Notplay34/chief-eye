@@ -603,23 +603,6 @@ async def delete_plate_cash_row(
             await adjust_stock_for_plate_cash_row(db, -int(row.quantity or 0))
         except ServiceError as exc:
             _raise_service_error(exc)
-    if row.source_type == PLATE_PAYOUT_TRANSFER and row.source_batch:
-        payout_id = None
-        if ":" in row.source_batch:
-            try:
-                payout_id = int(row.source_batch.rsplit(":", 1)[1])
-            except ValueError:
-                payout_id = None
-        q = select(PlatePayout)
-        if payout_id is not None:
-            q = q.where(PlatePayout.id == payout_id)
-        else:
-            q = q.where(PlatePayout.transfer_batch == row.source_batch)
-        payouts = (await db.execute(q)).scalars().all()
-        for payout in payouts:
-            payout.paid_at = None
-            payout.paid_by_id = None
-            db.add(payout)
     await db.delete(row)
     await db.flush()
 
