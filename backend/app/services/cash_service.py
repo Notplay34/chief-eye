@@ -221,7 +221,18 @@ async def withdraw_state_duty_commissions(
     user: UserInfo,
     business_date: Optional[date] = None,
 ) -> dict:
-    summary = await get_state_duty_commission_summary(db, user, business_date)
+    day = business_date or business_today()
+    start, end = _day_bounds(day)
+    await db.execute(
+        select(CashRow.id)
+        .where(
+            CashRow.created_at >= start,
+            CashRow.created_at < end,
+            CashRow.state_duty > 0,
+        )
+        .with_for_update()
+    )
+    summary = await get_state_duty_commission_summary(db, user, day)
     day = date.fromisoformat(summary["business_date"])
     total = Decimal(str(summary["withdrawal_total"] if "withdrawal_total" in summary else summary.get("state_duty_total", 0)))
     if total <= 0:
@@ -474,6 +485,7 @@ async def list_open_plate_payouts(db: AsyncSession, business_date: Optional[date
     result = await db.execute(
         select(PlatePayout)
         .where(PlatePayout.transferred_at.is_(None), PlatePayout.paid_at.is_(None))
+        .with_for_update()
         .order_by(PlatePayout.created_at)
     )
     payouts = result.scalars().all()
@@ -551,6 +563,7 @@ async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
         .join(Order, Order.id == PlatePayout.order_id)
         .where(PlatePayout.transferred_at.is_not(None), PlatePayout.paid_at.is_(None))
         .where(Order.status == OrderStatus.COMPLETED)
+        .with_for_update()
         .order_by(PlatePayout.transferred_at, PlatePayout.created_at)
     )
     payouts = payout_result.scalars().all()
@@ -558,6 +571,7 @@ async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
         await db.execute(
             select(IntermediatePlateTransfer)
             .where(IntermediatePlateTransfer.paid_at.is_(None))
+            .with_for_update()
             .order_by(IntermediatePlateTransfer.created_at, IntermediatePlateTransfer.id)
         )
     ).scalars().all()

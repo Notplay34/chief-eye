@@ -109,6 +109,14 @@
     return sum;
   }
 
+  function isSystemRow(row) {
+    return !!(row && row.source_type);
+  }
+
+  function isLockedSystemAmountField(key) {
+    return key === 'state_duty' || key === 'plates';
+  }
+
   function dayKey(row) {
     var s = row.created_at;
     if (!s) return '';
@@ -127,7 +135,7 @@
     return parts[2] + '.' + parts[1] + '.' + parts[0];
   }
 
-  /** Поле Итого: редактируемое, допускает минус. */
+  /** Поле Итого: ручное для обычных строк, только просмотр для системных. */
   function buildTotalCell(row) {
     var id = row.id;
     var total = totalFromRow(row);
@@ -140,6 +148,16 @@
     input.dataset.rowId = String(id);
     input.value = total === 0 ? '' : toInputValue(total);
     input.setAttribute('inputmode', 'decimal');
+    if (isSystemRow(row)) {
+      input.readOnly = true;
+      input.title = 'Итого системной строки пересчитывается из разрешённых полей';
+      wrap.appendChild(input);
+      var lockedCurrency = document.createElement('span');
+      lockedCurrency.className = 'cash-crm__amount-currency';
+      lockedCurrency.textContent = ' ₽';
+      wrap.appendChild(lockedCurrency);
+      return wrap;
+    }
 
     input.addEventListener('blur', function () {
       var raw = this.value;
@@ -185,6 +203,10 @@
     input.className = 'cash-crm__input' + (isNumber ? ' cash-crm__input--num' : '');
     input.dataset.key = key;
     input.dataset.rowId = String(row.id);
+    if (isNumber && isSystemRow(row) && isLockedSystemAmountField(key)) {
+      input.readOnly = true;
+      input.title = 'Это поле связано с оплатой или переносом и не редактируется вручную';
+    }
     if (!isNumber && key === 'client_name') {
       input.placeholder = 'Фамилия и инициалы';
     }
@@ -201,6 +223,10 @@
       var field = this.dataset.key;
       var currentRow = rows.find(function (r) { return r.id === id; });
       if (!currentRow) return;
+      if (isNumber && isSystemRow(currentRow) && isLockedSystemAmountField(field)) {
+        this.value = toInputValue(currentRow[field]);
+        return;
+      }
 
       var raw = this.value;
       var newValue = isNumber ? parseAmount(raw) : raw.trim();
@@ -223,7 +249,7 @@
         currentRow[field] = newValue;
         var sum = recomputeTotal(currentRow);
         payload[field] = newValue;
-        payload.total = sum;
+        if (!isSystemRow(currentRow)) payload.total = sum;
       } else {
         payload[field] = newValue;
       }

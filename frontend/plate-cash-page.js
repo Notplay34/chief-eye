@@ -9,6 +9,7 @@
   var page = 0;
   var pageSize = 30;
   var hasNextPage = false;
+  var filteredTotal = 0;
 
   function msg(text, isErr) {
     var el = document.getElementById('plateCashMsg');
@@ -116,8 +117,7 @@
   }
 
   function renderTotal() {
-    var total = rows.reduce(function (sum, row) { return sum + numVal(row.amount); }, 0);
-    document.getElementById('totalCell').innerHTML = fmt(total);
+    document.getElementById('totalCell').innerHTML = fmt(filteredTotal);
   }
 
   function makeInput(row, key, isNum) {
@@ -142,6 +142,7 @@
       if (isNum) this.value = value ? moneyText(value).replace(' ₽', '') : '';
       patchRow(id, payload)
         .then(function (updated) {
+          if (isNum) filteredTotal += numVal(updated.amount) - numVal(previous.amount);
           updateRowInList(id, updated);
           if (isNum) render();
           renderTotal();
@@ -178,6 +179,7 @@
 
       patchRow(id, payload)
         .then(function (updated) {
+          filteredTotal += numVal(updated.amount) - numVal(previous.amount);
           updateRowInList(id, updated);
           render();
           msg(value > 0 ? 'Номера списаны со склада.' : 'Списание номеров отменено.');
@@ -223,6 +225,7 @@
       fetchApi(api + '/cash/plate-rows/' + row.id, { method: 'DELETE' })
         .then(function (r) {
           if (r.status === 204 || r.ok) {
+            filteredTotal -= numVal(row.amount);
             rows = rows.filter(function (item) { return item.id !== row.id; });
             render();
             renderPager();
@@ -290,6 +293,7 @@
       })
       .then(function (data) {
         rows = data && data.rows ? data.rows : [];
+        filteredTotal = numVal(data && data.total != null ? data.total : 0);
         hasNextPage = rows.length > pageSize;
         if (hasNextPage) rows = rows.slice(0, pageSize);
         render();
@@ -369,6 +373,7 @@
       })
       .then(function (newRow) {
         rows.unshift(newRow);
+        filteredTotal += numVal(newRow.amount);
         if (rows.length > pageSize) rows = rows.slice(0, pageSize);
         render();
         renderPager();

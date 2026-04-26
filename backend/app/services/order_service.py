@@ -249,6 +249,26 @@ def order_cash_row_amounts(order: Order) -> dict:
 
 
 async def accept_order_payment(db: AsyncSession, order: Order, user: UserInfo) -> PayOrderResponse:
+    locked_order = (
+        await db.execute(select(Order).where(Order.id == order.id).with_for_update())
+    ).scalar_one_or_none()
+    if locked_order is None:
+        raise ServiceError("Заказ не найден", status_code=404)
+    order = locked_order
+
+    existing_cash_row = (
+        await db.execute(
+            select(CashRow.id)
+            .where(
+                CashRow.source_type == ORDER_PAYMENT_CASH_ROW,
+                CashRow.source_batch == str(order.id),
+            )
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if existing_cash_row is not None:
+        raise ServiceError("Оплата этого заказа уже проведена", status_code=409)
+
     if not can_transition(order.status, OrderStatus.PAID):
         raise ServiceError(
             f"Нельзя принять оплату для заказа со статусом {order.status.value}",

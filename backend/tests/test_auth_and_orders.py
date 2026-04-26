@@ -123,6 +123,11 @@ def test_payment_flow_creates_payments_and_cash_row(client: TestClient, auth_hea
     assert detail_response.status_code == 200, detail_response.text
     assert detail_response.json()["status"] == "PAID"
 
+    repeat_pay_response = client.post(f"/orders/{order['id']}/pay", headers=auth_headers)
+    assert repeat_pay_response.status_code == 409, repeat_pay_response.text
+    repeat_payments = client.get(f"/orders/{order['id']}/payments", headers=auth_headers).json()
+    assert repeat_payments["total_paid"] == 2700.0
+
 
 def test_order_author_is_taken_from_jwt_not_payload(client: TestClient, auth_headers: dict[str, str]):
     response = client.post(

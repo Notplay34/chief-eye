@@ -393,6 +393,19 @@ async def update_cash_row(
     row = r.scalar_one_or_none()
     if not row:
         raise HTTPException(status_code=404, detail="Строка не найдена")
+    fields_set = getattr(body, "model_fields_set", None)
+    if fields_set is None:
+        fields_set = getattr(body, "__fields_set__", set())
+    if row.source_type:
+        forbidden_fields = {"state_duty", "plates", "total"} & set(fields_set)
+        if forbidden_fields:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Системная строка связана с оплатой или переносом. "
+                    "Можно менять только ФИО, заявление, ДКП и страховку."
+                ),
+            )
     if body.client_name is not None:
         row.client_name = body.client_name
     if body.application is not None:
@@ -407,6 +420,14 @@ async def update_cash_row(
         row.plates = body.plates
     if body.total is not None:
         row.total = body.total
+    elif row.source_type and {"application", "dkp", "insurance"} & set(fields_set):
+        row.total = (
+            Decimal(str(row.application or 0))
+            + Decimal(str(row.state_duty or 0))
+            + Decimal(str(row.dkp or 0))
+            + Decimal(str(row.insurance or 0))
+            + Decimal(str(row.plates or 0))
+        )
     db.add(row)
     await db.flush()
     return _cash_row_to_dict(row)
@@ -573,12 +594,19 @@ async def list_plate_cash_rows(
     user: UserInfo = Depends(RequirePlateAccess),
 ):
     """Список строк кассы номеров (последние сверху)."""
-    q = select(PlateCashRow).order_by(PlateCashRow.created_at.desc()).offset(offset).limit(limit)
-    q = _apply_date_filters(q, PlateCashRow, business_date, date_from, date_to)
+    base_q = _apply_date_filters(select(PlateCashRow), PlateCashRow, business_date, date_from, date_to)
+    total_q = _apply_date_filters(
+        select(func.coalesce(func.sum(PlateCashRow.amount), 0)),
+        PlateCashRow,
+        business_date,
+        date_from,
+        date_to,
+    )
+    q = base_q.order_by(PlateCashRow.created_at.desc()).offset(offset).limit(limit)
     r = await db.execute(q)
     rows = r.scalars().all()
-    total = sum(float(row.amount) for row in rows)
-    return {"rows": [_plate_row_to_dict(row) for row in rows], "total": total}
+    total = (await db.execute(total_q)).scalar_one() or Decimal("0")
+    return {"rows": [_plate_row_to_dict(row) for row in rows], "total": float(total)}
 
 
 @router.post("/plate-rows")

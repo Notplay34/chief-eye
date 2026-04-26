@@ -7,7 +7,7 @@ from datetime import date, datetime, timedelta
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from app.models import CashRow, Order, Payment, PlateStock
+from app.models import CashRow, Order, Payment, PlateCashRow, PlateStock
 from app.services.cash_service import ORDER_PAYMENT_CASH_ROW
 
 
@@ -476,6 +476,35 @@ def test_deleting_paid_order_cash_row_rolls_back_related_cash_and_analytics(clie
     assert float(analytics_after_delete.json()["overview"]["turnover_total"]) == 0.0
 
 
+def test_system_cash_row_allows_safe_edits_only(client: TestClient, auth_headers: dict[str, str]):
+    order = create_paid_plate_order(client, auth_headers)
+    cash_row = next(
+        row for row in client.get("/cash/rows", headers=auth_headers).json()
+        if row["source_batch"] == str(order["id"])
+    )
+
+    safe_response = client.patch(
+        f"/cash/rows/{cash_row['id']}",
+        json={"application": "800", "insurance": "300"},
+        headers=auth_headers,
+    )
+    assert safe_response.status_code == 200, safe_response.text
+    safe_row = safe_response.json()
+    assert safe_row["application"] == 800.0
+    assert safe_row["insurance"] == 300.0
+    assert safe_row["total"] == (
+        safe_row["application"]
+        + safe_row["state_duty"]
+        + safe_row["dkp"]
+        + safe_row["insurance"]
+        + safe_row["plates"]
+    )
+
+    for payload in ({"state_duty": "0"}, {"plates": "0"}, {"total": "0"}):
+        blocked_response = client.patch(f"/cash/rows/{cash_row['id']}", json=payload, headers=auth_headers)
+        assert blocked_response.status_code == 400, blocked_response.text
+
+
 def test_deleting_paid_order_cash_row_removes_transferred_plate_cash_rows(client: TestClient, auth_headers: dict[str, str]):
     stock_response = client.post("/warehouse/plate-stock/add", json={"amount": 3}, headers=auth_headers)
     assert stock_response.status_code == 200, stock_response.text
@@ -585,6 +614,30 @@ def test_paying_plate_payouts_moves_money_between_cash_tables(client: TestClient
     open_payouts_after_delete_response = client.get("/cash/plate-payouts", headers=auth_headers)
     assert open_payouts_after_delete_response.status_code == 200, open_payouts_after_delete_response.text
     assert open_payouts_after_delete_response.json()["total"] == 1500.0
+
+
+def test_plate_cash_total_uses_filtered_history_not_current_page(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    db_session,
+):
+    async def create_plate_rows():
+        db_session.add_all(
+            [
+                PlateCashRow(client_name="Строка 1", quantity=0, amount=Decimal("100")),
+                PlateCashRow(client_name="Строка 2", quantity=0, amount=Decimal("200")),
+                PlateCashRow(client_name="Строка 3", quantity=0, amount=Decimal("300")),
+            ]
+        )
+        await db_session.commit()
+
+    run_async(create_plate_rows())
+
+    response = client.get("/cash/plate-rows", params={"limit": 2, "offset": 0}, headers=auth_headers)
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert len(data["rows"]) == 2
+    assert data["total"] == 600.0
 
 
 def test_deleting_plate_cash_row_does_not_return_money_to_intermediate(client: TestClient, auth_headers: dict[str, str]):
