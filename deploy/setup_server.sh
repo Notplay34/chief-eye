@@ -75,23 +75,7 @@ nginx -t
 systemctl reload nginx
 echo "Nginx обновлён"
 
-if command -v curl >/dev/null 2>&1; then
-  echo "=== 2b. Проверка: доходит ли токен до бэкенда через nginx ==="
-  SUPERLOGIN="$(sed -n 's/^SUPERUSER_LOGIN=//p' backend/.env | head -n1)"
-  TOKEN=$(curl -s -X POST http://127.0.0.1:8000/auth/login \
-    --data-urlencode "username=$SUPERLOGIN" \
-    --data-urlencode "password=$SUPERPASS" 2>/dev/null | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
-  if [ -n "$TOKEN" ]; then
-    CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" http://127.0.0.1/auth/me 2>/dev/null)
-    if [ "$CODE" = "200" ]; then
-      echo "OK: nginx передаёт Authorization, /auth/me вернул 200"
-    else
-      echo "ВНИМАНИЕ: /auth/me через nginx вернул $CODE (нужно 200). Убедитесь что в location /auth/ есть: proxy_set_header Authorization \$http_authorization;"
-    fi
-  else
-    echo "Токен не получен (проверьте: systemctl status eye_w)"
-  fi
-fi
+echo "=== 2b. Проверка nginx/auth выполняется после рестарта в deploy/check_stack.sh ==="
 
 echo "=== 3. Backend (systemd) ==="
 echo "=== 3a. Зависимости backend ==="

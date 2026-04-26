@@ -14,14 +14,6 @@ fi
 
 source "$ENV_FILE"
 
-LOGIN="${SUPERUSER_LOGIN:-}"
-PASSWORD="${SUPERUSER_PASSWORD:-}"
-
-if [ -z "$LOGIN" ] || [ -z "$PASSWORD" ]; then
-  echo "В backend/.env должны быть SUPERUSER_LOGIN и SUPERUSER_PASSWORD"
-  exit 1
-fi
-
 echo "== health напрямую =="
 curl -fsS http://127.0.0.1:8000/health
 echo
@@ -38,13 +30,54 @@ echo "== health через nginx =="
 curl -fsS http://127.0.0.1/health
 echo
 
-echo "== login =="
-TOKEN=$(curl -fsS -X POST http://127.0.0.1:8000/auth/login \
-  --data-urlencode "username=$LOGIN" \
-  --data-urlencode "password=$PASSWORD" | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
+echo "== auth token =="
+TOKEN=$(cd "$PROJECT_ROOT/backend" && "$PROJECT_ROOT/backend/.venv/bin/python" - <<'PY'
+import asyncio
+import sys
+
+from sqlalchemy import select
+
+from app.config import settings
+from app.core.database import async_session_maker, engine
+from app.core.identity import normalize_login
+from app.models import Employee
+from app.models.employee import EmployeeRole
+from app.services.auth_service import create_access_token
+
+
+async def main() -> int:
+    login = normalize_login(settings.superuser_login)
+    async with async_session_maker() as session:
+        query = select(Employee).where(
+            Employee.is_active == True,
+            Employee.role == EmployeeRole.ROLE_ADMIN,
+        )
+        if login:
+            preferred = (
+                await session.execute(query.where(Employee.login_normalized == login).order_by(Employee.id))
+            ).scalars().first()
+            if preferred is not None:
+                employee = preferred
+            else:
+                employee = (await session.execute(query.order_by(Employee.id))).scalars().first()
+        else:
+            employee = (await session.execute(query.order_by(Employee.id))).scalars().first()
+
+    await engine.dispose()
+    if employee is None:
+        print("Активный администратор не найден", file=sys.stderr)
+        return 1
+
+    print(create_access_token(employee.id, employee.role.value, employee.name, employee.login or ""))
+    return 0
+
+
+raise SystemExit(asyncio.run(main()))
+PY
+)
 
 if [ -z "$TOKEN" ]; then
-  echo "Не удалось получить токен"
+  echo "Не удалось получить сервисный smoke-токен"
   exit 1
 fi
 
