@@ -693,6 +693,14 @@ def _transfer_history_to_dict(row: PlatePayout | IntermediatePlateTransfer) -> d
     }
 
 
+def _history_day_label(day: str) -> str:
+    try:
+        parsed = date.fromisoformat(day)
+    except ValueError:
+        return day
+    return parsed.strftime("%d.%m.%Y")
+
+
 @router.get("/plate-payouts")
 async def list_plate_payouts(
     business_date: Optional[date] = Query(None),
@@ -802,7 +810,26 @@ async def list_plate_transfer_history(
     rows = rows[:limit]
     total = sum((Decimal(str(row["amount"])) for row in rows), Decimal("0"))
     quantity = sum((int(row["quantity"] or 0) for row in rows), 0)
-    return {"rows": rows, "total": float(total), "quantity": quantity}
+    days_by_key: dict[str, dict] = {}
+    for row in rows:
+        day_key = (row.get("paid_at") or "")[:10] or "unknown"
+        if day_key not in days_by_key:
+            days_by_key[day_key] = {
+                "date": day_key,
+                "label": _history_day_label(day_key),
+                "rows": [],
+                "total": 0.0,
+                "quantity": 0,
+                "count": 0,
+            }
+        day = days_by_key[day_key]
+        day["rows"].append(row)
+        day["total"] = float(Decimal(str(day["total"])) + Decimal(str(row["amount"])))
+        day["quantity"] += int(row["quantity"] or 0)
+        day["count"] += 1
+    days = list(days_by_key.values())
+    days.sort(key=lambda item: item["date"], reverse=True)
+    return {"rows": rows, "days": days, "total": float(total), "quantity": quantity}
 
 
 @router.post("/plate-transfers/manual")

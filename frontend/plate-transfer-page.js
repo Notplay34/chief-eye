@@ -13,6 +13,7 @@
   var readyListEl = document.getElementById('plateTransferReadyList');
   var historyBodyEl = document.getElementById('plateTransferHistoryBody');
   var historyMetaEl = document.getElementById('plateTransferHistoryMeta');
+  var openHistoryDay = '';
 
   function money(value) {
     return new Intl.NumberFormat('ru-RU', {
@@ -127,25 +128,38 @@
 
   function renderHistory(data) {
     if (!historyBodyEl) return;
-    var historyRows = (data && data.rows) || [];
+    var historyDays = (data && data.days) || [];
     var total = Number(data && data.total || 0);
     var quantity = Number(data && data.quantity || 0);
     if (historyMetaEl) {
-      historyMetaEl.textContent = historyRows.length + ' строк · ' + quantity + ' шт · ' + money(total);
+      historyMetaEl.textContent = historyDays.length + ' дней · ' + quantity + ' шт · ' + money(total);
     }
     historyBodyEl.innerHTML = '';
-    if (!historyRows.length) {
+    if (!historyDays.length) {
       historyBodyEl.innerHTML = '<div class="plate-transfer-ready__empty">Выдач из промежуточной кассы ещё не было</div>';
       return;
     }
-    historyRows.forEach(function (row) {
-      var item = document.createElement('div');
-      item.className = 'plate-transfer-history__item';
-      item.innerHTML =
-        '<div><strong>' + escapeHtml(row.client_short_name || row.client_name || '—') + '</strong>' +
-        '<small>' + escapeHtml(dateText(row.paid_at)) + (row.quantity ? ' · ' + escapeHtml(row.quantity) + ' шт' : '') + '</small></div>' +
-        '<span>' + money(row.amount) + '</span>';
-      historyBodyEl.appendChild(item);
+    if (!openHistoryDay) openHistoryDay = historyDays[0].date;
+    historyDays.forEach(function (day) {
+      var dayEl = document.createElement('div');
+      dayEl.className = 'plate-transfer-history__day' + (day.date === openHistoryDay ? ' is-open' : '');
+      var rowsHtml = '';
+      (day.rows || []).forEach(function (row) {
+        rowsHtml +=
+          '<div class="plate-transfer-history__item">' +
+          '<div><strong>' + escapeHtml(row.client_short_name || row.client_name || '—') + '</strong>' +
+          '<small>' + escapeHtml(dateText(row.paid_at)) + (row.quantity ? ' · ' + escapeHtml(row.quantity) + ' шт' : '') + '</small></div>' +
+          '<span>' + money(row.amount) + '</span>' +
+          '</div>';
+      });
+      dayEl.innerHTML =
+        '<button type="button" class="plate-transfer-history__day-btn" data-history-day="' + escapeHtml(day.date) + '">' +
+        '<span>' + escapeHtml(day.label || day.date) + '</span>' +
+        '<strong>' + money(day.total) + '</strong>' +
+        '<small>' + escapeHtml(day.count || 0) + ' строк · ' + escapeHtml(day.quantity || 0) + ' шт</small>' +
+        '</button>' +
+        '<div class="plate-transfer-history__rows">' + rowsHtml + '</div>';
+      historyBodyEl.appendChild(dayEl);
     });
   }
 
@@ -274,6 +288,17 @@
   }
 
   if (btnAddRow) btnAddRow.addEventListener('click', addManualRow);
+  if (historyBodyEl) historyBodyEl.addEventListener('click', function (event) {
+    var target = event.target;
+    if (!target || !target.getAttribute) target = target && target.parentNode;
+    while (target && target !== historyBodyEl && !target.getAttribute('data-history-day')) {
+      target = target.parentNode;
+    }
+    if (!target || target === historyBodyEl) return;
+    var day = target.getAttribute('data-history-day');
+    openHistoryDay = openHistoryDay === day ? '' : day;
+    loadHistory();
+  });
   bodyEl.addEventListener('click', function (event) {
     var target = event.target;
     if (!target || !target.getAttribute) return;

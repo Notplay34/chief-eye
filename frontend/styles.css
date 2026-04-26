@@ -2628,8 +2628,14 @@ body {
   color: var(--color-text-muted);
 }
 
+.plate-transfer-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: var(--space-4);
+  align-items: start;
+}
+
 .plate-transfer-history {
-  margin-top: var(--space-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
@@ -2641,7 +2647,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-4) var(--space-5);
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface-alt);
 }
@@ -2660,16 +2666,64 @@ body {
 }
 
 .plate-transfer-history__list {
-  max-height: 260px;
+  max-height: 460px;
   overflow-y: auto;
+}
+
+.plate-transfer-history__day {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.plate-transfer-history__day:last-child {
+  border-bottom: 0;
+}
+
+.plate-transfer-history__day-btn {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.plate-transfer-history__day-btn:hover {
+  background: var(--color-surface-alt);
+}
+
+.plate-transfer-history__day-btn span,
+.plate-transfer-history__day-btn strong {
+  font-weight: 800;
+}
+
+.plate-transfer-history__day-btn small {
+  grid-column: 1 / -1;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.plate-transfer-history__rows {
+  display: none;
+  border-top: 1px solid var(--color-border);
+  background: #fff;
+}
+
+.plate-transfer-history__day.is-open .plate-transfer-history__rows {
+  display: block;
 }
 
 .plate-transfer-history__item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--space-4);
+  gap: var(--space-3);
   align-items: center;
-  padding: var(--space-3) var(--space-5);
+  padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -2705,6 +2759,10 @@ body {
 
   .plate-cash-kpi .btn {
     width: 100%;
+  }
+
+  .plate-transfer-workspace {
+    grid-template-columns: 1fr;
   }
 }
 

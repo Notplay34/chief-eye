@@ -274,6 +274,8 @@ def test_plate_transfer_pays_only_issued_clients_from_intermediate_cash(client: 
     assert history_response.status_code == 200, history_response.text
     assert history_response.json()["total"] == 1500.0
     assert history_response.json()["rows"][0]["client_name"] == "Петров Пётр Петрович"
+    assert history_response.json()["days"][0]["total"] == 1500.0
+    assert history_response.json()["days"][0]["rows"][0]["client_name"] == "Петров Пётр Петрович"
 
     transfers_after_first_pay = client.get("/cash/plate-transfers", headers=auth_headers)
     assert transfers_after_first_pay.status_code == 200, transfers_after_first_pay.text
@@ -368,6 +370,7 @@ def test_manual_intermediate_row_becomes_payable_after_inline_amount(client: Tes
     assert history_response.status_code == 200, history_response.text
     assert history_response.json()["total"] == 1500.0
     assert history_response.json()["rows"][0]["row_type"] == "manual"
+    assert history_response.json()["days"][0]["rows"][0]["row_type"] == "manual"
 
 
 def test_deleting_auto_intermediate_row_does_not_return_to_document_cash(client: TestClient, auth_headers: dict[str, str]):
