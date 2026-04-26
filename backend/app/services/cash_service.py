@@ -89,6 +89,12 @@ def _state_duty_commission_from_cash_amount(amount: Decimal, settings: dict[str,
     return Decimal("0")
 
 
+async def _lock_cash_shift_pavilion(db: AsyncSession, pavilion: int) -> None:
+    bind = db.get_bind()
+    if bind is not None and bind.dialect.name == "postgresql":
+        await db.execute(select(func.pg_advisory_xact_lock(910042, pavilion)))
+
+
 def _workday_bounds(now: datetime) -> tuple[datetime, datetime]:
     return business_day_bounds_utc(business_date_from_utc(now))
 
@@ -330,6 +336,7 @@ async def current_shift_id(db: AsyncSession, pavilion: int) -> Optional[int]:
 
 async def ensure_workday_shift(db: AsyncSession, pavilion: int, user: UserInfo) -> CashShift:
     """Return today's active cash bucket for pavilion, creating it lazily when needed."""
+    await _lock_cash_shift_pavilion(db, pavilion)
     now = utc_now()
     start, end = _workday_bounds(now)
     today_query = (
@@ -342,6 +349,7 @@ async def ensure_workday_shift(db: AsyncSession, pavilion: int, user: UserInfo) 
         )
         .order_by(CashShift.opened_at.desc())
         .limit(1)
+        .with_for_update()
     )
     today_shift = (await db.execute(today_query)).scalar_one_or_none()
     if today_shift is not None:
@@ -350,7 +358,7 @@ async def ensure_workday_shift(db: AsyncSession, pavilion: int, user: UserInfo) 
     old_open_query = select(CashShift).where(
         CashShift.pavilion == pavilion,
         CashShift.status == ShiftStatus.OPEN,
-    )
+    ).with_for_update()
     old_open_shifts = (await db.execute(old_open_query)).scalars().all()
     for shift in old_open_shifts:
         shift.status = ShiftStatus.CLOSED
@@ -384,6 +392,7 @@ def can_manage_pavilion_cash(user: UserInfo, pavilion: int) -> bool:
 async def open_shift(db: AsyncSession, user: UserInfo, pavilion: int, opening_balance: Decimal) -> dict:
     if not can_manage_pavilion_cash(user, pavilion):
         raise ServiceError("Нет доступа к кассе этого павильона", status_code=403)
+    await _lock_cash_shift_pavilion(db, pavilion)
     current = await get_current_shift(db, pavilion)
     if current:
         raise ServiceError(
@@ -482,18 +491,33 @@ async def _plate_payout_business_dates(db: AsyncSession, payouts: list[PlatePayo
 
 
 async def list_open_plate_payouts(db: AsyncSession, business_date: Optional[date] = None) -> list[PlatePayout]:
-    result = await db.execute(
+    open_query = (
         select(PlatePayout)
         .where(PlatePayout.transferred_at.is_(None), PlatePayout.paid_at.is_(None))
+        .order_by(PlatePayout.created_at)
+    )
+    if business_date is None:
+        return (await db.execute(open_query.with_for_update())).scalars().all()
+
+    payouts = (await db.execute(open_query)).scalars().all()
+    if not payouts:
+        return []
+
+    payout_dates = await _plate_payout_business_dates(db, payouts)
+    payout_ids = [payout.id for payout in payouts if payout_dates.get(payout.order_id) == business_date]
+    if not payout_ids:
+        return []
+    locked = await db.execute(
+        select(PlatePayout)
+        .where(
+            PlatePayout.id.in_(payout_ids),
+            PlatePayout.transferred_at.is_(None),
+            PlatePayout.paid_at.is_(None),
+        )
         .with_for_update()
         .order_by(PlatePayout.created_at)
     )
-    payouts = result.scalars().all()
-    if business_date is None or not payouts:
-        return payouts
-
-    payout_dates = await _plate_payout_business_dates(db, payouts)
-    return [payout for payout in payouts if payout_dates.get(payout.order_id) == business_date]
+    return locked.scalars().all()
 
 
 async def transfer_plate_payouts_to_intermediate(

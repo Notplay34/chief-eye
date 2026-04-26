@@ -49,6 +49,7 @@ from app.services.cash_service import (
     transfer_plate_payouts_to_intermediate as transfer_plate_payouts_to_intermediate_service,
     withdraw_state_duty_commissions as withdraw_state_duty_commissions_service,
 )
+from app.services.order_service import _DKP_TEMPLATES, _NUMBER_TEMPLATE
 from app.services.warehouse_service import (
     ORDER_ROLLBACK,
     adjust_stock_for_plate_cash_row,
@@ -245,7 +246,7 @@ async def _remove_plate_payout_for_cash_row(db: AsyncSession, row: CashRow) -> N
     else:
         q = q.where(PlatePayout.client_name == (row.client_name or ""))
 
-    payouts = (await db.execute(q.order_by(PlatePayout.created_at, PlatePayout.id))).scalars().all()
+    payouts = (await db.execute(q.with_for_update().order_by(PlatePayout.created_at, PlatePayout.id))).scalars().all()
     if not payouts:
         return
 
@@ -282,7 +283,7 @@ async def _rollback_order_payment_for_cash_row(db: AsyncSession, row: CashRow) -
                 Payment.type.in_([PaymentType.STATE_DUTY, PaymentType.INCOME_PAVILION1]),
             )
         )
-        order = (await db.execute(select(Order).where(Order.id == order_id))).scalar_one_or_none()
+        order = (await db.execute(select(Order).where(Order.id == order_id).with_for_update())).scalar_one_or_none()
         if order and order.status in {
             OrderStatus.PAID,
             OrderStatus.PLATE_IN_PROGRESS,
@@ -322,6 +323,85 @@ async def _rollback_order_payment_for_cash_row(db: AsyncSession, row: CashRow) -
         ).scalar_one_or_none()
         if payment:
             await db.delete(payment)
+
+
+def _set_document_bucket_total(form_data: dict, templates: set[str], target: Decimal) -> None:
+    documents = form_data.get("documents") or []
+    matching = [
+        doc for doc in documents
+        if (doc.get("template") or "").strip().lower() in templates
+    ]
+    if not matching:
+        return
+    matching[0]["price"] = str(target)
+    for doc in matching[1:]:
+        doc["price"] = "0"
+
+
+def _sync_form_data_from_cash_row(order: Order, row: CashRow) -> None:
+    form_data = dict(order.form_data or {})
+    documents = [dict(doc) for doc in (form_data.get("documents") or [])]
+    form_data["documents"] = documents
+    _set_document_bucket_total(
+        form_data,
+        {
+            (doc.get("template") or "").strip().lower()
+            for doc in documents
+            if (doc.get("template") or "").strip().lower() not in _DKP_TEMPLATES
+            and (doc.get("template") or "").strip().lower() != _NUMBER_TEMPLATE
+        },
+        Decimal(str(row.application or 0)),
+    )
+    _set_document_bucket_total(form_data, set(_DKP_TEMPLATES), Decimal(str(row.dkp or 0)))
+    form_data["insurance_cash_amount"] = str(row.insurance or 0)
+    order.form_data = form_data
+
+
+async def _sync_order_payment_for_cash_row_edit(db: AsyncSession, row: CashRow, user: UserInfo) -> None:
+    order_id = _cash_row_order_id(row)
+    if order_id is None or row.source_type != ORDER_PAYMENT_CASH_ROW:
+        return
+
+    order = (await db.execute(select(Order).where(Order.id == order_id).with_for_update())).scalar_one_or_none()
+    if order is None:
+        return
+
+    order.income_pavilion1 = (
+        Decimal(str(row.application or 0))
+        + Decimal(str(row.dkp or 0))
+        + Decimal(str(row.insurance or 0))
+    )
+    order.income_pavilion2 = Decimal(str(row.plates or 0))
+    order.total_amount = Decimal(str(row.total or 0))
+    _sync_form_data_from_cash_row(order, row)
+    db.add(order)
+
+    cash_income = order.income_pavilion1 + order.income_pavilion2
+    payment = (
+        await db.execute(
+            select(Payment)
+            .where(Payment.order_id == order.id, Payment.type == PaymentType.INCOME_PAVILION1)
+            .with_for_update()
+            .order_by(Payment.created_at.desc(), Payment.id.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if payment:
+        if cash_income > 0:
+            payment.amount = cash_income
+            db.add(payment)
+        else:
+            await db.delete(payment)
+    elif cash_income > 0:
+        db.add(
+            Payment(
+                order_id=order.id,
+                amount=cash_income,
+                type=PaymentType.INCOME_PAVILION1,
+                employee_id=user.id,
+                shift_id=None,
+            )
+        )
 
 
 @router.get("/rows", response_model=list)
@@ -389,7 +469,7 @@ async def update_cash_row(
 ):
     """Обновить ячейки строки кассы (передавать только изменённые поля)."""
     _ensure_pavilion_cash_access(user, 1)
-    r = await db.execute(select(CashRow).where(CashRow.id == row_id))
+    r = await db.execute(select(CashRow).where(CashRow.id == row_id).with_for_update())
     row = r.scalar_one_or_none()
     if not row:
         raise HTTPException(status_code=404, detail="Строка не найдена")
@@ -428,6 +508,7 @@ async def update_cash_row(
             + Decimal(str(row.insurance or 0))
             + Decimal(str(row.plates or 0))
         )
+        await _sync_order_payment_for_cash_row_edit(db, row, user)
     db.add(row)
     await db.flush()
     return _cash_row_to_dict(row)
@@ -441,7 +522,7 @@ async def delete_cash_row(
 ):
     """Удалить строку из таблицы кассы."""
     _ensure_pavilion_cash_access(user, 1)
-    r = await db.execute(select(CashRow).where(CashRow.id == row_id))
+    r = await db.execute(select(CashRow).where(CashRow.id == row_id).with_for_update())
     row = r.scalar_one_or_none()
     if not row:
         raise HTTPException(status_code=404, detail="Строка не найдена")

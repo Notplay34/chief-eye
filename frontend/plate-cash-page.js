@@ -372,11 +372,7 @@
         return r.json();
       })
       .then(function (newRow) {
-        rows.unshift(newRow);
-        filteredTotal += numVal(newRow.amount);
-        if (rows.length > pageSize) rows = rows.slice(0, pageSize);
-        render();
-        renderPager();
+        load();
         msg('Строка добавлена.');
         setTimeout(function () { msg(''); }, 3000);
       })

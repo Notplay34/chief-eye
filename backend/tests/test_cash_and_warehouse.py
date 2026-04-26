@@ -499,6 +499,13 @@ def test_system_cash_row_allows_safe_edits_only(client: TestClient, auth_headers
         + safe_row["insurance"]
         + safe_row["plates"]
     )
+    payments_response = client.get(f"/orders/{order['id']}/payments", headers=auth_headers)
+    assert payments_response.status_code == 200, payments_response.text
+    assert payments_response.json()["total_paid"] == safe_row["total"]
+
+    detail_response = client.get(f"/orders/{order['id']}/detail", headers=auth_headers)
+    assert detail_response.status_code == 200, detail_response.text
+    assert float(detail_response.json()["total_amount"]) == safe_row["total"]
 
     for payload in ({"state_duty": "0"}, {"plates": "0"}, {"total": "0"}):
         blocked_response = client.patch(f"/cash/rows/{cash_row['id']}", json=payload, headers=auth_headers)
