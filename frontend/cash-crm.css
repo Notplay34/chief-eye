@@ -99,6 +99,11 @@
   max-height: calc(100vh - 360px);
 }
 
+.cash-crm__table-card .list-pager {
+  margin-top: 0;
+  padding: 12px 16px 0;
+}
+
 /* ----- Grid: фиксированная структура колонок ----- */
 .cash-crm__grid {
   width: 100%;

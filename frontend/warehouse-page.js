@@ -108,12 +108,14 @@
     var info = document.getElementById('warehouseMovementsPageInfo');
     var prev = document.getElementById('warehouseMovementsPrev');
     var next = document.getElementById('warehouseMovementsNext');
+    var pageInput = document.getElementById('warehouseMovementsPageNumber');
     var count = movementsVisibleCount;
     if (info) {
       var start = count ? movementsPage * movementsPageSize + 1 : 0;
       var end = movementsPage * movementsPageSize + count;
-      info.textContent = start + '–' + end;
+      info.textContent = start + '–' + end + ' записей';
     }
+    if (pageInput) pageInput.value = String(movementsPage + 1);
     if (prev) prev.disabled = movementsPage <= 0;
     if (next) next.disabled = !movementsHasNext;
   }
@@ -311,6 +313,13 @@
   if (movementsNext) movementsNext.addEventListener('click', function () {
     if (!movementsHasNext) return;
     movementsPage += 1;
+    loadHistory();
+  });
+  var movementsPageInput = document.getElementById('warehouseMovementsPageNumber');
+  if (movementsPageInput) movementsPageInput.addEventListener('change', function () {
+    var value = parseInt(this.value, 10);
+    if (isNaN(value) || value < 1) value = 1;
+    movementsPage = value - 1;
     loadHistory();
   });
 

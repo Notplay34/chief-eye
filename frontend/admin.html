@@ -36,17 +36,24 @@
           <option value="COMPLETED">Завершён</option>
           <option value="PROBLEM">Проблема</option>
         </select>
-        <span id="ordersPageInfo" class="text-muted">0–0</span>
-        <select id="ordersPageSize">
-          <option value="10">10</option>
-          <option value="30" selected>30</option>
-          <option value="50">50</option>
-        </select>
-        <button type="button" class="btn btn-sm" id="ordersPagePrev">Назад</button>
-        <button type="button" class="btn btn-sm" id="ordersPageNext">Дальше</button>
         <span class="text-muted">Клик по номеру — скопировать</span>
       </div>
       <div id="ordersContent" class="loading">Загрузка…</div>
+      <nav class="list-pager" aria-label="Страницы заказов">
+        <label class="list-pager__size">Показать
+          <select id="ordersPageSize">
+            <option value="10">10</option>
+            <option value="30" selected>30</option>
+            <option value="50">50</option>
+          </select>
+        </label>
+        <span class="list-pager__range" id="ordersPageInfo">0–0</span>
+        <button type="button" class="list-pager__btn" id="ordersPagePrev">‹</button>
+        <label class="list-pager__page">Страница
+          <input type="number" min="1" id="ordersPageNumber" value="1">
+        </label>
+        <button type="button" class="list-pager__btn" id="ordersPageNext">›</button>
+      </nav>
     </section>
 
     <section id="sectionEmployees">

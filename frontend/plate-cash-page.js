@@ -97,11 +97,13 @@
     var info = document.getElementById('plateCashPageInfo');
     var prev = document.getElementById('plateCashPagePrev');
     var next = document.getElementById('plateCashPageNext');
+    var pageInput = document.getElementById('plateCashPageNumber');
     if (info) {
       var start = rows.length ? page * pageSize + 1 : 0;
       var end = page * pageSize + rows.length;
-      info.textContent = start + '–' + end;
+      info.textContent = start + '–' + end + ' записей';
     }
+    if (pageInput) pageInput.value = String(page + 1);
     if (prev) prev.disabled = page <= 0;
     if (next) next.disabled = !hasNextPage;
   }
@@ -343,6 +345,13 @@
   if (nextBtn) nextBtn.addEventListener('click', function () {
     if (!hasNextPage) return;
     page += 1;
+    load();
+  });
+  var pageInput = document.getElementById('plateCashPageNumber');
+  if (pageInput) pageInput.addEventListener('change', function () {
+    var value = parseInt(this.value, 10);
+    if (isNaN(value) || value < 1) value = 1;
+    page = value - 1;
     load();
   });
 

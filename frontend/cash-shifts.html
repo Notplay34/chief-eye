@@ -50,16 +50,21 @@
             </div>
           </div>
         </div>
-        <div class="cash-date-filter" aria-label="Страницы кассы">
-          <span class="cash-date-filter__btn" id="cashPageInfo">1 страница</span>
-          <select id="cashPageSize" class="cash-date-filter__input">
-            <option value="10">10</option>
-            <option value="30" selected>30</option>
-            <option value="50">50</option>
-          </select>
-          <button type="button" class="cash-date-filter__btn" id="cashPagePrev">Назад</button>
-          <button type="button" class="cash-date-filter__btn" id="cashPageNext">Дальше</button>
-        </div>
+        <nav class="list-pager" aria-label="Страницы кассы">
+          <label class="list-pager__size">Показать
+            <select id="cashPageSize">
+              <option value="10">10</option>
+              <option value="30" selected>30</option>
+              <option value="50">50</option>
+            </select>
+          </label>
+          <span class="list-pager__range" id="cashPageInfo">0–0</span>
+          <button type="button" class="list-pager__btn" id="cashPagePrev">‹</button>
+          <label class="list-pager__page">Страница
+            <input type="number" min="1" id="cashPageNumber" value="1">
+          </label>
+          <button type="button" class="list-pager__btn" id="cashPageNext">›</button>
+        </nav>
         <p id="cashMsg" class="cash-crm__msg"></p>
       </div>
 

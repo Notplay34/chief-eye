@@ -30,11 +30,13 @@
     var info = document.getElementById('ordersPageInfo');
     var prev = document.getElementById('ordersPagePrev');
     var next = document.getElementById('ordersPageNext');
+    var pageInput = document.getElementById('ordersPageNumber');
     if (info) {
       var start = visibleCount ? ordersPage * ordersPageSize + 1 : 0;
       var end = ordersPage * ordersPageSize + visibleCount;
-      info.textContent = start + '–' + end;
+      info.textContent = start + '–' + end + ' записей';
     }
+    if (pageInput) pageInput.value = String(ordersPage + 1);
     if (prev) prev.disabled = ordersPage <= 0;
     if (next) next.disabled = !ordersHasNext;
   }
@@ -410,6 +412,13 @@
   if (ordersNext) ordersNext.addEventListener('click', function () {
     if (!ordersHasNext) return;
     ordersPage += 1;
+    loadOrders();
+  });
+  var ordersPageInput = document.getElementById('ordersPageNumber');
+  if (ordersPageInput) ordersPageInput.addEventListener('change', function () {
+    var value = parseInt(this.value, 10);
+    if (isNaN(value) || value < 1) value = 1;
+    ordersPage = value - 1;
     loadOrders();
   });
   document.getElementById('orderDetailClose').addEventListener('click', function () {

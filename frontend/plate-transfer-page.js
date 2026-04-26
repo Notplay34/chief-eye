@@ -159,10 +159,18 @@
     if (historyMetaEl) {
       var start = pageRows.length ? historyPage * historyPageSize + 1 : 0;
       var end = historyPage * historyPageSize + pageRows.length;
-      historyMetaEl.textContent = start + '–' + end + ' · ' + historyDays.length + ' дней · ' + quantity + ' шт · ' + money(total);
+      historyMetaEl.textContent = historyDays.length + ' дней · ' + quantity + ' шт · ' + money(total);
     }
+    var pageInfo = document.getElementById('plateTransferHistoryPageInfo');
     var prev = document.getElementById('plateTransferHistoryPrev');
     var next = document.getElementById('plateTransferHistoryNext');
+    var pageInput = document.getElementById('plateTransferHistoryPageNumber');
+    if (pageInfo) {
+      var pageStart = pageRows.length ? historyPage * historyPageSize + 1 : 0;
+      var pageEnd = historyPage * historyPageSize + pageRows.length;
+      pageInfo.textContent = pageStart + '–' + pageEnd + ' записей';
+    }
+    if (pageInput) pageInput.value = String(historyPage + 1);
     if (prev) prev.disabled = historyPage <= 0;
     if (next) next.disabled = !historyHasNext;
     historyBodyEl.innerHTML = '';
@@ -356,6 +364,14 @@
   if (historyNext) historyNext.addEventListener('click', function () {
     if (!historyHasNext) return;
     historyPage += 1;
+    openHistoryDay = '';
+    loadHistory();
+  });
+  var historyPageInput = document.getElementById('plateTransferHistoryPageNumber');
+  if (historyPageInput) historyPageInput.addEventListener('change', function () {
+    var value = parseInt(this.value, 10);
+    if (isNaN(value) || value < 1) value = 1;
+    historyPage = value - 1;
     openHistoryDay = '';
     loadHistory();
   });

@@ -290,11 +290,13 @@
     var info = document.getElementById('cashPageInfo');
     var prev = document.getElementById('cashPagePrev');
     var next = document.getElementById('cashPageNext');
+    var pageInput = document.getElementById('cashPageNumber');
     if (info) {
       var start = rows.length ? page * pageSize + 1 : 0;
       var end = page * pageSize + rows.length;
-      info.textContent = start + '–' + end;
+      info.textContent = start + '–' + end + ' записей';
     }
+    if (pageInput) pageInput.value = String(page + 1);
     if (prev) prev.disabled = page <= 0;
     if (next) next.disabled = !hasNextPage;
   }
@@ -589,6 +591,13 @@
       page += 1;
       loadRows();
     };
+    var pageInput = document.getElementById('cashPageNumber');
+    if (pageInput) pageInput.addEventListener('change', function () {
+      var value = parseInt(this.value, 10);
+      if (isNaN(value) || value < 1) value = 1;
+      page = value - 1;
+      loadRows();
+    });
     loadRows();
     var btn = document.getElementById('btnAddRow');
     if (btn) btn.onclick = addRow;
