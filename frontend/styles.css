@@ -3581,6 +3581,11 @@ body {
   backdrop-filter: blur(12px);
 }
 
+.app > #appHeader > .header--dashboard {
+  width: 100%;
+  margin: 0 0 16px;
+}
+
 .header__title,
 .card__title,
 .account__content h1,
