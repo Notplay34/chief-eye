@@ -82,6 +82,7 @@ class AnalyticsOverview(BaseModel):
     state_duty_total: Decimal
     state_duty_cash_total: Decimal
     state_duty_commission_income: Decimal
+    insurance_commission_income: Decimal
     docs_income: Decimal
     plates_income: Decimal
     plate_extra_income: Decimal
@@ -101,6 +102,9 @@ class AnalyticsTrendItem(BaseModel):
     orders_count: int
     turnover_total: Decimal
     income_total: Decimal
+    docs_income: Decimal | None = None
+    state_duty_commission_income: Decimal | None = None
+    insurance_commission_income: Decimal | None = None
 
 
 class AnalyticsEmployeeItem(BaseModel):

@@ -29,26 +29,27 @@
     throw new Error(formatDetail(payload && payload.detail) || response.statusText || 'Ошибка запроса');
   };
 
-  page.addSelectedDocument = function () {
+  page.syncSelectedDocumentsFromChecklist = function () {
     if (!page.docSelect) return;
-    var checked = Array.prototype.slice.call(page.docSelect.querySelectorAll('input[type="checkbox"]:checked:not(:disabled)'));
-    if (!checked.length) return;
-    var existing = {};
-    page.state.selectedDocuments.forEach(function (item) {
-      existing[item.template] = true;
+    var checkedTemplates = {};
+    Array.prototype.slice.call(page.docSelect.querySelectorAll('input[type="checkbox"]:checked')).forEach(function (input) {
+      if (input.value) checkedTemplates[input.value] = true;
     });
-    checked.forEach(function (input) {
-      var template = input.value;
-      if (!template || existing[template]) return;
-      var item = page.state.priceList.find(function (priceItem) { return priceItem.template === template; });
-      if (!item) return;
-      page.state.selectedDocuments.push({
-        template: item.template,
-        label: item.label || item.template,
-        price: item.price
+
+    var serviceDocuments = page.state.selectedDocuments.filter(function (item) {
+      return item.paymentOnly || item.template === 'number.docx' || page.isPlateZaiavlenie(item);
+    });
+
+    (page.state.priceList || []).forEach(function (priceItem) {
+      var template = priceItem.template;
+      if (!template || template === 'number.docx' || !checkedTemplates[template]) return;
+      serviceDocuments.push({
+        template: priceItem.template,
+        label: priceItem.label || priceItem.template,
+        price: priceItem.price
       });
-      existing[template] = true;
     });
+    page.state.selectedDocuments = serviceDocuments;
     page.renderDocumentsList();
     if (page.renderDocumentChecklist) page.renderDocumentChecklist();
     page.syncFromMainForm();

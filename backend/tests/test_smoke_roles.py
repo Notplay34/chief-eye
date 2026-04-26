@@ -83,7 +83,7 @@ def test_role_smoke_matrix(client: TestClient, auth_headers: dict[str, str]):
     operator_menu = menu_ids(operator_me.json())
     plate_menu = menu_ids(plate_me.json())
 
-    assert {"analytics_docs", "analytics_plates", "admin", "users"} <= admin_menu
+    assert {"analytics_docs", "analytics_plates", "plate_report", "admin", "users"} <= admin_menu
     assert "analytics_docs" not in manager_menu
     assert {"form_p1", "plates", "plate_cash", "warehouse", "cash_p1", "plate_transfer"} <= manager_menu
     assert {"form_p1", "cash_p1", "plate_transfer"} <= operator_menu

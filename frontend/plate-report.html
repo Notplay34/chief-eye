@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="page-auth-guard.js?v=293-plate-report-txt"></script>
+  <title>Отчёт по номерам</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=PT+Serif:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=293-plate-report-txt">
+</head>
+<body>
+  <div id="appHeader"></div>
+  <div class="admin analytics-page plate-report-page">
+    <header class="header">
+      <div>
+        <h1 class="header__title">Отчёт по номерам</h1>
+        <p class="header__subtitle">Месячный расчёт выручки, расходов, долей и суммы к отправке партнёру.</p>
+      </div>
+    </header>
+
+    <section class="analytics-toolbar plate-report-toolbar">
+      <label class="analytics-filter">
+        <span>С</span>
+        <input type="date" id="reportDateFrom">
+      </label>
+      <label class="analytics-filter">
+        <span>По</span>
+        <input type="date" id="reportDateTo">
+      </label>
+      <label class="analytics-filter">
+        <span>Расходы партнёра</span>
+        <input type="number" id="partnerExpenses" min="0" step="1" value="0">
+      </label>
+      <label class="analytics-filter plate-report-notes">
+        <span>Расшифровка расходов партнёра</span>
+        <textarea id="partnerExpenseNotes" rows="3" placeholder="8000 — аренда&#10;8500 — расходники"></textarea>
+      </label>
+      <button type="button" class="btn btn--secondary" id="btnReportRefresh">Обновить</button>
+      <button type="button" class="btn btn--secondary" id="btnDownloadReport">Создать TXT</button>
+      <button type="button" class="btn btn--primary" id="btnClosePlateMonth">Создать отрицательную операцию</button>
+    </section>
+
+    <div id="plateReportApp">
+      <div class="analytics-empty">Загрузка отчёта…</div>
+    </div>
+  </div>
+
+  <script src="auth.js?v=293-plate-report-txt"></script>
+  <script src="header-common.js?v=293-plate-report-txt"></script>
+  <script src="plate-report.js?v=293-plate-report-txt"></script>
+</body>
+</html>

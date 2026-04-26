@@ -16,17 +16,27 @@ PLATE_CASH_SALE = "PLATE_CASH_SALE"
 PLATE_CASH_RETURN = "PLATE_CASH_RETURN"
 DEFECT = "DEFECT"
 ORDER_ROLLBACK = "ORDER_ROLLBACK"
+NUMBER_TEMPLATE = "number.docx"
 
 
 async def get_or_create_stock(db: AsyncSession, *, for_update: bool = False) -> PlateStock:
-    query = select(PlateStock).limit(1)
+    query = select(PlateStock).order_by(PlateStock.id)
     if for_update:
         query = query.with_for_update()
     result = await db.execute(query)
-    stock = result.scalar_one_or_none()
-    if stock is None:
+    rows = result.scalars().all()
+    if not rows:
         stock = PlateStock(quantity=0)
         db.add(stock)
+        await db.flush()
+        return stock
+
+    stock = rows[0]
+    duplicates = rows[1:]
+    if duplicates:
+        stock.quantity = sum(int(row.quantity or 0) for row in rows)
+        db.add(stock)
+        await db.execute(delete(PlateStock).where(PlateStock.id.in_([row.id for row in duplicates])))
         await db.flush()
     return stock
 
@@ -57,6 +67,20 @@ async def record_stock_movement(
 def plate_quantity_from_order(order: Order) -> int:
     form_data = order.form_data or {}
     return max(1, int(form_data.get("plate_quantity") or 1))
+
+
+def plate_amount_from_order(order: Order) -> float:
+    form_data = order.form_data or {}
+    if form_data.get("plate_amount") is not None:
+        return float(form_data.get("plate_amount") or 0)
+    if order.income_pavilion2:
+        return float(order.income_pavilion2)
+    docs = form_data.get("documents") or []
+    return sum(
+        float(document.get("price") or 0)
+        for document in docs
+        if (document.get("template") or "").strip().lower() == NUMBER_TEMPLATE
+    )
 
 
 async def reserved_quantity(db: AsyncSession) -> int:
@@ -117,8 +141,8 @@ async def build_plate_stock_summary(db: AsyncSession) -> dict:
 
     reserved = sum(plate_quantity_from_order(order) for order in orders)
     reserved_breakdown = [
-        {"total_amount": float(order.total_amount), "quantity": plate_quantity_from_order(order)}
-        for order in sorted(orders, key=lambda row: row.total_amount, reverse=True)
+        {"total_amount": float(plate_amount_from_order(order)), "quantity": plate_quantity_from_order(order)}
+        for order in sorted(orders, key=plate_amount_from_order, reverse=True)
     ]
 
     month_start, _month_end = business_month_bounds_utc(business_today())

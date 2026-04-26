@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from app.models import CashRow, Order, Payment
+from app.models import CashRow, Order, Payment, PlateStock
 from app.services.cash_service import ORDER_PAYMENT_CASH_ROW
 
 
@@ -85,6 +85,7 @@ def test_plate_status_flow_updates_stock_and_payout_register(client: TestClient,
     assert stock_data["quantity"] == 5
     assert stock_data["reserved"] == 2
     assert stock_data["available"] == 3
+    assert stock_data["reserved_breakdown"] == [{"total_amount": 3000.0, "quantity": 2}]
 
     extra_payment_response = client.post(
         f"/orders/{order['id']}/pay-extra",
@@ -111,6 +112,25 @@ def test_plate_status_flow_updates_stock_and_payout_register(client: TestClient,
     payouts = payouts_response.json()
     assert payouts["total"] == 3700.0
     assert payouts["rows"][0]["client_name"] == "Петров Пётр Петрович"
+
+
+def test_plate_stock_summary_consolidates_duplicate_stock_rows(client: TestClient, auth_headers: dict[str, str], db_session):
+    async def create_duplicate_stock_rows():
+        db_session.add_all([PlateStock(quantity=250), PlateStock(quantity=10)])
+        await db_session.commit()
+
+    run_async(create_duplicate_stock_rows())
+
+    stock_response = client.get("/warehouse/plate-stock", headers=auth_headers)
+    assert stock_response.status_code == 200, stock_response.text
+    assert stock_response.json()["quantity"] == 260
+
+    async def read_stock_rows():
+        return (await db_session.execute(select(PlateStock).order_by(PlateStock.id))).scalars().all()
+
+    rows = run_async(read_stock_rows())
+    assert len(rows) == 1
+    assert rows[0].quantity == 260
 
 
 def test_intermediate_plate_money_is_payable_only_after_client_issue(client: TestClient, auth_headers: dict[str, str]):

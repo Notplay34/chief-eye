@@ -5,15 +5,26 @@ from datetime import date, timedelta
 from decimal import Decimal
 from typing import Iterable, Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Employee, Order, OrderStatus, Payment, PaymentType
+from app.models import CashRow, Employee, Order, OrderStatus, Payment, PaymentType, PlateCashRow, PlateDefect, PlateStockMovement
 from app.core.time_utils import business_date_from_utc, business_day_bounds_utc, business_today
 from app.services.errors import ServiceError
+from app.services.warehouse_service import (
+    ORDER_COMPLETED,
+    ORDER_ROLLBACK,
+    PLATE_CASH_RETURN,
+    PLATE_CASH_SALE,
+    get_or_create_stock,
+    reserved_quantity,
+)
 
 PLATE_TEMPLATE = "number.docx"
 ZERO = Decimal("0")
+INSURANCE_COMMISSION_PER_ROW = Decimal("1000")
+PLATE_REPORT_UNIT_PRICE = Decimal("1500")
+PLATE_MONTH_CLOSE = "PLATE_MONTH_CLOSE"
 REVENUE_ORDER_STATUSES = {
     OrderStatus.PAID,
     OrderStatus.PLATE_IN_PROGRESS,
@@ -136,6 +147,7 @@ def _order_income_for_kind(order: Order, kind: str) -> Decimal:
 def _build_overview(
     orders: Iterable[Order],
     extra_payments: Iterable[Payment],
+    cash_rows: Iterable[CashRow],
     kind: str,
 ) -> dict:
     scope_orders = [order for order in orders if _scope_match(order, kind)]
@@ -145,6 +157,7 @@ def _build_overview(
     state_duty_total = ZERO
     state_duty_cash_total = ZERO
     state_duty_commission_income = ZERO
+    insurance_commission_income = ZERO
     numbers_orders_count = 0
     numbers_units = 0
     status_breakdown: dict[str, int] = defaultdict(int)
@@ -164,6 +177,15 @@ def _build_overview(
             numbers_units += max(1, int(form_data.get("plate_quantity") or 1))
 
     plate_extra_income = sum((_to_decimal(payment.amount) for payment in extra_payments), ZERO)
+    if kind in ("all", "docs"):
+        insurance_commission_income = sum(
+            (
+                INSURANCE_COMMISSION_PER_ROW
+                for row in cash_rows
+                if _to_decimal(row.insurance) > 0
+            ),
+            ZERO,
+        )
 
     docs_income_output = docs_income if kind in ("all", "docs") else ZERO
     plates_income_output = plates_income if kind in ("all", "plates") else ZERO
@@ -172,7 +194,13 @@ def _build_overview(
     state_duty_cash_output = state_duty_cash_total if kind in ("all", "docs") else ZERO
     state_duty_commission_output = state_duty_commission_income if kind in ("all", "docs") else ZERO
 
-    income_total = docs_income_output + plates_income_output + plate_extra_output + state_duty_commission_output
+    income_total = (
+        docs_income_output
+        + plates_income_output
+        + plate_extra_output
+        + state_duty_commission_output
+        + insurance_commission_income
+    )
     turnover_total = income_total + state_duty_output
     orders_count = len(scope_orders)
     average_check = (turnover_total / orders_count) if orders_count else ZERO
@@ -184,6 +212,7 @@ def _build_overview(
         "state_duty_total": state_duty_output,
         "state_duty_cash_total": state_duty_cash_output,
         "state_duty_commission_income": state_duty_commission_output,
+        "insurance_commission_income": insurance_commission_income,
         "docs_income": docs_income_output,
         "plates_income": plates_income_output,
         "plate_extra_income": plate_extra_output,
@@ -235,6 +264,32 @@ async def _fetch_extra_payments(db: AsyncSession, start: date, end: date) -> lis
     return result.scalars().all()
 
 
+async def _fetch_cash_rows(db: AsyncSession, start: date, end: date) -> list[CashRow]:
+    start_dt, end_dt = _period_bounds(start, end)
+    result = await db.execute(
+        select(CashRow)
+        .where(
+            CashRow.created_at >= start_dt,
+            CashRow.created_at < end_dt,
+        )
+        .order_by(CashRow.created_at)
+    )
+    return result.scalars().all()
+
+
+async def _fetch_plate_cash_rows(db: AsyncSession, start: date, end: date) -> list[PlateCashRow]:
+    start_dt, end_dt = _period_bounds(start, end)
+    result = await db.execute(
+        select(PlateCashRow)
+        .where(
+            PlateCashRow.created_at >= start_dt,
+            PlateCashRow.created_at < end_dt,
+        )
+        .order_by(PlateCashRow.created_at)
+    )
+    return result.scalars().all()
+
+
 async def _employee_names(db: AsyncSession) -> dict[int, str]:
     result = await db.execute(select(Employee.id, Employee.name))
     return {employee_id: name for employee_id, name in result.all()}
@@ -243,6 +298,7 @@ async def _employee_names(db: AsyncSession) -> dict[int, str]:
 def _build_monthly_trend(
     orders: list[Order],
     extra_payments: list[Payment],
+    cash_rows: list[CashRow],
     kind: str,
     end: date,
 ) -> list[dict]:
@@ -264,16 +320,27 @@ def _build_monthly_trend(
     for payment in extra_payments:
         extras_by_month[_month_key(business_date_from_utc(payment.created_at))].append(payment)
 
+    cash_rows_by_month: dict[str, list[CashRow]] = defaultdict(list)
+    for row in cash_rows:
+        cash_rows_by_month[_month_key(business_date_from_utc(row.created_at))].append(row)
+
     points = []
     for month_start in month_starts:
         key = _month_key(month_start)
-        overview = _build_overview(orders_by_month.get(key, []), extras_by_month.get(key, []), kind)
+        overview = _build_overview(
+            orders_by_month.get(key, []),
+            extras_by_month.get(key, []),
+            cash_rows_by_month.get(key, []),
+            kind,
+        )
         points.append({
             "period_key": key,
             "label": month_start.strftime("%m.%Y"),
             "orders_count": overview["orders_count"],
             "turnover_total": overview["turnover_total"],
             "income_total": overview["income_total"],
+            "docs_income": overview["docs_income"],
+            "state_duty_commission_income": overview["state_duty_commission_income"],
         })
     return points
 
@@ -281,6 +348,7 @@ def _build_monthly_trend(
 def _build_quarter_summary(
     orders: list[Order],
     extra_payments: list[Payment],
+    cash_rows: list[CashRow],
     kind: str,
     end: date,
 ) -> list[dict]:
@@ -299,10 +367,22 @@ def _build_quarter_summary(
             continue
         extras_by_quarter[_quarter_label(created)].append(payment)
 
+    cash_rows_by_quarter: dict[str, list[CashRow]] = defaultdict(list)
+    for row in cash_rows:
+        created = business_date_from_utc(row.created_at)
+        if created.year != year:
+            continue
+        cash_rows_by_quarter[_quarter_label(created)].append(row)
+
     rows = []
     for quarter in range(1, 5):
         label = f"Q{quarter} {year}"
-        overview = _build_overview(orders_by_quarter.get(label, []), extras_by_quarter.get(label, []), kind)
+        overview = _build_overview(
+            orders_by_quarter.get(label, []),
+            extras_by_quarter.get(label, []),
+            cash_rows_by_quarter.get(label, []),
+            kind,
+        )
         rows.append({
             "period_key": f"{year}-Q{quarter}",
             "label": label,
@@ -316,6 +396,7 @@ def _build_quarter_summary(
 def _build_employee_stats(
     orders: list[Order],
     extra_payments: list[Payment],
+    cash_rows: list[CashRow],
     employee_names: dict[int, str],
     kind: str,
     total_income: Decimal,
@@ -338,13 +419,22 @@ def _build_employee_stats(
             stats.setdefault(payment.employee_id, {"orders_count": 0, "income_total": ZERO})
             stats[payment.employee_id]["income_total"] += _to_decimal(payment.amount)
 
+    if kind in ("all", "docs"):
+        insurance_rows_count = sum(1 for row in cash_rows if _to_decimal(row.insurance) > 0)
+        if insurance_rows_count:
+            stats[0] = {
+                "orders_count": insurance_rows_count,
+                "income_total": INSURANCE_COMMISSION_PER_ROW * insurance_rows_count,
+                "employee_name": "Комиссия страховок",
+            }
+
     rows = []
     for employee_id, values in stats.items():
         income_total = values["income_total"]
         orders_count = values["orders_count"]
         rows.append({
             "employee_id": employee_id,
-            "employee_name": employee_names.get(employee_id, f"Сотрудник #{employee_id}"),
+            "employee_name": values.get("employee_name") or employee_names.get(employee_id, f"Сотрудник #{employee_id}"),
             "orders_count": orders_count,
             "income_total": income_total,
             "average_check": (income_total / orders_count) if orders_count else ZERO,
@@ -354,7 +444,7 @@ def _build_employee_stats(
     return rows
 
 
-def _build_top_services(orders: list[Order], extra_payments: list[Payment], kind: str) -> list[dict]:
+def _build_top_services(orders: list[Order], extra_payments: list[Payment], cash_rows: list[CashRow], kind: str) -> list[dict]:
     stats: dict[str, dict] = {}
     for order in orders:
         if not _scope_match(order, kind):
@@ -389,6 +479,16 @@ def _build_top_services(orders: list[Order], extra_payments: list[Payment], kind
             stats["Доплата за номера"]["count"] += 1
             stats["Доплата за номера"]["revenue"] += _to_decimal(payment.amount)
 
+    if kind in ("all", "docs"):
+        insurance_rows_count = sum(1 for row in cash_rows if _to_decimal(row.insurance) > 0)
+        if insurance_rows_count:
+            label = "Комиссия страховок"
+            stats[label] = {
+                "label": label,
+                "count": insurance_rows_count,
+                "revenue": INSURANCE_COMMISSION_PER_ROW * insurance_rows_count,
+            }
+
     rows = list(stats.values())
     rows.sort(key=lambda item: (item["revenue"], item["count"]), reverse=True)
     return rows[:8]
@@ -409,8 +509,10 @@ async def get_analytics_dashboard(
 
     current_orders = await _fetch_orders(db, start, end)
     current_extra_payments = await _fetch_extra_payments(db, start, end)
+    current_cash_rows = await _fetch_cash_rows(db, start, end)
     previous_orders = await _fetch_orders(db, previous_start, previous_end)
     previous_extra_payments = await _fetch_extra_payments(db, previous_start, previous_end)
+    previous_cash_rows = await _fetch_cash_rows(db, previous_start, previous_end)
 
     trend_start = date(end.year, end.month, 1)
     for _ in range(11):
@@ -420,15 +522,17 @@ async def get_analytics_dashboard(
             trend_start = date(trend_start.year, trend_start.month - 1, 1)
     trend_orders = await _fetch_orders(db, trend_start, end)
     trend_extras = await _fetch_extra_payments(db, trend_start, end)
+    trend_cash_rows = await _fetch_cash_rows(db, trend_start, end)
 
     year_start = date(end.year, 1, 1)
     year_end = date(end.year, 12, 31)
     year_orders = await _fetch_orders(db, year_start, year_end)
     year_extras = await _fetch_extra_payments(db, year_start, year_end)
+    year_cash_rows = await _fetch_cash_rows(db, year_start, year_end)
 
     employee_names = await _employee_names(db)
-    overview = _build_overview(current_orders, current_extra_payments, kind_key)
-    previous_overview = _build_overview(previous_orders, previous_extra_payments, kind_key)
+    overview = _build_overview(current_orders, current_extra_payments, current_cash_rows, kind_key)
+    previous_overview = _build_overview(previous_orders, previous_extra_payments, previous_cash_rows, kind_key)
 
     return {
         "period": {
@@ -443,14 +547,171 @@ async def get_analytics_dashboard(
         "overview": {key: value for key, value in overview.items() if key != "status_breakdown"},
         "previous_overview": {key: value for key, value in previous_overview.items() if key != "status_breakdown"},
         "status_breakdown": overview["status_breakdown"],
-        "monthly_trend": _build_monthly_trend(trend_orders, trend_extras, kind_key, end),
-        "quarter_summary": _build_quarter_summary(year_orders, year_extras, kind_key, end),
+        "monthly_trend": _build_monthly_trend(trend_orders, trend_extras, trend_cash_rows, kind_key, end),
+        "quarter_summary": _build_quarter_summary(year_orders, year_extras, year_cash_rows, kind_key, end),
         "employee_stats": _build_employee_stats(
             current_orders,
             current_extra_payments,
+            current_cash_rows,
             employee_names,
             kind_key,
             overview["income_total"],
         ),
-        "top_services": _build_top_services(current_orders, current_extra_payments, kind_key),
+        "top_services": _build_top_services(current_orders, current_extra_payments, current_cash_rows, kind_key),
+    }
+
+
+async def get_plate_director_report(
+    db: AsyncSession,
+    period: str = "month",
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+) -> dict:
+    start, end = resolve_period(period=period, date_from=date_from, date_to=date_to)
+    start_dt, end_dt = _period_bounds(start, end)
+
+    movements = (
+        await db.execute(
+            select(PlateStockMovement).where(
+                PlateStockMovement.created_at >= start_dt,
+                PlateStockMovement.created_at < end_dt,
+            )
+        )
+    ).scalars().all()
+    consumed = -sum(
+        (
+            int(row.quantity_delta or 0)
+            for row in movements
+            if row.movement_type in {ORDER_COMPLETED, PLATE_CASH_SALE} and int(row.quantity_delta or 0) < 0
+        ),
+        0,
+    )
+    returned = sum(
+        (
+            int(row.quantity_delta or 0)
+            for row in movements
+            if row.movement_type in {PLATE_CASH_RETURN, ORDER_ROLLBACK} and int(row.quantity_delta or 0) > 0
+        ),
+        0,
+    )
+    made_quantity = max(0, consumed - returned)
+
+    defects_count = int(
+        (
+            await db.execute(
+                select(func.coalesce(func.sum(PlateDefect.quantity), 0)).where(
+                    PlateDefect.created_at >= start_dt,
+                    PlateDefect.created_at < end_dt,
+                )
+            )
+        ).scalar_one()
+        or 0
+    )
+    stock = await get_or_create_stock(db)
+    reserved = await reserved_quantity(db)
+    plate_cash_rows = await _fetch_plate_cash_rows(db, start, end)
+    owner_expense_rows = [
+        row
+        for row in plate_cash_rows
+        if _to_decimal(row.amount) < 0 and row.source_type != PLATE_MONTH_CLOSE
+    ]
+    owner_expenses = -sum(
+        (_to_decimal(row.amount) for row in owner_expense_rows),
+        ZERO,
+    )
+    plate_cash_balance = sum((_to_decimal(row.amount) for row in plate_cash_rows), ZERO)
+
+    return {
+        "period": {
+            "period": period,
+            "date_from": start.isoformat(),
+            "date_to": end.isoformat(),
+        },
+        "unit_price": PLATE_REPORT_UNIT_PRICE,
+        "made_quantity": made_quantity,
+        "gross_amount": PLATE_REPORT_UNIT_PRICE * Decimal(made_quantity),
+        "owner_expenses": owner_expenses,
+        "owner_expense_rows": [
+            {
+                "client_name": row.client_name,
+                "amount": _to_decimal(row.amount),
+                "created_at": row.created_at.isoformat() if row.created_at else None,
+            }
+            for row in owner_expense_rows
+        ],
+        "plate_cash_balance": plate_cash_balance,
+        "returned_quantity": returned,
+        "stock_quantity": int(stock.quantity or 0),
+        "reserved_quantity": reserved,
+        "available_quantity": max(0, int(stock.quantity or 0) - reserved),
+        "defects_count": defects_count,
+    }
+
+
+async def close_plate_director_month(
+    db: AsyncSession,
+    period: str = "month",
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+) -> dict:
+    start, end = resolve_period(period=period, date_from=date_from, date_to=date_to)
+    start_dt, end_dt = _period_bounds(start, end)
+    source_batch = f"{start.isoformat()}:{end.isoformat()}"
+
+    def close_row_overlaps(row: PlateCashRow) -> bool:
+        batch = row.source_batch or ""
+        if ":" in batch:
+            batch_start_raw, batch_end_raw = batch.split(":", 1)
+            try:
+                batch_start = date.fromisoformat(batch_start_raw)
+                batch_end = date.fromisoformat(batch_end_raw)
+                return batch_start <= end and start <= batch_end
+            except ValueError:
+                pass
+        return bool(row.source_date and start <= row.source_date <= end)
+
+    existing_close_rows = (
+        await db.execute(
+            select(PlateCashRow).where(
+                PlateCashRow.source_type == PLATE_MONTH_CLOSE,
+            )
+        )
+    ).scalars().all()
+    for row in existing_close_rows:
+        if not close_row_overlaps(row):
+            continue
+        await db.delete(row)
+    await db.flush()
+
+    rows = (
+        await db.execute(
+            select(PlateCashRow).where(
+                PlateCashRow.created_at >= start_dt,
+                PlateCashRow.created_at < end_dt,
+                or_(PlateCashRow.source_type.is_(None), PlateCashRow.source_type != PLATE_MONTH_CLOSE),
+            )
+        )
+    ).scalars().all()
+    balance = sum((_to_decimal(row.amount) for row in rows), ZERO)
+    close_amount = -balance
+    close_row = None
+    if close_amount:
+        close_row = PlateCashRow(
+            created_at=business_day_bounds_utc(end)[0],
+            client_name="Закрытие месяца",
+            quantity=0,
+            amount=close_amount,
+            source_type=PLATE_MONTH_CLOSE,
+            source_date=end,
+            source_batch=source_batch,
+        )
+        db.add(close_row)
+        await db.flush()
+
+    report = await get_plate_director_report(db, period=period, date_from=start.isoformat(), date_to=end.isoformat())
+    return {
+        "closed": True,
+        "close_amount": close_amount,
+        "close_row_id": close_row.id if close_row else None,
+        "report": report,
     }

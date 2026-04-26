@@ -47,6 +47,20 @@
 
   var me = window.getMe();
 
+  function ensureDirectorMenuItems(profile) {
+    if (!profile || (profile.role || '').toUpperCase() !== 'ROLE_ADMIN') return profile;
+    var items = profile.menu_items || [];
+    var hasPlateReport = items.some(function (item) { return item && item.id === 'plate_report'; });
+    if (!hasPlateReport) {
+      var insertAt = items.findIndex(function (item) { return item && item.id === 'admin'; });
+      var reportItem = { id: 'plate_report', label: 'Отчёт по номерам', href: 'plate-report.html', group: 'Управление' };
+      if (insertAt >= 0) items.splice(insertAt, 0, reportItem);
+      else items.push(reportItem);
+      profile.menu_items = items;
+    }
+    return profile;
+  }
+
   function ensureAppHeader() {
     var mount = document.getElementById('appHeader');
     if (mount) {
@@ -78,20 +92,21 @@
     if (role === 'ROLE_ADMIN') {
       menu_items.push({ id: 'analytics_docs', label: 'Аналитика — Документы', href: 'analytics-docs.html' });
       menu_items.push({ id: 'analytics_plates', label: 'Аналитика — Номера', href: 'analytics-plates.html' });
+      menu_items.push({ id: 'plate_report', label: 'Отчёт по номерам', href: 'plate-report.html' });
       menu_items.push({ id: 'admin', label: 'Админка', href: 'admin.html' });
       menu_items.push({ id: 'users', label: 'Управление аккаунтами', href: 'users.html' });
     }
     menu_items.push({ id: '_div', label: '', divider: true });
     menu_items.push({ id: 'password', label: 'Сменить пароль', href: '#', action: 'change_password' });
     menu_items.push({ id: 'logout', label: 'Выйти', href: 'login.html', action: 'logout' });
-    return {
+    return ensureDirectorMenuItems({
       id: user.id,
       name: user.name || user.login || 'Аккаунт',
       role: user.role,
       login: user.login,
       allowed_pavilions: pavilions,
       menu_items: menu_items,
-    };
+    });
   }
 
   function getGroupKey(item) {
@@ -113,6 +128,7 @@
       plate_transfer: { label: 'Промежуточная касса', note: 'Деньги за номера' },
       analytics_docs: { label: 'Документы', note: 'Аналитика' },
       analytics_plates: { label: 'Номера', note: 'Аналитика' },
+      plate_report: { label: 'Отчёт по номерам', note: 'Делёжка и расходы' },
       admin: { label: 'Админка', note: 'Настройки' },
       users: { label: 'Аккаунты', note: 'Пользователи' },
       password: { label: 'Пароль', note: 'Профиль' },
@@ -123,6 +139,7 @@
 
   function renderHeader() {
     var userNameEl = document.getElementById('headerUserName');
+    me = ensureDirectorMenuItems(me);
     if (userNameEl && me) userNameEl.textContent = me.name || me.login || 'Аккаунт';
 
     var inner = document.getElementById('menuDropdownInner');

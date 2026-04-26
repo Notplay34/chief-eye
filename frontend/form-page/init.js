@@ -139,7 +139,7 @@
     page.updateTime();
     setInterval(page.updateTime, 60000);
 
-    if (page.btnAddDoc) page.btnAddDoc.addEventListener('click', page.addSelectedDocument);
+    if (page.docSelect) page.docSelect.addEventListener('change', page.syncSelectedDocumentsFromChecklist);
     if (page.btnAcceptCash) page.btnAcceptCash.addEventListener('click', page.acceptCash);
     if (page.btnPrint) page.btnPrint.addEventListener('click', page.doPrint);
     page.loadFormHistory();

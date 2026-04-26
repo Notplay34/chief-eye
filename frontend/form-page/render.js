@@ -12,29 +12,18 @@
     }
     if (!documentsList) return;
 
-    var html = selectedDocuments.map(function (item, index) {
+    var html = selectedDocuments.map(function (item) {
       if (page.isPlateZaiavlenie(item) || item.template === 'number.docx') return '';
       return '<li class="documents-to-print__item">' +
         '<span class="documents-to-print__item-info">' +
           '<span>' + (item.label || item.template) + '</span>' +
           '<span class="documents-to-print__item-price">' + page.formatMoney(page.num(item.price)) + '</span>' +
         '</span>' +
-        '<button type="button" class="documents-to-print__item-remove" data-index="' + index + '">Удалить</button>' +
       '</li>';
     }).filter(Boolean).join('');
     documentsList.innerHTML = html;
     var documentsWrap = page.el('documentsToPrint');
     if (documentsWrap) documentsWrap.hidden = !html;
-
-    documentsList.querySelectorAll('.documents-to-print__item-remove').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var index = parseInt(btn.getAttribute('data-index'), 10);
-        page.state.selectedDocuments.splice(index, 1);
-        page.renderDocumentsList();
-        if (page.renderDocumentChecklist) page.renderDocumentChecklist();
-        page.syncFromMainForm();
-      });
-    });
   };
 
   page.renderDocumentChecklist = function () {
@@ -57,7 +46,7 @@
       var price = page.num(item.price);
       var isSelected = !!selected[template];
       return '<label class="document-checklist__item' + (isSelected ? ' document-checklist__item--selected' : '') + '">' +
-        '<input type="checkbox" value="' + safeTemplate + '"' + (isSelected ? ' checked disabled' : '') + '>' +
+        '<input type="checkbox" value="' + safeTemplate + '"' + (isSelected ? ' checked' : '') + '>' +
         '<span class="document-checklist__box"></span>' +
         '<span class="document-checklist__name">' + label + '</span>' +
         '<span class="document-checklist__price">' + page.formatMoney(price) + '</span>' +

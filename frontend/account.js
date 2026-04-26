@@ -27,6 +27,7 @@
   if (user.role === 'ROLE_ADMIN') {
     show('linkAnalyticsDocs');
     show('linkAnalyticsPlates');
+    show('linkPlateReport');
     show('linkAdmin');
     show('linkUsers');
   }

@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.auth import RequireAnalyticsAccess, UserInfo
 from app.core.database import get_db
 from app.schemas.analytics import AnalyticsDashboard
-from app.services.analytics_service import get_analytics_dashboard
+from app.services.analytics_service import close_plate_director_month, get_analytics_dashboard, get_plate_director_report
 
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
@@ -99,6 +99,28 @@ async def analytics_dashboard(
     _user: UserInfo = Depends(RequireAnalyticsAccess),
 ):
     return await get_analytics_dashboard(db, period=period, date_from=date_from, date_to=date_to, kind=kind)
+
+
+@router.get("/plate-report")
+async def analytics_plate_report(
+    period: str = Query("month", description="day | week | month | quarter | year"),
+    date_from: Optional[str] = Query(None, description="Начало периода (YYYY-MM-DD)"),
+    date_to: Optional[str] = Query(None, description="Конец периода (YYYY-MM-DD)"),
+    db: AsyncSession = Depends(get_db),
+    _user: UserInfo = Depends(RequireAnalyticsAccess),
+):
+    return await get_plate_director_report(db, period=period, date_from=date_from, date_to=date_to)
+
+
+@router.post("/plate-report/close")
+async def analytics_plate_report_close(
+    period: str = Query("month", description="day | week | month | quarter | year"),
+    date_from: Optional[str] = Query(None, description="Начало периода (YYYY-MM-DD)"),
+    date_to: Optional[str] = Query(None, description="Конец периода (YYYY-MM-DD)"),
+    db: AsyncSession = Depends(get_db),
+    _user: UserInfo = Depends(RequireAnalyticsAccess),
+):
+    return await close_plate_director_month(db, period=period, date_from=date_from, date_to=date_to)
 
 
 @router.get("/export")

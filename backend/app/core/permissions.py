@@ -152,6 +152,12 @@ def get_menu_items(role: str) -> List[dict]:
             "group": "Управление",
         })
         items.append({
+            "id": "plate_report",
+            "label": "Отчёт по номерам",
+            "href": "plate-report.html",
+            "group": "Управление",
+        })
+        items.append({
             "id": "admin",
             "label": "Админка",
             "href": "admin.html",

@@ -10,7 +10,7 @@
     if (kind === 'docs') {
       return {
         title: 'Аналитика — Документы',
-        subtitle: 'Сколько заработали на документах и комиссии госпошлин, отдельно от проходных сумм.',
+        subtitle: 'Сколько заработали на документах. Комиссии госпошлин показаны отдельно.',
       };
     }
     if (kind === 'plates') {
@@ -77,10 +77,10 @@
     var cards;
     if (kind === 'docs') {
       cards = [
-        card('Доход по документам', formatMoney(overview.income_total), deltaText(overview.income_total, previous.income_total, 'money'), 'primary'),
-        card('Принято госпошлины', formatMoney(overview.state_duty_cash_total), 'Проходная сумма, не доход павильона', 'turnover'),
+        card('Доход по документам', formatMoney(overview.docs_income), deltaText(overview.docs_income, previous.docs_income, 'money'), 'primary'),
+        card('Комиссия госпошлин', formatMoney(overview.state_duty_commission_income), deltaText(overview.state_duty_commission_income, previous.state_duty_commission_income, 'money'), 'turnover'),
+        card('Комиссия страховок', formatMoney(overview.insurance_commission_income), deltaText(overview.insurance_commission_income, previous.insurance_commission_income, 'money'), 'turnover'),
         card('Заказы', String(overview.orders_count || 0), deltaText(overview.orders_count, previous.orders_count, 'count')),
-        card('Средний чек', formatMoney(overview.average_check), deltaText(overview.average_check, previous.average_check, 'money')),
       ];
     } else if (kind === 'plates') {
       cards = [
@@ -114,8 +114,8 @@
     if (kind === 'docs') {
       return {
         title: 'Доход по документам',
-        subtitle: 'Документы и комиссия госпошлины. Номера в этот раздел не попадают.',
-        total: 'Итого по документам',
+        subtitle: 'Документы отдельно, комиссия госпошлины отдельной строкой. Номера в этот раздел не попадают.',
+        total: '',
       };
     }
     if (kind === 'plates') {
@@ -133,7 +133,7 @@
   }
 
   function renderPassThrough(overview, kind) {
-    if (kind === 'plates') return '';
+    if (kind === 'plates' || kind === 'docs') return '';
     return [
       '  <div class="analytics-pass-through">',
       '    <h3>Проходные деньги</h3>',
@@ -149,6 +149,7 @@
     var rows = [];
     if (kind !== 'plates' && Number(overview.docs_income || 0) > 0) rows.push(moneyRow('Документы', overview.docs_income));
     if (kind !== 'plates' && Number(overview.state_duty_commission_income || 0) > 0) rows.push(moneyRow('Комиссия госпошлин', overview.state_duty_commission_income));
+    if (kind !== 'plates' && Number(overview.insurance_commission_income || 0) > 0) rows.push(moneyRow('Комиссия страховок', overview.insurance_commission_income));
     if (kind !== 'docs' && Number(overview.plates_income || 0) > 0) rows.push(moneyRow('Изготовление номеров', overview.plates_income));
     if (kind !== 'docs' && Number(overview.plate_extra_income || 0) > 0) rows.push(moneyRow('Доплаты за номера', overview.plate_extra_income));
     if (!rows.length) rows.push('<div class="analytics-empty">Дохода за выбранный период пока нет.</div>');
@@ -161,7 +162,7 @@
       '  </div>',
       '  <div class="analytics-money-list">',
       rows.join(''),
-      moneyRow(copy.total, overview.income_total, 'total'),
+      copy.total ? moneyRow(copy.total, overview.income_total, 'total') : '',
       '  </div>',
       renderPassThrough(overview, kind),
       kind !== 'docs' && Number(overview.numbers_orders_count || 0) ? '<p class="analytics-panel__note">Номера: заказов ' + escapeHtml(overview.numbers_orders_count) + ', комплектов ' + escapeHtml(overview.numbers_units || 0) + ', сумма ' + escapeHtml(formatMoney(plateTotal)) + '.</p>' : '',
@@ -169,7 +170,9 @@
     ].join('');
   }
 
-  function renderTrend(rows) {
+  function renderTrend(rows, kind) {
+    var showTurnover = kind !== 'docs';
+    var incomeLabel = kind === 'docs' ? 'Документы' : 'Мой доход';
     return [
       '<section class="analytics-panel">',
       '  <div class="analytics-panel__header">',
@@ -178,15 +181,15 @@
       '  </div>',
       '  <div class="analytics-table-wrap">',
       '    <table class="analytics-table">',
-      '      <thead><tr><th>Месяц</th><th>Заказы</th><th>Мой доход</th><th>Оборот</th></tr></thead>',
+      '      <thead><tr><th>Месяц</th><th>Заказы</th><th>', incomeLabel, '</th>', showTurnover ? '<th>Оборот</th>' : '', '</tr></thead>',
       '      <tbody>',
       rows.map(function (row) {
         return [
           '<tr>',
           '  <td>', escapeHtml(row.label), '</td>',
           '  <td>', escapeHtml(row.orders_count), '</td>',
-          '  <td>', escapeHtml(formatMoney(row.income_total)), '</td>',
-          '  <td>', escapeHtml(formatMoney(row.turnover_total)), '</td>',
+          '  <td>', escapeHtml(formatMoney(kind === 'docs' ? (row.docs_income || 0) : row.income_total)), '</td>',
+          showTurnover ? '  <td>' + escapeHtml(formatMoney(row.turnover_total)) + '</td>' : '',
           '</tr>',
         ].join('');
       }).join(''),
@@ -230,7 +233,7 @@
 
   function renderServices(rows, kind) {
     var subtitle = 'Услуги и комиссии, отсортированные по сумме.';
-    if (kind === 'docs') subtitle = 'Только документы и комиссия госпошлины, без номеров.';
+    if (kind === 'docs') subtitle = 'Только документы, комиссия госпошлины и комиссия страховок, без номеров.';
     if (kind === 'plates') subtitle = 'Только изготовление номеров и доплаты, без госпошлины.';
     return [
       '<section class="analytics-panel">',
@@ -325,7 +328,7 @@
       '<div class="analytics-grid analytics-grid--main">',
       '  <div class="analytics-stack">',
       renderIncomeBreakdown(dashboard.overview, state.kind),
-      renderTrend(dashboard.monthly_trend || []),
+      renderTrend(dashboard.monthly_trend || [], state.kind),
       '  </div>',
       '  <div class="analytics-stack">',
       renderServices(dashboard.top_services || [], state.kind),
