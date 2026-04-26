@@ -3215,6 +3215,25 @@ body {
   background: var(--color-hover);
 }
 
+:root[data-theme="dark"] .form-section--togglable .form-section__body .form-grid {
+  border-top-color: var(--color-border);
+}
+
+:root[data-theme="dark"] .form-section__title,
+:root[data-theme="dark"] .document-group__title {
+  color: var(--color-text-muted);
+}
+
+:root[data-theme="dark"] .document-group {
+  border-top-color: var(--color-border);
+}
+
+:root[data-theme="dark"] .vehicle-doc {
+  background: rgba(37, 44, 61, 0.72);
+  border-color: var(--color-border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
 :root[data-theme="dark"] .document-checklist {
   background: rgba(28, 34, 48, 0.72);
   border-color: var(--color-border);
