@@ -1,7 +1,12 @@
 (function () {
   var api = window.API_BASE_URL || '';
   var fetchApi = window.fetchWithAuth || fetch;
-  var state = { report: null };
+  var state = {
+    report: null,
+    partnerExpenses: [
+      { name: '', amount: 0 }
+    ]
+  };
   if (!window.getToken || !window.getToken()) return;
 
   function el(id) {
@@ -79,6 +84,47 @@
     ].join('');
   }
 
+  function partnerExpensesTotal() {
+    return state.partnerExpenses.reduce(function (sum, row) {
+      return sum + num(row.amount);
+    }, 0);
+  }
+
+  function renderPartnerExpenses() {
+    var wrap = el('partnerExpenseRows');
+    if (!wrap) return;
+    wrap.innerHTML = state.partnerExpenses.map(function (row, index) {
+      return [
+        '<div class="plate-report-expense-row" data-index="', index, '">',
+        '  <input type="text" data-field="name" value="', escapeHtml(row.name || ''), '" placeholder="Название расхода">',
+        '  <input type="number" data-field="amount" min="0" step="1" value="', escapeHtml(row.amount || ''), '" placeholder="Сумма">',
+        '  <button type="button" class="plate-report-expense-remove" title="Удалить">×</button>',
+        '</div>'
+      ].join('');
+    }).join('');
+
+    wrap.querySelectorAll('input').forEach(function (input) {
+      input.addEventListener('input', function () {
+        var rowEl = input.closest('.plate-report-expense-row');
+        var index = parseInt(rowEl.getAttribute('data-index'), 10);
+        var field = input.getAttribute('data-field');
+        if (!state.partnerExpenses[index]) return;
+        state.partnerExpenses[index][field] = field === 'amount' ? num(input.value) : input.value;
+        render();
+      });
+    });
+    wrap.querySelectorAll('.plate-report-expense-remove').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var rowEl = button.closest('.plate-report-expense-row');
+        var index = parseInt(rowEl.getAttribute('data-index'), 10);
+        state.partnerExpenses.splice(index, 1);
+        if (!state.partnerExpenses.length) state.partnerExpenses.push({ name: '', amount: 0 });
+        renderPartnerExpenses();
+        render();
+      });
+    });
+  }
+
   function render() {
     var root = el('plateReportApp');
     if (!root) return;
@@ -89,7 +135,7 @@
     }
 
     var ownerExpenses = num(report.owner_expenses);
-    var partnerExpenses = num(el('partnerExpenses') && el('partnerExpenses').value);
+    var partnerExpenses = partnerExpensesTotal();
     var gross = num(report.gross_amount);
     var totalExpenses = ownerExpenses + partnerExpenses;
     var netProfit = gross - totalExpenses;
@@ -144,14 +190,16 @@
     var report = state.report;
     if (!report) return '';
     var ownerExpenses = num(report.owner_expenses);
-    var partnerExpenses = num(el('partnerExpenses') && el('partnerExpenses').value);
+    var partnerExpenses = partnerExpensesTotal();
     var gross = num(report.gross_amount);
     var totalExpenses = ownerExpenses + partnerExpenses;
     var netProfit = gross - totalExpenses;
     var half = netProfit / 2;
     var partnerTransfer = half + partnerExpenses;
-    var notes = (el('partnerExpenseNotes') && el('partnerExpenseNotes').value.trim()) || '';
     var ownerRows = report.owner_expense_rows || [];
+    var partnerRows = state.partnerExpenses.filter(function (row) {
+      return (row.name || '').trim() || num(row.amount) > 0;
+    });
     var lines = [
       'Отчёт по номерам',
       'Период: ' + (report.period && report.period.date_from ? report.period.date_from : '') + ' — ' + (report.period && report.period.date_to ? report.period.date_to : ''),
@@ -167,11 +215,9 @@
     }
     lines.push('');
     lines.push('Расходы партнёра: ' + plainMoney(partnerExpenses));
-    if (notes) {
-      notes.split(/\r?\n/).forEach(function (line) {
-        if (line.trim()) lines.push('- ' + line.trim());
-      });
-    }
+    partnerRows.forEach(function (row) {
+      lines.push('- ' + ((row.name || '').trim() || 'Расход') + ': ' + plainMoney(row.amount));
+    });
     lines.push('');
     lines.push(plainMoney(gross) + ' - ' + plainMoney(ownerExpenses) + ' - ' + plainMoney(partnerExpenses) + ' = ' + plainMoney(netProfit));
     lines.push(plainMoney(netProfit) + ' / 2 = ' + plainMoney(half));
@@ -247,10 +293,13 @@
 
   function init() {
     initDates();
-    ['partnerExpenses', 'partnerExpenseNotes'].forEach(function (id) {
-      var input = el(id);
-      if (input) input.addEventListener('input', render);
-    });
+    renderPartnerExpenses();
+    if (el('btnAddPartnerExpense')) {
+      el('btnAddPartnerExpense').addEventListener('click', function () {
+        state.partnerExpenses.push({ name: '', amount: 0 });
+        renderPartnerExpenses();
+      });
+    }
     if (el('btnReportRefresh')) el('btnReportRefresh').addEventListener('click', load);
     if (el('btnDownloadReport')) el('btnDownloadReport').addEventListener('click', downloadReport);
     if (el('btnClosePlateMonth')) el('btnClosePlateMonth').addEventListener('click', closeMonth);

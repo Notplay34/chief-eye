@@ -2398,23 +2398,6 @@ body {
   align-items: end;
 }
 
-.plate-report-notes {
-  min-width: min(100%, 280px);
-}
-
-.plate-report-notes textarea {
-  width: 100%;
-  min-height: 76px;
-  resize: vertical;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-  font-size: var(--text-caption);
-}
-
 .plate-report-stock {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -2439,6 +2422,52 @@ body {
 .plate-report-stock span {
   color: var(--color-text-muted);
   font-size: var(--text-caption);
+}
+
+.plate-report-partner-panel {
+  margin-bottom: var(--space-4);
+}
+
+.plate-report-expense-list {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.plate-report-expense-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) 140px 36px;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.plate-report-expense-row input {
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.plate-report-expense-remove {
+  height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .plate-report-expense-row {
+    grid-template-columns: 1fr;
+  }
+
+  .plate-report-expense-remove {
+    width: 100%;
+  }
 }
 
 .analytics-table-wrap {

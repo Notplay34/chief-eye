@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=PT+Serif:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=304-logo-mark">
+  <link rel="stylesheet" href="styles.css?v=305-partner-expense-rows">
 </head>
 <body>
   <div id="appHeader"></div>
@@ -34,17 +34,18 @@
         <span>По</span>
         <input type="date" id="reportDateTo">
       </label>
-      <label class="analytics-filter">
-        <span>Расходы партнёра</span>
-        <input type="number" id="partnerExpenses" min="0" step="1" value="0">
-      </label>
-      <label class="analytics-filter plate-report-notes">
-        <span>Расшифровка расходов партнёра</span>
-        <textarea id="partnerExpenseNotes" rows="3" placeholder="8000 — аренда&#10;8500 — расходники"></textarea>
-      </label>
       <button type="button" class="btn btn--secondary" id="btnReportRefresh">Обновить</button>
       <button type="button" class="btn btn--secondary" id="btnDownloadReport">Создать TXT</button>
       <button type="button" class="btn btn--primary" id="btnClosePlateMonth">Создать отрицательную операцию</button>
+    </section>
+
+    <section class="analytics-panel plate-report-partner-panel">
+      <div class="analytics-panel__header">
+        <h2>Расходы партнёра</h2>
+        <p>Название расхода и сумма попадут в расчёт и текстовый отчёт.</p>
+      </div>
+      <div class="plate-report-expense-list" id="partnerExpenseRows"></div>
+      <button type="button" class="btn btn--secondary" id="btnAddPartnerExpense">Добавить расход партнёра</button>
     </section>
 
     <div id="plateReportApp">
@@ -54,6 +55,6 @@
 
   <script src="auth.js?v=293-plate-report-txt"></script>
   <script src="header-common.js?v=293-plate-report-txt"></script>
-  <script src="plate-report.js?v=293-plate-report-txt"></script>
+  <script src="plate-report.js?v=305-partner-expense-rows"></script>
 </body>
 </html>
