@@ -398,13 +398,79 @@ async def close_shift(db: AsyncSession, user: UserInfo, shift_id: int, closing_b
     return shift_to_dict(shift)
 
 
-async def transfer_plate_payouts_to_intermediate(db: AsyncSession, user: UserInfo) -> dict:
+async def _plate_payout_business_dates(db: AsyncSession, payouts: list[PlatePayout]) -> dict[int, date]:
+    order_ids = [payout.order_id for payout in payouts if payout.order_id]
+    if not order_ids:
+        return {}
+
+    order_id_strings = [str(order_id) for order_id in order_ids]
+    cash_rows = (
+        await db.execute(
+            select(CashRow.source_batch, func.min(CashRow.created_at))
+            .where(
+                CashRow.source_type == ORDER_PAYMENT_CASH_ROW,
+                CashRow.source_batch.in_(order_id_strings),
+            )
+            .group_by(CashRow.source_batch)
+        )
+    ).all()
+    dates: dict[int, date] = {}
+    for source_batch, created_at in cash_rows:
+        try:
+            order_id = int(source_batch)
+        except (TypeError, ValueError):
+            continue
+        if created_at:
+            dates[order_id] = created_at.date()
+
+    missing_order_ids = [order_id for order_id in order_ids if order_id not in dates]
+    if missing_order_ids:
+        payment_rows = (
+            await db.execute(
+                select(Payment.order_id, func.min(Payment.created_at))
+                .where(Payment.order_id.in_(missing_order_ids))
+                .group_by(Payment.order_id)
+            )
+        ).all()
+        for order_id, created_at in payment_rows:
+            if created_at:
+                dates[int(order_id)] = created_at.date()
+
+    missing_order_ids = [order_id for order_id in order_ids if order_id not in dates]
+    if missing_order_ids:
+        order_rows = (
+            await db.execute(
+                select(Order.id, Order.created_at).where(Order.id.in_(missing_order_ids))
+            )
+        ).all()
+        for order_id, created_at in order_rows:
+            if created_at:
+                dates[int(order_id)] = created_at.date()
+
+    return dates
+
+
+async def list_open_plate_payouts(db: AsyncSession, business_date: Optional[date] = None) -> list[PlatePayout]:
     result = await db.execute(
         select(PlatePayout)
         .where(PlatePayout.transferred_at.is_(None), PlatePayout.paid_at.is_(None))
         .order_by(PlatePayout.created_at)
     )
     payouts = result.scalars().all()
+    if business_date is None or not payouts:
+        return payouts
+
+    payout_dates = await _plate_payout_business_dates(db, payouts)
+    return [payout for payout in payouts if payout_dates.get(payout.order_id) == business_date]
+
+
+async def transfer_plate_payouts_to_intermediate(
+    db: AsyncSession,
+    user: UserInfo,
+    business_date: Optional[date] = None,
+) -> dict:
+    day = business_date or datetime.utcnow().date()
+    payouts = await list_open_plate_payouts(db, day)
     if not payouts:
         raise ServiceError("Нет денег за номера к переносу", status_code=400)
 
@@ -431,7 +497,7 @@ async def transfer_plate_payouts_to_intermediate(db: AsyncSession, user: UserInf
             plates=-total,
             total=-total,
             source_type=PLATE_PAYOUT_INTERMEDIATE,
-            source_date=now.date(),
+            source_date=day,
             source_batch=batch_id,
         )
     )
@@ -452,10 +518,11 @@ async def transfer_plate_payouts_to_intermediate(db: AsyncSession, user: UserInf
         payload={
             "count": len(payouts),
             "total": float(total),
+            "business_date": day.isoformat(),
             "order_ids": [payout.order_id for payout in payouts],
         },
     )
-    return {"count": len(payouts), "total": float(total), "batch": batch_id}
+    return {"count": len(payouts), "total": float(total), "batch": batch_id, "business_date": day.isoformat()}
 
 
 async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:

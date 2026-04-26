@@ -1,8 +1,13 @@
 """Критические сценарии по сменам, складу и выплатам за номера."""
 
-from datetime import date
+import asyncio
+from datetime import date, datetime, timedelta
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
+
+from app.models import CashRow, Order, Payment
+from app.services.cash_service import ORDER_PAYMENT_CASH_ROW
 
 
 def make_plate_order_payload(*, plate_quantity: int = 1) -> dict:
@@ -29,6 +34,10 @@ def create_paid_plate_order(client: TestClient, auth_headers: dict[str, str], *,
     pay_response = client.post(f"/orders/{order['id']}/pay", headers=auth_headers)
     assert pay_response.status_code == 200, pay_response.text
     return order
+
+
+def run_async(coro):
+    return asyncio.run(coro)
 
 
 def test_cash_shift_lifecycle_tracks_total_in_shift(client: TestClient, auth_headers: dict[str, str]):
@@ -159,6 +168,61 @@ def test_intermediate_plate_money_is_payable_only_after_client_issue(client: Tes
     plate_rows_response = client.get("/cash/plate-rows", headers=auth_headers)
     assert plate_rows_response.status_code == 200, plate_rows_response.text
     assert plate_rows_response.json()["rows"] == []
+
+
+def test_plate_payout_transfer_uses_cash_receipt_day(client: TestClient, auth_headers: dict[str, str], db_session):
+    old_day = date.today() - timedelta(days=1)
+    old_datetime = datetime.combine(old_day, datetime.min.time())
+    order = create_paid_plate_order(client, auth_headers, plate_quantity=2)
+
+    async def move_cash_receipt_to_previous_day():
+        cash_row = (
+            await db_session.execute(
+                select(CashRow).where(
+                    CashRow.source_type == ORDER_PAYMENT_CASH_ROW,
+                    CashRow.source_batch == str(order["id"]),
+                )
+            )
+        ).scalar_one()
+        cash_row.created_at = old_datetime
+
+        order_row = (await db_session.execute(select(Order).where(Order.id == order["id"]))).scalar_one()
+        order_row.created_at = old_datetime
+
+        payments = (
+            await db_session.execute(select(Payment).where(Payment.order_id == order["id"]))
+        ).scalars().all()
+        for payment in payments:
+            payment.created_at = old_datetime
+        await db_session.commit()
+
+    run_async(move_cash_receipt_to_previous_day())
+
+    today_response = client.get("/cash/plate-payouts", params={"business_date": date.today().isoformat()}, headers=auth_headers)
+    assert today_response.status_code == 200, today_response.text
+    assert today_response.json()["total"] == 0.0
+    assert today_response.json()["rows"] == []
+
+    old_day_response = client.get("/cash/plate-payouts", params={"business_date": old_day.isoformat()}, headers=auth_headers)
+    assert old_day_response.status_code == 200, old_day_response.text
+    assert old_day_response.json()["total"] == 3000.0
+    assert old_day_response.json()["quantity"] == 2
+
+    today_transfer = client.post(
+        "/cash/plate-payouts/pay",
+        params={"business_date": date.today().isoformat()},
+        headers=auth_headers,
+    )
+    assert today_transfer.status_code == 400, today_transfer.text
+
+    old_day_transfer = client.post(
+        "/cash/plate-payouts/pay",
+        params={"business_date": old_day.isoformat()},
+        headers=auth_headers,
+    )
+    assert old_day_transfer.status_code == 200, old_day_transfer.text
+    assert old_day_transfer.json()["total"] == 3000.0
+    assert old_day_transfer.json()["business_date"] == old_day.isoformat()
 
 
 def test_plate_transfer_pays_only_issued_clients_from_intermediate_cash(client: TestClient, auth_headers: dict[str, str]):

@@ -26,6 +26,7 @@ from app.services.cash_service import (
     get_current_shift_summary as get_current_shift_summary_service,
     get_state_duty_commission_summary as get_state_duty_commission_summary_service,
     _fio_initials,
+    list_open_plate_payouts as list_open_plate_payouts_service,
     PLATE_PAYOUT_INTERMEDIATE,
     PLATE_PAYOUT_TRANSFER,
     open_shift as open_shift_service,
@@ -644,29 +645,27 @@ def _payout_to_dict(row: PlatePayout) -> dict:
 
 @router.get("/plate-payouts")
 async def list_plate_payouts(
+    business_date: Optional[date] = Query(None),
     db: AsyncSession = Depends(get_db),
     user: UserInfo = Depends(RequireCashAccess),
 ):
     """Деньги за номера, ещё лежащие в кассе документов."""
     _ensure_pavilion_cash_access(user, 1)
-    q = (
-        select(PlatePayout)
-        .where(PlatePayout.transferred_at.is_(None), PlatePayout.paid_at.is_(None))
-        .order_by(PlatePayout.created_at)
-    )
-    r = await db.execute(q)
-    rows = r.scalars().all()
+    day = business_date or datetime.utcnow().date()
+    rows = await list_open_plate_payouts_service(db, day)
     total = sum((row.amount for row in rows), Decimal("0"))
     quantity = sum((int(row.quantity or 1) for row in rows), 0)
     return {
         "rows": [_payout_to_dict(row) for row in rows],
         "total": float(total),
         "quantity": quantity,
+        "business_date": day.isoformat(),
     }
 
 
 @router.post("/plate-payouts/pay")
 async def transfer_plate_payouts_to_intermediate(
+    business_date: Optional[date] = Query(None),
     db: AsyncSession = Depends(get_db),
     user: UserInfo = Depends(RequireCashAccess),
 ):
@@ -675,7 +674,7 @@ async def transfer_plate_payouts_to_intermediate(
     """
     _ensure_pavilion_cash_access(user, 1)
     try:
-        result = await transfer_plate_payouts_to_intermediate_service(db, user)
+        result = await transfer_plate_payouts_to_intermediate_service(db, user, business_date)
     except ServiceError as exc:
         _raise_service_error(exc)
     logger.info("Перенос денег за номера: строк=%s сумма=%s", result["count"], result["total"])

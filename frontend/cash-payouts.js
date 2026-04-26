@@ -23,6 +23,18 @@
     }).format(num) + ' ₽';
   }
 
+  function todayIso() {
+    var now = new Date();
+    var year = now.getFullYear();
+    var month = String(now.getMonth() + 1).padStart(2, '0');
+    var day = String(now.getDate()).padStart(2, '0');
+    return year + '-' + month + '-' + day;
+  }
+
+  function payoutUrl(path) {
+    return API + path + '?business_date=' + encodeURIComponent(todayIso());
+  }
+
   function setMsg(text, isErr) {
     if (!msgEl) return;
     msgEl.textContent = text || '';
@@ -72,7 +84,7 @@
     setMsg('', false);
     bodyEl.innerHTML =
       '<tr><td colspan="3" class="cash-payout__empty">Загрузка…</td></tr>';
-    fetchApi(API + '/cash/plate-payouts')
+    fetchApi(payoutUrl('/cash/plate-payouts'))
       .then(function (r) {
         if (!r.ok) {
           return r.json().then(function (j) {
@@ -94,7 +106,7 @@
   function pay() {
     if (!confirm('Перенести все деньги за номера из кассы документов в промежуточную кассу?')) return;
     setMsg('', false);
-    fetchApi(API + '/cash/plate-payouts/pay', { method: 'POST' })
+    fetchApi(payoutUrl('/cash/plate-payouts/pay'), { method: 'POST' })
       .then(function (r) {
         if (!r.ok) {
           return r.json().then(function (j) {
