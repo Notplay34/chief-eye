@@ -23,6 +23,7 @@
   var page = 0;
   var pageSize = 30;
   var hasNextPage = false;
+  var cashBalance = 0;
 
   function msg(text, type) {
     var el = document.getElementById('cashMsg');
@@ -156,7 +157,7 @@
           var t = totalFromRow(updated);
           input.value = t === 0 ? '' : toInputValue(t);
           wrap.className = 'cash-crm__row-total ' + rowTotalClass(t);
-          renderTotal();
+          loadCashBalance();
           loadCashDay();
           msg('Сохранено', 'ok');
         })
@@ -239,7 +240,7 @@
             if (totalWrap) totalWrap.className = 'cash-crm__row-total ' + rowTotalClass(t);
             if (totalInput) totalInput.value = t === 0 ? '' : toInputValue(t);
           }
-          renderTotal();
+          loadCashBalance();
           loadCashDay();
           msg('Сохранено', 'ok');
         })
@@ -256,9 +257,7 @@
   }
 
   function renderTotal() {
-    var total = rows.reduce(function (sum, r) {
-      return sum + totalFromRow(r);
-    }, 0);
+    var total = cashBalance;
     var wrap = document.getElementById('cashTotalCell');
     if (!wrap) return;
     var numSpan = wrap.querySelector('.cash-crm__amount-num');
@@ -284,6 +283,12 @@
     ];
     if (activeDate) params.push('business_date=' + encodeURIComponent(activeDate));
     return url + '?' + params.join('&');
+  }
+
+  function balanceUrl() {
+    var url = API + '/cash/rows/balance';
+    if (activeDate) return url + '?business_date=' + encodeURIComponent(activeDate);
+    return url;
   }
 
   function renderPager() {
@@ -341,6 +346,23 @@
           msgEl.textContent = e.message || 'Ошибка загрузки комиссий';
           msgEl.className = 'cash-duty-commission__msg cash-duty-commission__msg--err';
         }
+      });
+  }
+
+  function loadCashBalance() {
+    return fetchApi(balanceUrl())
+      .then(function (r) {
+        if (!r.ok) {
+          return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
+        }
+        return r.json();
+      })
+      .then(function (data) {
+        cashBalance = Number(data.balance || 0);
+        renderTotal();
+      })
+      .catch(function (e) {
+        msg('Ошибка загрузки остатка: ' + (e.message || ''), 'err');
       });
   }
 
@@ -410,6 +432,7 @@
             rows = rows.filter(function (x) { return x.id !== row.id; });
             render();
             renderPager();
+            loadCashBalance();
             loadCashDay();
             msg('Строка удалена', 'ok');
           } else {
@@ -496,6 +519,7 @@
         if (hasNextPage) rows = rows.slice(0, pageSize);
         render();
         renderPager();
+        loadCashBalance();
         loadCashDay();
       })
       .catch(function (e) {
@@ -539,6 +563,7 @@
         if (rows.length > pageSize) rows = rows.slice(0, pageSize);
         render();
         renderPager();
+        loadCashBalance();
         msg('Строка добавлена. Можно ввести отрицательные суммы — расходы из кассы.', 'ok');
       })
       .catch(function (e) {

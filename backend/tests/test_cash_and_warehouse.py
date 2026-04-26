@@ -1,6 +1,7 @@
 """Критические сценарии по сменам, складу и выплатам за номера."""
 
 import asyncio
+from decimal import Decimal
 from datetime import date, datetime, timedelta
 
 from fastapi.testclient import TestClient
@@ -711,6 +712,30 @@ def test_cash_rows_can_be_filtered_by_business_date(client: TestClient, auth_hea
     old_response = client.get("/cash/rows", params={"business_date": "2020-01-01"}, headers=auth_headers)
     assert old_response.status_code == 200, old_response.text
     assert old_response.json() == []
+
+
+def test_cash_rows_balance_carries_previous_days(client: TestClient, auth_headers: dict[str, str], db_session):
+    async def create_cash_rows():
+        db_session.add_all([
+            CashRow(client_name="День 1", total=Decimal("1000"), created_at=datetime(2026, 4, 24, 12, 0, 0)),
+            CashRow(client_name="День 2", total=Decimal("500"), created_at=datetime(2026, 4, 25, 12, 0, 0)),
+            CashRow(client_name="Списание", total=Decimal("-200"), created_at=datetime(2026, 4, 25, 13, 0, 0)),
+        ])
+        await db_session.commit()
+
+    run_async(create_cash_rows())
+
+    day_response = client.get("/cash/rows/balance", params={"business_date": "2026-04-25"}, headers=auth_headers)
+    assert day_response.status_code == 200, day_response.text
+    assert day_response.json()["balance"] == 1300.0
+
+    previous_day_response = client.get("/cash/rows/balance", params={"business_date": "2026-04-24"}, headers=auth_headers)
+    assert previous_day_response.status_code == 200, previous_day_response.text
+    assert previous_day_response.json()["balance"] == 1000.0
+
+    all_response = client.get("/cash/rows/balance", headers=auth_headers)
+    assert all_response.status_code == 200, all_response.text
+    assert all_response.json()["balance"] == 1300.0
 
 
 def test_plate_extra_payment_uses_workday_cash_bucket_automatically(client: TestClient, auth_headers: dict[str, str]):
