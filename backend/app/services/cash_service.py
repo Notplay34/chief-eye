@@ -568,6 +568,7 @@ async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
         db.add(
             PlateCashRow(
                 client_name=_fio_initials(payout.client_name),
+                quantity=int(payout.quantity or 0),
                 amount=payout.amount,
                 source_type=PLATE_PAYOUT_TRANSFER,
                 source_date=local_now().date(),

@@ -542,6 +542,10 @@ def _plate_row_to_dict(row: PlateCashRow) -> dict:
     }
 
 
+def _plate_cash_row_controls_stock(row: PlateCashRow) -> bool:
+    return not row.source_type
+
+
 @router.get("/plate-rows")
 async def list_plate_cash_rows(
     limit: int = Query(500, ge=1, le=2000),
@@ -598,10 +602,11 @@ async def update_plate_cash_row(
         row.client_name = body.client_name.strip()
     if body.quantity is not None:
         delta = body.quantity - int(row.quantity or 0)
-        try:
-            await adjust_stock_for_plate_cash_row(db, delta)
-        except ServiceError as exc:
-            _raise_service_error(exc)
+        if _plate_cash_row_controls_stock(row):
+            try:
+                await adjust_stock_for_plate_cash_row(db, delta)
+            except ServiceError as exc:
+                _raise_service_error(exc)
         row.quantity = body.quantity
     if body.amount is not None:
         row.amount = Decimal(str(body.amount))
@@ -623,7 +628,7 @@ async def delete_plate_cash_row(
     row = r.scalar_one_or_none()
     if not row:
         raise HTTPException(status_code=404, detail="Строка не найдена")
-    if int(row.quantity or 0) > 0:
+    if _plate_cash_row_controls_stock(row) and int(row.quantity or 0) > 0:
         try:
             await adjust_stock_for_plate_cash_row(db, -int(row.quantity or 0))
         except ServiceError as exc:

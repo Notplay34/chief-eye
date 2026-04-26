@@ -171,6 +171,15 @@ def test_intermediate_plate_money_is_payable_only_after_client_issue(client: Tes
     assert plate_rows_response.status_code == 200, plate_rows_response.text
     assert plate_rows_response.json()["rows"] == []
 
+    pay_ready_response = client.post("/cash/plate-transfers/pay", headers=auth_headers)
+    assert pay_ready_response.status_code == 200, pay_ready_response.text
+    assert pay_ready_response.json()["count"] == 1
+    assert pay_ready_response.json()["total"] == 3000.0
+
+    plate_rows_after_pay_response = client.get("/cash/plate-rows", headers=auth_headers)
+    assert plate_rows_after_pay_response.status_code == 200, plate_rows_after_pay_response.text
+    assert plate_rows_after_pay_response.json()["rows"][0]["quantity"] == 2
+
 
 def test_plate_payout_transfer_uses_cash_receipt_day(client: TestClient, auth_headers: dict[str, str], db_session):
     old_day = date.today() - timedelta(days=1)
@@ -269,6 +278,7 @@ def test_plate_transfer_pays_only_issued_clients_from_intermediate_cash(client: 
     assert plate_rows_response.status_code == 200, plate_rows_response.text
     assert plate_rows_response.json()["total"] == 1500.0
     assert len(plate_rows_response.json()["rows"]) == 1
+    assert plate_rows_response.json()["rows"][0]["quantity"] == 1
 
     history_response = client.get("/cash/plate-transfers/history", headers=auth_headers)
     assert history_response.status_code == 200, history_response.text
@@ -541,6 +551,7 @@ def test_paying_plate_payouts_moves_money_between_cash_tables(client: TestClient
     assert plate_rows_response.status_code == 200, plate_rows_response.text
     assert plate_rows_response.json()["total"] == 1500.0
     assert plate_rows_response.json()["rows"][0]["client_name"] == "Петров П.П."
+    assert plate_rows_response.json()["rows"][0]["quantity"] == 1
 
     delete_response = client.delete(f"/cash/rows/{payout_rows[0]['id']}", headers=auth_headers)
     assert delete_response.status_code == 204, delete_response.text
@@ -578,6 +589,7 @@ def test_deleting_plate_cash_row_does_not_return_money_to_intermediate(client: T
     plate_rows_after_delete = client.get("/cash/plate-rows", headers=auth_headers)
     assert plate_rows_after_delete.status_code == 200, plate_rows_after_delete.text
     assert plate_rows_after_delete.json()["rows"] == []
+    assert client.get("/warehouse/plate-stock", headers=auth_headers).json()["quantity"] == 1
 
     transfers_after_delete = client.get("/cash/plate-transfers", headers=auth_headers)
     assert transfers_after_delete.status_code == 200, transfers_after_delete.text
