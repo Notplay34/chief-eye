@@ -11,6 +11,9 @@
   var stateDuty2025Input = document.getElementById('stateDuty2025CashAmount');
   var stateDutySettingsMessage = document.getElementById('stateDutySettingsMessage');
   var orderStatusFilter = document.getElementById('orderStatusFilter');
+  var ordersPage = 0;
+  var ordersPageSize = 30;
+  var ordersHasNext = false;
 
   function showErr(el, msg) {
     el.innerHTML = '<span class="error">' + (msg || 'Ошибка загрузки') + '</span>';
@@ -18,7 +21,22 @@
 
   function getOrdersUrl() {
     var status = orderStatusFilter && orderStatusFilter.value ? orderStatusFilter.value : '';
-    return apiBase + '/orders?limit=100' + (status ? '&status=' + encodeURIComponent(status) : '');
+    return apiBase + '/orders?limit=' + encodeURIComponent(ordersPageSize + 1) +
+      '&offset=' + encodeURIComponent(ordersPage * ordersPageSize) +
+      (status ? '&status=' + encodeURIComponent(status) : '');
+  }
+
+  function renderOrdersPager(visibleCount) {
+    var info = document.getElementById('ordersPageInfo');
+    var prev = document.getElementById('ordersPagePrev');
+    var next = document.getElementById('ordersPageNext');
+    if (info) {
+      var start = visibleCount ? ordersPage * ordersPageSize + 1 : 0;
+      var end = ordersPage * ordersPageSize + visibleCount;
+      info.textContent = start + '–' + end;
+    }
+    if (prev) prev.disabled = ordersPage <= 0;
+    if (next) next.disabled = !ordersHasNext;
   }
 
   function escapeHtml(value) {
@@ -151,8 +169,11 @@
         return r.json();
       })
       .then(function (list) {
+        ordersHasNext = list.length > ordersPageSize;
+        if (ordersHasNext) list = list.slice(0, ordersPageSize);
         if (!list.length) {
           ordersEl.innerHTML = '<p class="text-muted">Заказов пока нет.</p>';
+          renderOrdersPager(0);
           return;
         }
         var rows = list.map(function (order) {
@@ -166,8 +187,11 @@
         ordersEl.querySelectorAll('.btn-detail').forEach(function (btn) {
           btn.addEventListener('click', function () { openOrderDetail(Number(btn.getAttribute('data-order-id'))); });
         });
+        renderOrdersPager(list.length);
       })
       .catch(function (e) {
+        ordersHasNext = false;
+        renderOrdersPager(0);
         showErr(ordersEl, e.message);
       });
   }
@@ -363,7 +387,31 @@
     loadPriceList();
   }
 
-  if (orderStatusFilter) orderStatusFilter.addEventListener('change', loadOrders);
+  if (orderStatusFilter) orderStatusFilter.addEventListener('change', function () {
+    ordersPage = 0;
+    loadOrders();
+  });
+  var ordersPageSizeSelect = document.getElementById('ordersPageSize');
+  if (ordersPageSizeSelect) {
+    ordersPageSize = parseInt(ordersPageSizeSelect.value, 10) || ordersPageSize;
+    ordersPageSizeSelect.addEventListener('change', function () {
+      ordersPageSize = parseInt(this.value, 10) || 30;
+      ordersPage = 0;
+      loadOrders();
+    });
+  }
+  var ordersPrev = document.getElementById('ordersPagePrev');
+  if (ordersPrev) ordersPrev.addEventListener('click', function () {
+    if (ordersPage <= 0) return;
+    ordersPage -= 1;
+    loadOrders();
+  });
+  var ordersNext = document.getElementById('ordersPageNext');
+  if (ordersNext) ordersNext.addEventListener('click', function () {
+    if (!ordersHasNext) return;
+    ordersPage += 1;
+    loadOrders();
+  });
   document.getElementById('orderDetailClose').addEventListener('click', function () {
     document.getElementById('orderDetailModal').classList.remove('show');
   });

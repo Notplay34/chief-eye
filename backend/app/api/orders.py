@@ -112,6 +112,7 @@ async def list_orders(
     need_plate: Optional[bool] = None,
     pavilion: Optional[int] = None,
     limit: int = 100,
+    offset: int = 0,
     db: AsyncSession = Depends(get_db),
     user: UserInfo = Depends(RequireOrdersListAccess),
 ):
@@ -125,7 +126,7 @@ async def list_orders(
             raise HTTPException(status_code=403, detail="Нет доступа к этому павильону")
         if pavilion == 2:
             need_plate = True
-    q = select(Order).order_by(Order.created_at.desc()).limit(limit)
+    q = select(Order).order_by(Order.created_at.desc()).offset(offset).limit(limit)
     try:
         q = apply_orders_scope(q, user, pavilion=pavilion)
     except ServiceError as exc:

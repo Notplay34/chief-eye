@@ -14,6 +14,9 @@
   var historyBodyEl = document.getElementById('plateTransferHistoryBody');
   var historyMetaEl = document.getElementById('plateTransferHistoryMeta');
   var openHistoryDay = '';
+  var historyPage = 0;
+  var historyPageSize = 30;
+  var historyHasNext = false;
 
   function money(value) {
     return new Intl.NumberFormat('ru-RU', {
@@ -126,14 +129,42 @@
     return date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   }
 
+  function dayLabelFromKey(key) {
+    if (!key || key === 'unknown') return key || '';
+    var parts = key.split('-');
+    return parts.length === 3 ? parts[2] + '.' + parts[1] + '.' + parts[0] : key;
+  }
+
+  function groupHistoryRows(rows) {
+    var days = {};
+    rows.forEach(function (row) {
+      var key = String(row.paid_at || '').slice(0, 10) || 'unknown';
+      if (!days[key]) {
+        days[key] = { date: key, label: dayLabelFromKey(key), rows: [], total: 0, quantity: 0, count: 0 };
+      }
+      days[key].rows.push(row);
+      days[key].total += Number(row.amount || 0);
+      days[key].quantity += quantityVal(row.quantity);
+      days[key].count += 1;
+    });
+    return Object.keys(days).sort(function (a, b) { return a < b ? 1 : -1; }).map(function (key) { return days[key]; });
+  }
+
   function renderHistory(data) {
     if (!historyBodyEl) return;
     var historyDays = (data && data.days) || [];
     var total = Number(data && data.total || 0);
     var quantity = Number(data && data.quantity || 0);
+    var pageRows = (data && data.rows) || [];
     if (historyMetaEl) {
-      historyMetaEl.textContent = historyDays.length + ' дней · ' + quantity + ' шт · ' + money(total);
+      var start = pageRows.length ? historyPage * historyPageSize + 1 : 0;
+      var end = historyPage * historyPageSize + pageRows.length;
+      historyMetaEl.textContent = start + '–' + end + ' · ' + historyDays.length + ' дней · ' + quantity + ' шт · ' + money(total);
     }
+    var prev = document.getElementById('plateTransferHistoryPrev');
+    var next = document.getElementById('plateTransferHistoryNext');
+    if (prev) prev.disabled = historyPage <= 0;
+    if (next) next.disabled = !historyHasNext;
     historyBodyEl.innerHTML = '';
     if (!historyDays.length) {
       historyBodyEl.innerHTML = '<div class="plate-transfer-ready__empty">Выдач из промежуточной кассы ещё не было</div>';
@@ -165,13 +196,29 @@
 
   function loadHistory() {
     if (!historyBodyEl) return;
-    fetchApi(api + '/cash/plate-transfers/history')
+    var url = api + '/cash/plate-transfers/history?limit=' + encodeURIComponent(historyPageSize + 1) +
+      '&offset=' + encodeURIComponent(historyPage * historyPageSize);
+    fetchApi(url)
       .then(function (r) {
         if (!r.ok) return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
         return r.json();
       })
-      .then(renderHistory)
+      .then(function (data) {
+        var rows = (data && data.rows) || [];
+        historyHasNext = rows.length > historyPageSize;
+        if (historyHasNext) rows = rows.slice(0, historyPageSize);
+        if (data) {
+          data.rows = rows;
+          data.days = groupHistoryRows(rows);
+        }
+        renderHistory(data);
+      })
       .catch(function (e) {
+        historyHasNext = false;
+        var prev = document.getElementById('plateTransferHistoryPrev');
+        var next = document.getElementById('plateTransferHistoryNext');
+        if (prev) prev.disabled = historyPage <= 0;
+        if (next) next.disabled = true;
         historyBodyEl.innerHTML = '<div class="plate-transfer-ready__empty">Ошибка истории: ' + escapeHtml(e.message || '') + '</div>';
       });
   }
@@ -288,6 +335,30 @@
   }
 
   if (btnAddRow) btnAddRow.addEventListener('click', addManualRow);
+  var historyPageSizeSelect = document.getElementById('plateTransferHistoryPageSize');
+  if (historyPageSizeSelect) {
+    historyPageSize = parseInt(historyPageSizeSelect.value, 10) || historyPageSize;
+    historyPageSizeSelect.addEventListener('change', function () {
+      historyPageSize = parseInt(this.value, 10) || 30;
+      historyPage = 0;
+      openHistoryDay = '';
+      loadHistory();
+    });
+  }
+  var historyPrev = document.getElementById('plateTransferHistoryPrev');
+  if (historyPrev) historyPrev.addEventListener('click', function () {
+    if (historyPage <= 0) return;
+    historyPage -= 1;
+    openHistoryDay = '';
+    loadHistory();
+  });
+  var historyNext = document.getElementById('plateTransferHistoryNext');
+  if (historyNext) historyNext.addEventListener('click', function () {
+    if (!historyHasNext) return;
+    historyPage += 1;
+    openHistoryDay = '';
+    loadHistory();
+  });
   if (historyBodyEl) historyBodyEl.addEventListener('click', function (event) {
     var target = event.target;
     if (!target || !target.getAttribute) target = target && target.parentNode;

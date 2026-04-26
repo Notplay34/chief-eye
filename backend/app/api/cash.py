@@ -327,6 +327,7 @@ async def _rollback_order_payment_for_cash_row(db: AsyncSession, row: CashRow) -
 @router.get("/rows", response_model=list)
 async def list_cash_rows(
     limit: int = Query(500, ge=1, le=2000),
+    offset: int = Query(0, ge=0, le=100000),
     business_date: Optional[date] = Query(None),
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
@@ -335,7 +336,7 @@ async def list_cash_rows(
 ):
     """Список строк таблицы кассы (последние сверху)."""
     _ensure_pavilion_cash_access(user, 1)
-    q = select(CashRow).order_by(CashRow.created_at.desc()).limit(limit)
+    q = select(CashRow).order_by(CashRow.created_at.desc()).offset(offset).limit(limit)
     q = _apply_date_filters(q, CashRow, business_date, date_from, date_to)
     r = await db.execute(q)
     rows = r.scalars().all()
@@ -549,6 +550,7 @@ def _plate_cash_row_controls_stock(row: PlateCashRow) -> bool:
 @router.get("/plate-rows")
 async def list_plate_cash_rows(
     limit: int = Query(500, ge=1, le=2000),
+    offset: int = Query(0, ge=0, le=100000),
     business_date: Optional[date] = Query(None),
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
@@ -556,7 +558,7 @@ async def list_plate_cash_rows(
     user: UserInfo = Depends(RequirePlateAccess),
 ):
     """Список строк кассы номеров (последние сверху)."""
-    q = select(PlateCashRow).order_by(PlateCashRow.created_at.desc()).limit(limit)
+    q = select(PlateCashRow).order_by(PlateCashRow.created_at.desc()).offset(offset).limit(limit)
     q = _apply_date_filters(q, PlateCashRow, business_date, date_from, date_to)
     r = await db.execute(q)
     rows = r.scalars().all()
@@ -786,6 +788,7 @@ async def list_plate_transfers(
 @router.get("/plate-transfers/history")
 async def list_plate_transfer_history(
     limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0, le=100000),
     db: AsyncSession = Depends(get_db),
     user: UserInfo = Depends(RequireCashAccess),
 ):
@@ -800,7 +803,7 @@ async def list_plate_transfer_history(
                 or_(PlatePayout.transfer_batch.is_(None), ~PlatePayout.transfer_batch.like("deleted:%")),
             )
             .order_by(PlatePayout.paid_at.desc(), PlatePayout.id.desc())
-            .limit(limit)
+            .limit(limit + offset)
         )
     ).scalars().all()
     manual_rows = (
@@ -808,12 +811,12 @@ async def list_plate_transfer_history(
             select(IntermediatePlateTransfer)
             .where(IntermediatePlateTransfer.paid_at.is_not(None))
             .order_by(IntermediatePlateTransfer.paid_at.desc(), IntermediatePlateTransfer.id.desc())
-            .limit(limit)
+            .limit(limit + offset)
         )
     ).scalars().all()
     rows = [_transfer_history_to_dict(row) for row in payout_rows] + [_transfer_history_to_dict(row) for row in manual_rows]
     rows.sort(key=lambda row: row.get("paid_at") or "", reverse=True)
-    rows = rows[:limit]
+    rows = rows[offset:offset + limit]
     total = sum((Decimal(str(row["amount"])) for row in rows), Decimal("0"))
     quantity = sum((int(row["quantity"] or 0) for row in rows), 0)
     days_by_key: dict[str, dict] = {}

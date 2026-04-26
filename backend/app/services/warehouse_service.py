@@ -238,10 +238,11 @@ async def list_stock_movements(
     month_from: Optional[str] = None,
     month_to: Optional[str] = None,
     limit: int = 500,
+    offset: int = 0,
 ) -> dict:
     start_month = _parse_month(month_from)
     end_month = _parse_month(month_to)
-    query = select(PlateStockMovement).order_by(PlateStockMovement.created_at.desc()).limit(limit)
+    query = select(PlateStockMovement).order_by(PlateStockMovement.created_at.desc()).offset(offset).limit(limit)
     if start_month:
         start, _ = business_month_bounds_utc(start_month)
         query = query.where(PlateStockMovement.created_at >= start)

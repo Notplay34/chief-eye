@@ -61,12 +61,13 @@ async def get_plate_stock_movements(
     month_from: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}$"),
     month_to: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}$"),
     limit: int = Query(500, ge=1, le=2000),
+    offset: int = Query(0, ge=0, le=100000),
     db: AsyncSession = Depends(get_db),
     _user: UserInfo = Depends(RequirePlateAccess),
 ):
     """Журнал движений склада с фильтром по месяцам."""
     try:
-        return await list_stock_movements(db, month_from, month_to, limit)
+        return await list_stock_movements(db, month_from, month_to, limit, offset)
     except ServiceError as exc:
         _raise_service_error(exc)
 

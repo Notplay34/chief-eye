@@ -25,7 +25,7 @@
     <div class="admin-block" style="margin-bottom: 2rem;">
       <h2 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 0 0 0.75rem;">Данные</h2>
     <section id="sectionOrders">
-      <h2>Заказы (последние 100)</h2>
+      <h2>Заказы</h2>
       <div class="filter-row">
         <label>Статус:</label>
         <select id="orderStatusFilter">
@@ -36,6 +36,14 @@
           <option value="COMPLETED">Завершён</option>
           <option value="PROBLEM">Проблема</option>
         </select>
+        <span id="ordersPageInfo" class="text-muted">0–0</span>
+        <select id="ordersPageSize">
+          <option value="10">10</option>
+          <option value="30" selected>30</option>
+          <option value="50">50</option>
+        </select>
+        <button type="button" class="btn btn-sm" id="ordersPagePrev">Назад</button>
+        <button type="button" class="btn btn-sm" id="ordersPageNext">Дальше</button>
         <span class="text-muted">Клик по номеру — скопировать</span>
       </div>
       <div id="ordersContent" class="loading">Загрузка…</div>

@@ -1,6 +1,10 @@
 (function () {
   var api = window.API_BASE_URL || '';
   var fetchApi = window.fetchWithAuth || fetch;
+  var movementsPage = 0;
+  var movementsPageSize = 30;
+  var movementsHasNext = false;
+  var movementsVisibleCount = 0;
   if (!window.getToken || !window.getToken()) return;
 
   function msg(text, isErr) {
@@ -88,6 +92,32 @@
     return params.length ? '?' + params.join('&') : '';
   }
 
+  function movementsQuery() {
+    var from = document.getElementById('historyFrom');
+    var to = document.getElementById('historyTo');
+    var params = [
+      'limit=' + encodeURIComponent(movementsPageSize + 1),
+      'offset=' + encodeURIComponent(movementsPage * movementsPageSize)
+    ];
+    if (from && from.value) params.push('month_from=' + encodeURIComponent(from.value));
+    if (to && to.value) params.push('month_to=' + encodeURIComponent(to.value));
+    return '?' + params.join('&');
+  }
+
+  function renderMovementsPager() {
+    var info = document.getElementById('warehouseMovementsPageInfo');
+    var prev = document.getElementById('warehouseMovementsPrev');
+    var next = document.getElementById('warehouseMovementsNext');
+    var count = movementsVisibleCount;
+    if (info) {
+      var start = count ? movementsPage * movementsPageSize + 1 : 0;
+      var end = movementsPage * movementsPageSize + count;
+      info.textContent = start + '–' + end;
+    }
+    if (prev) prev.disabled = movementsPage <= 0;
+    if (next) next.disabled = !movementsHasNext;
+  }
+
   function loadHistory() {
     var query = historyQuery();
     fetchApi(api + '/warehouse/plate-stock/monthly' + query)
@@ -116,14 +146,18 @@
         if (body) body.innerHTML = '<tr><td colspan="6" class="warehouse-empty">Ошибка: ' + (e.message || '') + '</td></tr>';
       });
 
-    fetchApi(api + '/warehouse/plate-stock/movements' + query)
+    fetchApi(api + '/warehouse/plate-stock/movements' + movementsQuery())
       .then(function (r) { return parseJsonResponse(r, ''); })
       .then(function (data) {
         var body = document.getElementById('warehouseMovementsBody');
         if (!body) return;
         var rows = data.rows || [];
+        movementsHasNext = rows.length > movementsPageSize;
+        if (movementsHasNext) rows = rows.slice(0, movementsPageSize);
+        movementsVisibleCount = rows.length;
         if (!rows.length) {
           body.innerHTML = '<tr><td colspan="5" class="warehouse-empty">Движений за выбранный период нет.</td></tr>';
+          renderMovementsPager();
           return;
         }
         body.innerHTML = rows.map(function (row) {
@@ -137,10 +171,14 @@
             '<td>' + escapeHtml(row.note || '') + '</td>' +
             '</tr>';
         }).join('');
+        renderMovementsPager();
       })
       .catch(function (e) {
         var body = document.getElementById('warehouseMovementsBody');
         if (body) body.innerHTML = '<tr><td colspan="5" class="warehouse-empty">Ошибка: ' + (e.message || '') + '</td></tr>';
+        movementsHasNext = false;
+        movementsVisibleCount = 0;
+        renderMovementsPager();
       });
   }
 
@@ -250,7 +288,31 @@
   if (fromInput) fromInput.value = monthKey(addMonths(now, -11));
   if (toInput) toInput.value = monthKey(now);
   var historyBtn = document.getElementById('btnHistoryApply');
-  if (historyBtn) historyBtn.addEventListener('click', loadHistory);
+  if (historyBtn) historyBtn.addEventListener('click', function () {
+    movementsPage = 0;
+    loadHistory();
+  });
+  var movementsPageSizeSelect = document.getElementById('warehouseMovementsPageSize');
+  if (movementsPageSizeSelect) {
+    movementsPageSize = parseInt(movementsPageSizeSelect.value, 10) || movementsPageSize;
+    movementsPageSizeSelect.addEventListener('change', function () {
+      movementsPageSize = parseInt(this.value, 10) || 30;
+      movementsPage = 0;
+      loadHistory();
+    });
+  }
+  var movementsPrev = document.getElementById('warehouseMovementsPrev');
+  if (movementsPrev) movementsPrev.addEventListener('click', function () {
+    if (movementsPage <= 0) return;
+    movementsPage -= 1;
+    loadHistory();
+  });
+  var movementsNext = document.getElementById('warehouseMovementsNext');
+  if (movementsNext) movementsNext.addEventListener('click', function () {
+    if (!movementsHasNext) return;
+    movementsPage += 1;
+    loadHistory();
+  });
 
   load();
   loadHistory();

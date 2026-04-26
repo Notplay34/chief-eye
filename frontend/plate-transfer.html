@@ -57,11 +57,20 @@
 
       <section class="plate-transfer-history">
         <div class="plate-transfer-history__head">
-          <div>
-            <h2>История выдачи</h2>
-            <p id="plateTransferHistoryMeta">0 дней · 0 ₽</p>
-          </div>
+        <div>
+          <h2>История выдачи</h2>
+          <p id="plateTransferHistoryMeta">0 дней · 0 ₽</p>
         </div>
+        <div class="cash-date-filter" aria-label="Страницы истории выдачи">
+          <select id="plateTransferHistoryPageSize" class="cash-date-filter__input">
+            <option value="10">10</option>
+            <option value="30" selected>30</option>
+            <option value="50">50</option>
+          </select>
+          <button type="button" class="cash-date-filter__btn" id="plateTransferHistoryPrev">Назад</button>
+          <button type="button" class="cash-date-filter__btn" id="plateTransferHistoryNext">Дальше</button>
+        </div>
+      </div>
         <div class="plate-transfer-history__list" id="plateTransferHistoryBody">
           <div class="plate-transfer-ready__empty">Загрузка…</div>
         </div>

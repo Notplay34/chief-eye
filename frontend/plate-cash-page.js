@@ -6,6 +6,9 @@
   var rows = [];
   var activeDate = todayKey();
   var PLATE_UNIT_PRICE = 1500;
+  var page = 0;
+  var pageSize = 30;
+  var hasNextPage = false;
 
   function msg(text, isErr) {
     var el = document.getElementById('plateCashMsg');
@@ -82,8 +85,25 @@
 
   function rowsUrl() {
     var url = api + '/cash/plate-rows';
-    if (activeDate) url += '?business_date=' + encodeURIComponent(activeDate);
-    return url;
+    var params = [
+      'limit=' + encodeURIComponent(pageSize + 1),
+      'offset=' + encodeURIComponent(page * pageSize)
+    ];
+    if (activeDate) params.push('business_date=' + encodeURIComponent(activeDate));
+    return url + '?' + params.join('&');
+  }
+
+  function renderPager() {
+    var info = document.getElementById('plateCashPageInfo');
+    var prev = document.getElementById('plateCashPagePrev');
+    var next = document.getElementById('plateCashPageNext');
+    if (info) {
+      var start = rows.length ? page * pageSize + 1 : 0;
+      var end = page * pageSize + rows.length;
+      info.textContent = start + '–' + end;
+    }
+    if (prev) prev.disabled = page <= 0;
+    if (next) next.disabled = !hasNextPage;
   }
 
   function dayLabel(key) {
@@ -203,6 +223,7 @@
           if (r.status === 204 || r.ok) {
             rows = rows.filter(function (item) { return item.id !== row.id; });
             render();
+            renderPager();
             return;
           }
           return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
@@ -267,11 +288,16 @@
       })
       .then(function (data) {
         rows = data && data.rows ? data.rows : [];
+        hasNextPage = rows.length > pageSize;
+        if (hasNextPage) rows = rows.slice(0, pageSize);
         render();
+        renderPager();
       })
       .catch(function (e) {
         document.getElementById('plateCashBody').innerHTML =
           '<tr><td colspan="4" class="plate-cash-msg err">Ошибка загрузки: ' + (e.message || '') + '</td></tr>';
+        hasNextPage = false;
+        renderPager();
       });
   }
 
@@ -280,19 +306,43 @@
     dateFilter.value = activeDate;
     dateFilter.addEventListener('change', function () {
       activeDate = this.value || '';
+      page = 0;
       load();
     });
   }
   var todayBtn = document.getElementById('btnPlateCashToday');
   if (todayBtn) todayBtn.addEventListener('click', function () {
     activeDate = todayKey();
+    page = 0;
     if (dateFilter) dateFilter.value = activeDate;
     load();
   });
   var allBtn = document.getElementById('btnPlateCashAll');
   if (allBtn) allBtn.addEventListener('click', function () {
     activeDate = '';
+    page = 0;
     if (dateFilter) dateFilter.value = '';
+    load();
+  });
+  var pageSizeSelect = document.getElementById('plateCashPageSize');
+  if (pageSizeSelect) {
+    pageSize = parseInt(pageSizeSelect.value, 10) || pageSize;
+    pageSizeSelect.addEventListener('change', function () {
+      pageSize = parseInt(this.value, 10) || 30;
+      page = 0;
+      load();
+    });
+  }
+  var prevBtn = document.getElementById('plateCashPagePrev');
+  if (prevBtn) prevBtn.addEventListener('click', function () {
+    if (page <= 0) return;
+    page -= 1;
+    load();
+  });
+  var nextBtn = document.getElementById('plateCashPageNext');
+  if (nextBtn) nextBtn.addEventListener('click', function () {
+    if (!hasNextPage) return;
+    page += 1;
     load();
   });
 
@@ -310,7 +360,9 @@
       })
       .then(function (newRow) {
         rows.unshift(newRow);
+        if (rows.length > pageSize) rows = rows.slice(0, pageSize);
         render();
+        renderPager();
         msg('Строка добавлена.');
         setTimeout(function () { msg(''); }, 3000);
       })

@@ -93,7 +93,21 @@
     </div>
 
     <div class="warehouse-card warehouse-card--history">
-      <h2>Журнал движений</h2>
+      <div class="warehouse-history-header">
+        <div>
+          <h2>Журнал движений</h2>
+        </div>
+        <div class="warehouse-history-filter" aria-label="Страницы журнала движений">
+          <span class="cash-date-filter__btn" id="warehouseMovementsPageInfo">1 страница</span>
+          <select id="warehouseMovementsPageSize" class="cash-date-filter__input">
+            <option value="10">10</option>
+            <option value="30" selected>30</option>
+            <option value="50">50</option>
+          </select>
+          <button type="button" class="btn btn--secondary" id="warehouseMovementsPrev">Назад</button>
+          <button type="button" class="btn btn--secondary" id="warehouseMovementsNext">Дальше</button>
+        </div>
+      </div>
       <div class="warehouse-history-table-wrap">
         <table class="warehouse-history-table">
           <thead>

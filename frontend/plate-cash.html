@@ -53,6 +53,18 @@
         </tfoot>
       </table>
     </div>
+    <div class="plate-cash-toolbar">
+      <div class="cash-date-filter" aria-label="Страницы кассы номеров">
+        <span class="cash-date-filter__btn" id="plateCashPageInfo">1 страница</span>
+        <select id="plateCashPageSize" class="cash-date-filter__input">
+          <option value="10">10</option>
+          <option value="30" selected>30</option>
+          <option value="50">50</option>
+        </select>
+        <button type="button" class="cash-date-filter__btn" id="plateCashPagePrev">Назад</button>
+        <button type="button" class="cash-date-filter__btn" id="plateCashPageNext">Дальше</button>
+      </div>
+    </div>
   </div>
 
   <script src="auth.js"></script>

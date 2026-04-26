@@ -20,6 +20,9 @@
 
   var rows = [];
   var activeDate = todayKey();
+  var page = 0;
+  var pageSize = 30;
+  var hasNextPage = false;
 
   function msg(text, type) {
     var el = document.getElementById('cashMsg');
@@ -275,8 +278,25 @@
 
   function rowsUrl() {
     var url = API + '/cash/rows';
-    if (activeDate) url += '?business_date=' + encodeURIComponent(activeDate);
-    return url;
+    var params = [
+      'limit=' + encodeURIComponent(pageSize + 1),
+      'offset=' + encodeURIComponent(page * pageSize)
+    ];
+    if (activeDate) params.push('business_date=' + encodeURIComponent(activeDate));
+    return url + '?' + params.join('&');
+  }
+
+  function renderPager() {
+    var info = document.getElementById('cashPageInfo');
+    var prev = document.getElementById('cashPagePrev');
+    var next = document.getElementById('cashPageNext');
+    if (info) {
+      var start = rows.length ? page * pageSize + 1 : 0;
+      var end = page * pageSize + rows.length;
+      info.textContent = start + '–' + end;
+    }
+    if (prev) prev.disabled = page <= 0;
+    if (next) next.disabled = !hasNextPage;
   }
 
   function cashDayKey() {
@@ -386,6 +406,7 @@
           if (r.status === 204 || r.ok) {
             rows = rows.filter(function (x) { return x.id !== row.id; });
             render();
+            renderPager();
             loadCashDay();
             msg('Строка удалена', 'ok');
           } else {
@@ -468,7 +489,10 @@
       })
       .then(function (data) {
         rows = Array.isArray(data) ? data : [];
+        hasNextPage = rows.length > pageSize;
+        if (hasNextPage) rows = rows.slice(0, pageSize);
         render();
+        renderPager();
         loadCashDay();
       })
       .catch(function (e) {
@@ -479,6 +503,8 @@
             (e.message || '') +
             '</div></div>';
         }
+        hasNextPage = false;
+        renderPager();
         msg('Ошибка загрузки', 'err');
       });
   }
@@ -507,7 +533,9 @@
       })
       .then(function (newRow) {
         rows.unshift(newRow);
+        if (rows.length > pageSize) rows = rows.slice(0, pageSize);
         render();
+        renderPager();
         msg('Строка добавлена. Можно ввести отрицательные суммы — расходы из кассы.', 'ok');
       })
       .catch(function (e) {
@@ -521,19 +549,43 @@
       dateFilter.value = activeDate;
       dateFilter.addEventListener('change', function () {
         activeDate = this.value || '';
+        page = 0;
         loadRows();
       });
     }
     var todayBtn = document.getElementById('btnCashToday');
     if (todayBtn) todayBtn.onclick = function () {
       activeDate = todayKey();
+      page = 0;
       if (dateFilter) dateFilter.value = activeDate;
       loadRows();
     };
     var allBtn = document.getElementById('btnCashAll');
     if (allBtn) allBtn.onclick = function () {
       activeDate = '';
+      page = 0;
       if (dateFilter) dateFilter.value = '';
+      loadRows();
+    };
+    var sizeSelect = document.getElementById('cashPageSize');
+    if (sizeSelect) {
+      pageSize = parseInt(sizeSelect.value, 10) || pageSize;
+      sizeSelect.addEventListener('change', function () {
+        pageSize = parseInt(this.value, 10) || 30;
+        page = 0;
+        loadRows();
+      });
+    }
+    var prevBtn = document.getElementById('cashPagePrev');
+    if (prevBtn) prevBtn.onclick = function () {
+      if (page <= 0) return;
+      page -= 1;
+      loadRows();
+    };
+    var nextBtn = document.getElementById('cashPageNext');
+    if (nextBtn) nextBtn.onclick = function () {
+      if (!hasNextPage) return;
+      page += 1;
       loadRows();
     };
     loadRows();
