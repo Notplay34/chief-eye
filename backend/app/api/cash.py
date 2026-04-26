@@ -519,7 +519,13 @@ class PlateCashRowUpdate(BaseModel):
 class ManualPlateTransferCreate(BaseModel):
     client_name: str = ""
     quantity: int = Field(default=0, ge=0, le=100)
-    amount: Decimal = Field(gt=0)
+    amount: Decimal = Field(default=Decimal("0"), ge=0)
+
+
+class ManualPlateTransferUpdate(BaseModel):
+    client_name: Optional[str] = None
+    quantity: Optional[int] = Field(default=None, ge=0, le=100)
+    amount: Optional[Decimal] = Field(default=None, ge=0)
 
 
 def _plate_row_to_dict(row: PlateCashRow) -> dict:
@@ -668,7 +674,7 @@ def _manual_transfer_to_dict(row: IntermediatePlateTransfer) -> dict:
         "transfer_batch": None,
         "paid_at": row.paid_at.isoformat() if row.paid_at else None,
         "paid_by_id": row.paid_by_id,
-        "ready_to_pay": True,
+        "ready_to_pay": Decimal(str(row.amount or 0)) > 0,
     }
 
 
@@ -772,6 +778,36 @@ async def create_manual_plate_transfer(
         entity_id=row.id,
         payload={"client_name": row.client_name, "quantity": row.quantity, "amount": float(row.amount)},
     )
+    return _manual_transfer_to_dict(row)
+
+
+@router.patch("/plate-transfers/manual/{row_id}")
+async def update_manual_plate_transfer(
+    row_id: int,
+    body: ManualPlateTransferUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: UserInfo = Depends(RequireCashAccess),
+):
+    """Обновить ручную строку промежуточной кассы."""
+    _ensure_pavilion_cash_access(user, 1)
+    row = (
+        await db.execute(
+            select(IntermediatePlateTransfer).where(
+                IntermediatePlateTransfer.id == row_id,
+                IntermediatePlateTransfer.paid_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Строка не найдена")
+    if body.client_name is not None:
+        row.client_name = body.client_name.strip()
+    if body.quantity is not None:
+        row.quantity = body.quantity
+    if body.amount is not None:
+        row.amount = body.amount
+    db.add(row)
+    await db.flush()
     return _manual_transfer_to_dict(row)
 
 

@@ -9,16 +9,24 @@
   var metaEl = document.getElementById('plateTransferMeta');
   var btnPay = document.getElementById('btnPlateTransferPay');
   var msgEl = document.getElementById('plateTransferMsg');
-  var formEl = document.getElementById('plateTransferForm');
-  var nameEl = document.getElementById('plateTransferName');
-  var quantityEl = document.getElementById('plateTransferQuantity');
-  var amountEl = document.getElementById('plateTransferAmount');
+  var btnAddRow = document.getElementById('btnAddTransferRow');
+  var readyListEl = document.getElementById('plateTransferReadyList');
 
   function money(value) {
     return new Intl.NumberFormat('ru-RU', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(Number(value || 0)) + ' ₽';
+  }
+
+  function numVal(value) {
+    var parsed = parseFloat(String(value || '').replace(/\s/g, '').replace('₽', '').replace(',', '.'));
+    return isNaN(parsed) ? 0 : parsed;
+  }
+
+  function quantityVal(value) {
+    var parsed = parseInt(String(value || '').replace(/\s/g, ''), 10);
+    return isNaN(parsed) || parsed < 0 ? 0 : parsed;
   }
 
   function setMsg(text, isErr) {
@@ -42,16 +50,83 @@
     return '<small>в промежуточной, ждёт выдачи номера</small>';
   }
 
-  function render(data) {
-    rows = (data && data.rows) || [];
-    var total = Number(data && data.total || 0);
-    var quantity = Number(data && data.quantity || 0);
-    var readyCount = Number(data && data.ready_count || 0);
-    var readyTotal = Number(data && data.ready_total || 0);
+  function patchManualRow(rowId, payload) {
+    return fetchApi(api + '/cash/plate-transfers/manual/' + rowId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function (r) {
+      if (!r.ok) return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
+      return r.json();
+    });
+  }
 
-    totalEl.textContent = money(total);
-    metaEl.textContent = rows.length + ' строк · ' + quantity + ' шт · к выдаче ' + readyCount + ' на ' + money(readyTotal);
-    btnPay.disabled = readyCount <= 0;
+  function updateRow(updated) {
+    rows = rows.map(function (row) {
+      return row.row_type === 'manual' && row.id === updated.id ? updated : row;
+    });
+  }
+
+  function makeManualInput(row, field, numeric) {
+    var input = document.createElement('input');
+    input.type = 'text';
+    if (numeric) input.setAttribute('inputmode', field === 'quantity' ? 'numeric' : 'decimal');
+    input.placeholder = field === 'client_name' ? 'ФИО или причина' : '0';
+    input.value = numeric ? (Number(row[field] || 0) ? String(Number(row[field] || 0)).replace('.', ',') : '') : (row[field] || '');
+    input.addEventListener('blur', function () {
+      var value = field === 'quantity' ? quantityVal(input.value) : numeric ? numVal(input.value) : input.value.trim();
+      var previous = rows.find(function (item) { return item.row_type === 'manual' && item.id === row.id; });
+      if (!previous) return;
+      if (numeric && Number(previous[field] || 0) === value) return;
+      if (!numeric && String(previous[field] || '') === String(value)) return;
+      var payload = {};
+      payload[field] = value;
+      patchManualRow(row.id, payload)
+        .then(function (updated) {
+          updateRow(updated);
+          render({ rows: rows });
+          setMsg('Сохранено');
+          setTimeout(function () { setMsg(''); }, 1800);
+        })
+        .catch(function (e) {
+          setMsg('Ошибка сохранения: ' + (e.message || ''), true);
+          render({ rows: rows });
+        });
+    });
+    input.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') input.blur();
+    });
+    return input;
+  }
+
+  function renderReadyList(readyRows) {
+    if (!readyListEl) return;
+    readyListEl.innerHTML = '';
+    if (!readyRows.length) {
+      readyListEl.innerHTML = '<div class="plate-transfer-ready__empty">Нет строк к выдаче</div>';
+      return;
+    }
+    readyRows.forEach(function (row) {
+      var item = document.createElement('div');
+      item.className = 'plate-transfer-ready__item';
+      item.innerHTML =
+        '<span>' + escapeHtml(row.client_short_name || row.client_name || '—') + '</span>' +
+        '<strong>' + money(row.amount) + '</strong>';
+      readyListEl.appendChild(item);
+    });
+  }
+
+  function render(data) {
+    if (data && data.rows) rows = data.rows;
+    var total = rows.reduce(function (sum, row) { return sum + numVal(row.amount); }, 0);
+    var quantity = rows.reduce(function (sum, row) { return sum + quantityVal(row.quantity); }, 0);
+    var readyRows = rows.filter(function (row) { return row.ready_to_pay; });
+    var readyTotal = readyRows.reduce(function (sum, row) { return sum + numVal(row.amount); }, 0);
+
+    totalEl.textContent = money(readyTotal);
+    metaEl.textContent = 'В промежуточной ' + rows.length + ' строк · ' + quantity + ' шт · всего ' + money(total);
+    btnPay.disabled = readyRows.length <= 0;
+    renderReadyList(readyRows);
     bodyEl.innerHTML = '';
 
     if (!rows.length) {
@@ -62,11 +137,38 @@
     rows.forEach(function (row) {
       var tr = document.createElement('tr');
       if (row.ready_to_pay) tr.className = 'plate-transfer-table__ready';
-      tr.innerHTML =
-        '<td class="col-name"><strong>' + escapeHtml(row.client_short_name || row.client_name || '—') + '</strong>' + statusLabel(row) + '</td>' +
-        '<td class="col-quantity">' + escapeHtml(row.quantity || 0) + '</td>' +
-        '<td class="col-amount col-amount--positive">' + money(row.amount) + '</td>' +
-        '<td class="col-del"><button type="button" data-row-key="' + escapeHtml(row.row_key || '') + '" title="Удалить">×</button></td>';
+      var tdName = document.createElement('td');
+      tdName.className = 'col-name';
+      if (row.row_type === 'manual') {
+        tdName.appendChild(makeManualInput(row, 'client_name', false));
+        tdName.insertAdjacentHTML('beforeend', statusLabel(row));
+      } else {
+        tdName.innerHTML = '<strong>' + escapeHtml(row.client_short_name || row.client_name || '—') + '</strong>' + statusLabel(row);
+      }
+      tr.appendChild(tdName);
+
+      var tdQuantity = document.createElement('td');
+      tdQuantity.className = 'col-quantity';
+      if (row.row_type === 'manual') {
+        tdQuantity.appendChild(makeManualInput(row, 'quantity', true));
+      } else {
+        tdQuantity.textContent = String(row.quantity || 0);
+      }
+      tr.appendChild(tdQuantity);
+
+      var tdAmount = document.createElement('td');
+      tdAmount.className = 'col-amount col-amount--positive';
+      if (row.row_type === 'manual') {
+        tdAmount.appendChild(makeManualInput(row, 'amount', true));
+      } else {
+        tdAmount.textContent = money(row.amount);
+      }
+      tr.appendChild(tdAmount);
+
+      var tdDelete = document.createElement('td');
+      tdDelete.className = 'col-del';
+      tdDelete.innerHTML = '<button type="button" data-row-key="' + escapeHtml(row.row_key || '') + '" title="Удалить">×</button>';
+      tr.appendChild(tdDelete);
       bodyEl.appendChild(tr);
     });
   }
@@ -86,34 +188,21 @@
       });
   }
 
-  function addManualRow(event) {
-    event.preventDefault();
-    var amount = Number(amountEl && amountEl.value || 0);
-    var quantity = Math.max(0, parseInt(quantityEl && quantityEl.value || '0', 10) || 0);
-    if (!amount || amount <= 0) {
-      setMsg('Введите сумму больше нуля.', true);
-      return;
-    }
+  function addManualRow() {
     setMsg('');
     fetchApi(api + '/cash/plate-transfers/manual', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_name: nameEl ? nameEl.value : '',
-        quantity: quantity,
-        amount: amount
-      })
+      body: JSON.stringify({ client_name: '', quantity: 0, amount: 0 })
     })
       .then(function (r) {
         if (!r.ok) return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
         return r.json();
       })
-      .then(function () {
-        if (nameEl) nameEl.value = '';
-        if (quantityEl) quantityEl.value = '0';
-        if (amountEl) amountEl.value = '';
+      .then(function (newRow) {
+        rows.unshift(newRow);
+        render({ rows: rows });
         setMsg('Строка добавлена в промежуточную кассу.');
-        load();
       })
       .catch(function (e) {
         setMsg('Ошибка добавления: ' + (e.message || ''), true);
@@ -137,7 +226,7 @@
       });
   }
 
-  if (formEl) formEl.addEventListener('submit', addManualRow);
+  if (btnAddRow) btnAddRow.addEventListener('click', addManualRow);
   bodyEl.addEventListener('click', function (event) {
     var target = event.target;
     if (!target || !target.getAttribute) return;

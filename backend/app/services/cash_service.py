@@ -555,8 +555,9 @@ async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
     if not payouts and not manual_rows:
         raise ServiceError("Нет денег в промежуточной кассе к передаче", status_code=400)
 
+    payable_manual_rows = [row for row in manual_rows if Decimal(str(row.amount or 0)) > 0]
     total: Decimal = sum((payout.amount for payout in payouts), Decimal("0"))
-    total += sum((row.amount for row in manual_rows), Decimal("0"))
+    total += sum((row.amount for row in payable_manual_rows), Decimal("0"))
     if total <= 0:
         raise ServiceError("Сумма к передаче нулевая", status_code=400)
 
@@ -577,7 +578,7 @@ async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
         payout.paid_at = now
         payout.paid_by_id = user.id
         db.add(payout)
-    for row in manual_rows:
+    for row in payable_manual_rows:
         db.add(
             PlateCashRow(
                 client_name=_fio_initials(row.client_name) or row.client_name,
@@ -600,10 +601,10 @@ async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
         entity_type="plate_payout_batch",
         entity_id=None,
         payload={
-            "count": len(payouts) + len(manual_rows),
+            "count": len(payouts) + len(payable_manual_rows),
             "total": float(total),
             "order_ids": [payout.order_id for payout in payouts],
-            "manual_ids": [row.id for row in manual_rows],
+            "manual_ids": [row.id for row in payable_manual_rows],
         },
     )
-    return {"count": len(payouts) + len(manual_rows), "total": float(total)}
+    return {"count": len(payouts) + len(payable_manual_rows), "total": float(total)}

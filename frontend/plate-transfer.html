@@ -27,25 +27,16 @@
       </div>
       <div class="plate-transfer__meta" id="plateTransferMeta">0 человек · 0 шт</div>
       <button type="button" class="btn btn--primary" id="btnPlateTransferPay" disabled>Выдать в кассу номеров</button>
+      <div class="plate-transfer-ready" id="plateTransferReadyList">
+        <div class="plate-transfer-ready__empty">Нет строк к выдаче</div>
+      </div>
     </section>
 
     <p id="plateTransferMsg" class="plate-cash-msg"></p>
 
-    <form class="plate-transfer-form" id="plateTransferForm">
-      <label class="plate-transfer-form__field">
-        <span>Клиент / основание</span>
-        <input type="text" id="plateTransferName" placeholder="ФИО или причина" autocomplete="off">
-      </label>
-      <label class="plate-transfer-form__field plate-transfer-form__field--qty">
-        <span>Шт</span>
-        <input type="number" id="plateTransferQuantity" min="0" step="1" value="0">
-      </label>
-      <label class="plate-transfer-form__field plate-transfer-form__field--amount">
-        <span>Сумма</span>
-        <input type="number" id="plateTransferAmount" min="1" step="1" placeholder="0">
-      </label>
-      <button type="submit" class="btn btn--secondary">Добавить</button>
-    </form>
+    <div class="plate-cash-toolbar plate-cash-toolbar--main">
+      <button type="button" class="btn btn--primary" id="btnAddTransferRow">Добавить строчку в кассу</button>
+    </div>
 
     <div class="plate-cash-table-wrap">
       <table class="plate-cash-table plate-transfer-table" id="plateTransferTable">
@@ -66,6 +57,6 @@
 
   <script src="auth.js"></script>
   <script src="header-common.js"></script>
-  <script src="plate-transfer-page.js?v=20260426-manual"></script>
+  <script src="plate-transfer-page.js?v=20260426-inline"></script>
 </body>
 </html>

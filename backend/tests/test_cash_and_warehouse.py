@@ -321,6 +321,45 @@ def test_intermediate_cash_supports_manual_rows_and_delete(client: TestClient, a
     assert after_delete.json()["rows"] == []
 
 
+def test_manual_intermediate_row_becomes_payable_after_inline_amount(client: TestClient, auth_headers: dict[str, str]):
+    create_response = client.post(
+        "/cash/plate-transfers/manual",
+        json={"client_name": "", "quantity": 0, "amount": 0},
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 200, create_response.text
+    row = create_response.json()
+    assert row["ready_to_pay"] is False
+
+    list_response = client.get("/cash/plate-transfers", headers=auth_headers)
+    assert list_response.status_code == 200, list_response.text
+    assert list_response.json()["total"] == 0.0
+    assert list_response.json()["ready_total"] == 0.0
+    assert list_response.json()["ready_count"] == 0
+
+    update_response = client.patch(
+        f"/cash/plate-transfers/manual/{row['id']}",
+        json={"client_name": "Ручная строка", "quantity": 1, "amount": "1500"},
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 200, update_response.text
+    assert update_response.json()["ready_to_pay"] is True
+
+    ready_response = client.get("/cash/plate-transfers", headers=auth_headers)
+    assert ready_response.status_code == 200, ready_response.text
+    assert ready_response.json()["total"] == 1500.0
+    assert ready_response.json()["ready_total"] == 1500.0
+    assert ready_response.json()["ready_count"] == 1
+
+    pay_response = client.post("/cash/plate-transfers/pay", headers=auth_headers)
+    assert pay_response.status_code == 200, pay_response.text
+    assert pay_response.json()["total"] == 1500.0
+
+    plate_rows_response = client.get("/cash/plate-rows", headers=auth_headers)
+    assert plate_rows_response.status_code == 200, plate_rows_response.text
+    assert plate_rows_response.json()["total"] == 1500.0
+
+
 def test_deleting_auto_intermediate_row_does_not_return_to_document_cash(client: TestClient, auth_headers: dict[str, str]):
     client.post("/warehouse/plate-stock/add", json={"amount": 1}, headers=auth_headers)
     order = create_paid_plate_order(client, auth_headers)
