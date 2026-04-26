@@ -136,6 +136,20 @@ else
   systemctl start eye_w 2>/dev/null || true
 fi
 
+echo "=== 3d. Ожидание готовности backend ==="
+for attempt in $(seq 1 30); do
+  if curl -fsS http://127.0.0.1:8000/health >/dev/null 2>&1; then
+    echo "Backend готов"
+    break
+  fi
+  if [ "$attempt" = "30" ]; then
+    echo "Backend не ответил на /health за 30 секунд"
+    systemctl status eye_w --no-pager -l || true
+    exit 1
+  fi
+  sleep 1
+done
+
 echo ""
 echo "Готово. Откройте сайт и войдите:"
 echo "  Логин: $(sed -n 's/^SUPERUSER_LOGIN=//p' backend/.env | head -n1)"
