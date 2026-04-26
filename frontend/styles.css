@@ -84,34 +84,34 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --color-primary: #2dd4bf;
-  --color-primary-hover: #5eead4;
-  --color-primary-soft: rgba(45, 212, 191, 0.13);
-  --color-primary-strong: #99f6e4;
-  --color-accent-blue: #60a5fa;
-  --color-accent-blue-soft: rgba(96, 165, 250, 0.14);
-  --color-income: #4ade80;
-  --color-success: #4ade80;
-  --color-warning: #fbbf24;
-  --color-danger: #f87171;
-  --color-danger-bg: rgba(248, 113, 113, 0.14);
+  --color-primary: #58c7b8;
+  --color-primary-hover: #7dd8cd;
+  --color-primary-soft: rgba(88, 199, 184, 0.12);
+  --color-primary-strong: #b9eee7;
+  --color-accent-blue: #8fb7ff;
+  --color-accent-blue-soft: rgba(143, 183, 255, 0.11);
+  --color-income: #84d89a;
+  --color-success: #84d89a;
+  --color-warning: #e7bd74;
+  --color-danger: #f29a9a;
+  --color-danger-bg: rgba(242, 154, 154, 0.13);
 
-  --color-bg: #0f172a;
-  --color-surface: #172033;
-  --color-surface-alt: #1e293b;
-  --color-surface-elevated: #243044;
-  --color-text: #e5edf7;
-  --color-text-muted: #9fb0c6;
-  --color-border: rgba(148, 163, 184, 0.2);
-  --color-border-soft: rgba(148, 163, 184, 0.13);
-  --color-table-header: #1e293b;
-  --color-hover: rgba(148, 163, 184, 0.09);
-  --color-input-bg: rgba(15, 23, 42, 0.42);
-  --focus-ring: rgba(45, 212, 191, 0.2);
+  --color-bg: #171b24;
+  --color-surface: #202636;
+  --color-surface-alt: #252c3d;
+  --color-surface-elevated: #2b3345;
+  --color-text: #edf2f7;
+  --color-text-muted: #b0bac9;
+  --color-border: rgba(190, 201, 218, 0.18);
+  --color-border-soft: rgba(190, 201, 218, 0.11);
+  --color-table-header: #252c3d;
+  --color-hover: rgba(255, 255, 255, 0.055);
+  --color-input-bg: #1c2230;
+  --focus-ring: rgba(88, 199, 184, 0.22);
 
-  --shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.04);
-  --shadow-md: 0 18px 40px rgba(0, 0, 0, 0.24);
-  --shadow-lg: 0 28px 70px rgba(0, 0, 0, 0.38);
+  --shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.035), 0 10px 30px rgba(0, 0, 0, 0.18);
+  --shadow-md: 0 18px 42px rgba(0, 0, 0, 0.22);
+  --shadow-lg: 0 28px 70px rgba(0, 0, 0, 0.3);
 }
 
 *,
@@ -3179,9 +3179,81 @@ body {
 :root[data-theme="dark"] .plate-cash-table-wrap,
 :root[data-theme="dark"] .cash-table-wrap,
 :root[data-theme="dark"] .plate-table {
-  background: var(--color-surface);
+  background: linear-gradient(180deg, rgba(35, 42, 58, 0.98), rgba(30, 36, 50, 0.98));
   border-color: var(--color-border);
   box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 12% -12%, rgba(88, 199, 184, 0.12), transparent 30rem),
+    radial-gradient(circle at 92% 4%, rgba(143, 183, 255, 0.09), transparent 28rem),
+    linear-gradient(180deg, #1d2330 0%, var(--color-bg) 42rem);
+}
+
+:root[data-theme="dark"] .header {
+  background: linear-gradient(180deg, #252c3d, #202636);
+}
+
+:root[data-theme="dark"] .card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+:root[data-theme="dark"] .card__title,
+:root[data-theme="dark"] .form-section,
+:root[data-theme="dark"] .form-section__sub,
+:root[data-theme="dark"] .card--summary .documents-to-print__item {
+  border-color: var(--color-border);
+}
+
+:root[data-theme="dark"] .form-section--togglable {
+  background: rgba(37, 44, 61, 0.74);
+  border-color: var(--color-border);
+}
+
+:root[data-theme="dark"] .form-section--togglable .form-section__toggle:hover {
+  background: var(--color-hover);
+}
+
+:root[data-theme="dark"] .document-checklist {
+  background: rgba(28, 34, 48, 0.72);
+  border-color: var(--color-border);
+}
+
+:root[data-theme="dark"] .document-checklist__item {
+  background: rgba(43, 51, 69, 0.62);
+  border-color: var(--color-border);
+}
+
+:root[data-theme="dark"] .document-checklist__item:has(input:checked) {
+  background: rgba(88, 199, 184, 0.12);
+  border-color: rgba(88, 199, 184, 0.36);
+}
+
+:root[data-theme="dark"] .document-checklist__box {
+  background: var(--color-input-bg);
+  border-color: rgba(190, 201, 218, 0.34);
+}
+
+:root[data-theme="dark"] .document-checklist__item:has(input:checked) .document-checklist__box {
+  box-shadow: inset 0 0 0 4px #202636;
+}
+
+:root[data-theme="dark"] .header__menu-btn,
+:root[data-theme="dark"] .theme-toggle,
+:root[data-theme="dark"] .history-menu__toggle,
+:root[data-theme="dark"] .btn--secondary {
+  background: rgba(43, 51, 69, 0.72);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+:root[data-theme="dark"] .theme-toggle:hover,
+:root[data-theme="dark"] .header__menu-btn:hover,
+:root[data-theme="dark"] .btn--secondary:hover {
+  background: var(--color-primary-soft);
+  border-color: rgba(88, 199, 184, 0.42);
+  color: var(--color-primary-strong);
 }
 
 :root[data-theme="dark"] input,
@@ -3192,9 +3264,45 @@ body {
   border-color: var(--color-border);
 }
 
+:root[data-theme="dark"] .field__input,
+:root[data-theme="dark"] .field__select,
+:root[data-theme="dark"] .modal__box input,
+:root[data-theme="dark"] .data-table input {
+  background: var(--color-input-bg);
+  border-color: rgba(190, 201, 218, 0.22);
+  color: var(--color-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+:root[data-theme="dark"] .field__input:focus,
+:root[data-theme="dark"] .field__select:focus,
+:root[data-theme="dark"] .modal__box input:focus,
+:root[data-theme="dark"] .data-table input:focus {
+  background: #202737;
+  border-color: rgba(88, 199, 184, 0.64);
+  box-shadow: 0 0 0 3px var(--focus-ring), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+:root[data-theme="dark"] .field__input--readonly,
+:root[data-theme="dark"] .field__select--readonly {
+  background: rgba(37, 44, 61, 0.74);
+}
+
 :root[data-theme="dark"] input::placeholder,
 :root[data-theme="dark"] textarea::placeholder {
-  color: var(--color-text-muted);
+  color: rgba(176, 186, 201, 0.74);
+}
+
+:root[data-theme="dark"] .header__dropdown {
+  background: linear-gradient(180deg, #2b3345, #202636);
+  border-color: var(--color-border);
+}
+
+:root[data-theme="dark"] .header__dropdown-inner a:hover,
+:root[data-theme="dark"] .header__dropdown-inner a.header__dropdown-link--active {
+  background: var(--color-primary-soft);
+  border-color: rgba(88, 199, 184, 0.28);
+  color: var(--color-primary-strong);
 }
 
 :root[data-theme="dark"] .plate-cash-table tbody tr:not(.day-sep) td,
