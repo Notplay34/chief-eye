@@ -969,9 +969,32 @@
 }
 
 .cash-crm__total-summary {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  align-content: stretch;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.cash-crm__total-summary::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: linear-gradient(180deg, var(--color-primary, #116a5b), rgba(17, 106, 91, 0.18));
+}
+
+.cash-crm__total-summary::after {
+  content: "";
+  position: absolute;
+  right: 22px;
+  bottom: 20px;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(17, 106, 91, 0.11), transparent 68%);
+  pointer-events: none;
 }
 
 .cash-crm__total-label,
@@ -986,8 +1009,22 @@
 }
 
 .cash-crm__total-value {
-  align-self: end;
+  position: relative;
+  z-index: 1;
+  align-self: flex-start;
+  margin-top: 16px;
   color: var(--color-primary, #116a5b);
+  font-size: clamp(2rem, 3vw, 2.55rem);
+  line-height: 1;
+}
+
+.cash-crm__total-note {
+  position: relative;
+  z-index: 1;
+  max-width: 240px;
+  color: var(--color-text-muted, #6b7280);
+  font-size: 0.86rem;
+  line-height: 1.45;
 }
 
 .cash-crm__reconcile {
@@ -1177,4 +1214,12 @@
 .cash-duty-commission,
 .cash-payout-card {
   background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-alt) 100%);
+}
+
+:root[data-theme="dark"] .cash-crm__total-summary::before {
+  background: linear-gradient(180deg, var(--color-primary), rgba(88, 199, 184, 0.16));
+}
+
+:root[data-theme="dark"] .cash-crm__total-summary::after {
+  background: radial-gradient(circle, rgba(88, 199, 184, 0.14), transparent 68%);
 }
