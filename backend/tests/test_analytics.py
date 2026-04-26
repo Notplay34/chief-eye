@@ -109,6 +109,37 @@ def test_analytics_dashboard_supports_docs_and_plates_scopes(client: TestClient,
     assert plates["numbers_orders_count"] == 1
 
 
+def test_analytics_ignores_extra_payments_for_problem_orders(client: TestClient, auth_headers: dict[str, str]):
+    client.post("/cash/shifts", json={"pavilion": 1, "opening_balance": "100"}, headers=auth_headers)
+    client.post("/cash/shifts", json={"pavilion": 2, "opening_balance": "50"}, headers=auth_headers)
+
+    order = create_paid_order(client, auth_headers, need_plate=True)
+    extra_response = client.post(
+        f"/orders/{order['id']}/pay-extra",
+        json={"amount": "300"},
+        headers=auth_headers,
+    )
+    assert extra_response.status_code == 200, extra_response.text
+
+    before_response = client.get("/analytics/dashboard?period=month&kind=plates", headers=auth_headers)
+    assert before_response.status_code == 200, before_response.text
+    assert as_float(before_response.json()["overview"]["plate_extra_income"]) == 300.0
+
+    problem_response = client.patch(
+        f"/orders/{order['id']}/status",
+        json={"status": "PROBLEM"},
+        headers=auth_headers,
+    )
+    assert problem_response.status_code == 200, problem_response.text
+
+    after_response = client.get("/analytics/dashboard?period=month&kind=all", headers=auth_headers)
+    assert after_response.status_code == 200, after_response.text
+    overview = after_response.json()["overview"]
+    assert overview["orders_count"] == 0
+    assert as_float(overview["plate_extra_income"]) == 0.0
+    assert as_float(overview["turnover_total"]) == 0.0
+
+
 def test_analytics_export_returns_csv(client: TestClient, auth_headers: dict[str, str]):
     order = create_paid_order(client, auth_headers, need_plate=True)
     client.post(

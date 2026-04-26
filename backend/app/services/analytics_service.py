@@ -222,10 +222,13 @@ async def _fetch_orders(db: AsyncSession, start: date, end: date) -> list[Order]
 async def _fetch_extra_payments(db: AsyncSession, start: date, end: date) -> list[Payment]:
     start_dt, end_dt = _period_bounds(start, end)
     result = await db.execute(
-        select(Payment).where(
+        select(Payment)
+        .join(Order, Order.id == Payment.order_id)
+        .where(
             Payment.created_at >= start_dt,
             Payment.created_at < end_dt,
             Payment.type == PaymentType.INCOME_PAVILION2,
+            Order.status.in_(REVENUE_ORDER_STATUSES),
         )
     )
     return result.scalars().all()
