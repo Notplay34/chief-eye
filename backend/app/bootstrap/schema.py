@@ -233,6 +233,16 @@ async def ensure_schema_compatibility(engine: AsyncEngine) -> None:
             );
         """))
         await conn.execute(text("""
+            DELETE FROM plate_reservations newer
+            USING plate_reservations older
+            WHERE newer.order_id = older.order_id
+              AND newer.id > older.id;
+        """))
+        await conn.execute(text("""
+            CREATE UNIQUE INDEX IF NOT EXISTS ix_plate_reservations_order_id_unique
+            ON plate_reservations (order_id);
+        """))
+        await conn.execute(text("""
             CREATE TABLE IF NOT EXISTS plate_defects (
                 id SERIAL PRIMARY KEY,
                 quantity INTEGER NOT NULL DEFAULT 1,

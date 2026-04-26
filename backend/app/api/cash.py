@@ -1,5 +1,5 @@
 """API касс и смен: открытие/закрытие смены по павильонам; касса номеров (plate-rows)."""
-from datetime import date, datetime, time, timedelta
+from datetime import date
 from decimal import Decimal
 from typing import Optional
 
@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.logging_config import get_logger
+from app.core.time_utils import business_day_bounds_utc, business_today, utc_now
 from app.api.auth import RequireCashAccess, RequirePlateAccess, UserInfo
 from app.models import (
     CashRow,
@@ -64,12 +65,12 @@ PLATE_CASH_UNIT_PRICE = Decimal("1500")
 
 def _apply_date_filters(query, model, business_date: Optional[date], date_from: Optional[date], date_to: Optional[date]):
     if business_date is not None:
-        start = datetime.combine(business_date, time.min)
-        return query.where(model.created_at >= start, model.created_at < start + timedelta(days=1))
+        start, end = business_day_bounds_utc(business_date)
+        return query.where(model.created_at >= start, model.created_at < end)
     if date_from is not None:
-        query = query.where(model.created_at >= datetime.combine(date_from, time.min))
+        query = query.where(model.created_at >= business_day_bounds_utc(date_from)[0])
     if date_to is not None:
-        query = query.where(model.created_at < datetime.combine(date_to, time.min) + timedelta(days=1))
+        query = query.where(model.created_at < business_day_bounds_utc(date_to)[1])
     return query
 
 
@@ -709,7 +710,7 @@ async def list_plate_payouts(
 ):
     """Деньги за номера, ещё лежащие в кассе документов."""
     _ensure_pavilion_cash_access(user, 1)
-    day = business_date or datetime.utcnow().date()
+    day = business_date or business_today()
     rows = await list_open_plate_payouts_service(db, day)
     total = sum((row.amount for row in rows), Decimal("0"))
     quantity = sum((int(row.quantity or 1) for row in rows), 0)
@@ -940,7 +941,7 @@ async def delete_plate_transfer_row(
         ).scalar_one_or_none()
         if payout is None:
             raise HTTPException(status_code=404, detail="Строка не найдена")
-        payout.paid_at = datetime.utcnow()
+        payout.paid_at = utc_now()
         payout.paid_by_id = user.id
         payout.transfer_batch = f"deleted:{payout.transfer_batch or payout.id}"
         db.add(payout)

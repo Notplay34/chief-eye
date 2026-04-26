@@ -1,12 +1,13 @@
 """Warehouse domain logic for plate stock and reservations."""
 
-from datetime import date, datetime, time
+from datetime import date
 from typing import Optional
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Order, OrderStatus, PlateDefect, PlateReservation, PlateStock, PlateStockMovement
+from app.core.time_utils import business_month_bounds_utc, business_today
 from app.services.errors import ServiceError
 
 STOCK_IN = "STOCK_IN"
@@ -17,8 +18,11 @@ DEFECT = "DEFECT"
 ORDER_ROLLBACK = "ORDER_ROLLBACK"
 
 
-async def get_or_create_stock(db: AsyncSession) -> PlateStock:
-    result = await db.execute(select(PlateStock).limit(1))
+async def get_or_create_stock(db: AsyncSession, *, for_update: bool = False) -> PlateStock:
+    query = select(PlateStock).limit(1)
+    if for_update:
+        query = query.with_for_update()
+    result = await db.execute(query)
     stock = result.scalar_one_or_none()
     if stock is None:
         stock = PlateStock(quantity=0)
@@ -61,7 +65,12 @@ async def reserved_quantity(db: AsyncSession) -> int:
 
 
 async def reserve_stock_for_order(db: AsyncSession, order: Order, quantity: int) -> None:
-    stock = await get_or_create_stock(db)
+    stock = await get_or_create_stock(db, for_update=True)
+    existing = (
+        await db.execute(select(PlateReservation).where(PlateReservation.order_id == order.id))
+    ).scalar_one_or_none()
+    if existing is not None:
+        return
     reserved_total = await reserved_quantity(db)
     available = stock.quantity - reserved_total
     if available < quantity:
@@ -79,7 +88,7 @@ async def release_reservation_for_order(db: AsyncSession, order_id: int) -> None
 
 
 async def finalize_stock_for_completed_order(db: AsyncSession, order: Order, quantity: int) -> None:
-    stock = await get_or_create_stock(db)
+    stock = await get_or_create_stock(db, for_update=True)
     if stock.quantity < quantity:
         raise ServiceError(
             f"Недостаточно заготовок для завершения заказа. На складе: {stock.quantity}, нужно: {quantity}",
@@ -112,8 +121,7 @@ async def build_plate_stock_summary(db: AsyncSession) -> dict:
         for order in sorted(orders, key=lambda row: row.total_amount, reverse=True)
     ]
 
-    now = datetime.utcnow()
-    month_start = datetime(now.year, now.month, 1)
+    month_start, _month_end = business_month_bounds_utc(business_today())
     defects_query = select(func.coalesce(func.sum(PlateDefect.quantity), 0)).where(
         PlateDefect.created_at >= month_start
     )
@@ -131,7 +139,7 @@ async def build_plate_stock_summary(db: AsyncSession) -> dict:
 async def add_plate_stock(db: AsyncSession, amount: int) -> dict:
     if amount <= 0:
         raise ServiceError("Количество должно быть больше нуля", status_code=400)
-    stock = await get_or_create_stock(db)
+    stock = await get_or_create_stock(db, for_update=True)
     stock.quantity += amount
     db.add(stock)
     await record_stock_movement(
@@ -147,7 +155,7 @@ async def add_plate_stock(db: AsyncSession, amount: int) -> dict:
 
 
 async def register_plate_defect(db: AsyncSession) -> dict:
-    stock = await get_or_create_stock(db)
+    stock = await get_or_create_stock(db, for_update=True)
     if stock.quantity < 1:
         raise ServiceError("На складе нет заготовок для списания брака", status_code=400)
     stock.quantity -= 1
@@ -168,7 +176,7 @@ async def register_plate_defect(db: AsyncSession) -> dict:
 async def adjust_stock_for_plate_cash_row(db: AsyncSession, delta: int) -> None:
     if delta == 0:
         return
-    stock = await get_or_create_stock(db)
+    stock = await get_or_create_stock(db, for_update=True)
     if delta > 0:
         reserved_total = await reserved_quantity(db)
         available = stock.quantity - reserved_total
@@ -235,9 +243,11 @@ async def list_stock_movements(
     end_month = _parse_month(month_to)
     query = select(PlateStockMovement).order_by(PlateStockMovement.created_at.desc()).limit(limit)
     if start_month:
-        query = query.where(PlateStockMovement.created_at >= datetime.combine(start_month, time.min))
+        start, _ = business_month_bounds_utc(start_month)
+        query = query.where(PlateStockMovement.created_at >= start)
     if end_month:
-        query = query.where(PlateStockMovement.created_at < datetime.combine(_add_months(end_month, 1), time.min))
+        _, end = business_month_bounds_utc(end_month)
+        query = query.where(PlateStockMovement.created_at < end)
     rows = (await db.execute(query)).scalars().all()
     return {"rows": [_movement_to_dict(row) for row in rows]}
 
@@ -248,7 +258,7 @@ async def build_stock_monthly_summary(
     month_to: Optional[str] = None,
 ) -> dict:
     stock = await get_or_create_stock(db)
-    today = datetime.utcnow().date()
+    today = business_today()
     default_to = date(today.year, today.month, 1)
     end_month = _parse_month(month_to) or default_to
     start_month = _parse_month(month_from) or _add_months(end_month, -11)
@@ -259,7 +269,7 @@ async def build_stock_monthly_summary(
     after_end_delta = (
         await db.execute(
             select(func.coalesce(func.sum(PlateStockMovement.quantity_delta), 0)).where(
-                PlateStockMovement.created_at >= datetime.combine(end_boundary, time.min)
+                PlateStockMovement.created_at >= business_month_bounds_utc(end_boundary)[0]
             )
         )
     ).scalar_one() or 0
@@ -272,8 +282,8 @@ async def build_stock_monthly_summary(
         movements = (
             await db.execute(
                 select(PlateStockMovement).where(
-                    PlateStockMovement.created_at >= datetime.combine(cursor, time.min),
-                    PlateStockMovement.created_at < datetime.combine(next_month, time.min),
+                    PlateStockMovement.created_at >= business_month_bounds_utc(cursor)[0],
+                    PlateStockMovement.created_at < business_month_bounds_utc(next_month)[0],
                 )
             )
         ).scalars().all()

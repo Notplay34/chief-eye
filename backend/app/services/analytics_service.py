@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import date, datetime, time, timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Iterable, Optional
 
@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Employee, Order, OrderStatus, Payment, PaymentType
+from app.core.time_utils import business_date_from_utc, business_day_bounds_utc, business_today
 from app.services.errors import ServiceError
 
 PLATE_TEMPLATE = "number.docx"
@@ -45,7 +46,7 @@ def resolve_period(
 ) -> tuple[date, date]:
     start = _parse_date(date_from)
     end = _parse_date(date_to)
-    today = datetime.utcnow().date()
+    today = business_today()
 
     if start and end:
         if start > end:
@@ -75,7 +76,7 @@ def resolve_period(
 
 
 def _period_bounds(start: date, end: date) -> tuple[datetime, datetime]:
-    return datetime.combine(start, time.min), datetime.combine(end + timedelta(days=1), time.min)
+    return business_day_bounds_utc(start)[0], business_day_bounds_utc(end)[1]
 
 
 def _docs_for_order(order: Order) -> list[dict]:
@@ -257,11 +258,11 @@ def _build_monthly_trend(
 
     orders_by_month: dict[str, list[Order]] = defaultdict(list)
     for order in orders:
-        orders_by_month[_month_key(order.created_at.date())].append(order)
+        orders_by_month[_month_key(business_date_from_utc(order.created_at))].append(order)
 
     extras_by_month: dict[str, list[Payment]] = defaultdict(list)
     for payment in extra_payments:
-        extras_by_month[_month_key(payment.created_at.date())].append(payment)
+        extras_by_month[_month_key(business_date_from_utc(payment.created_at))].append(payment)
 
     points = []
     for month_start in month_starts:
@@ -286,14 +287,14 @@ def _build_quarter_summary(
     year = end.year
     orders_by_quarter: dict[str, list[Order]] = defaultdict(list)
     for order in orders:
-        created = order.created_at.date()
+        created = business_date_from_utc(order.created_at)
         if created.year != year:
             continue
         orders_by_quarter[_quarter_label(created)].append(order)
 
     extras_by_quarter: dict[str, list[Payment]] = defaultdict(list)
     for payment in extra_payments:
-        created = payment.created_at.date()
+        created = business_date_from_utc(payment.created_at)
         if created.year != year:
             continue
         extras_by_quarter[_quarter_label(created)].append(payment)

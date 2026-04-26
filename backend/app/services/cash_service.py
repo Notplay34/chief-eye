@@ -1,6 +1,6 @@
 """Cash and shift/domain-day cash logic."""
 
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Optional
 from uuid import uuid4
@@ -22,6 +22,7 @@ from app.models import (
     ShiftStatus,
 )
 from app.models.employee import EmployeeRole
+from app.core.time_utils import business_date_from_utc, business_day_bounds_utc, business_today, local_now, utc_now
 from app.services.audit_service import write_audit_log
 from app.services.errors import ServiceError
 from app.services.settings_service import SPECIAL_STATE_DUTY_BASE, get_state_duty_settings
@@ -72,8 +73,7 @@ async def get_current_shift(db: AsyncSession, pavilion: int) -> Optional[CashShi
 
 
 def _day_bounds(day: date) -> tuple[datetime, datetime]:
-    start = datetime.combine(day, time.min)
-    return start, start + timedelta(days=1)
+    return business_day_bounds_utc(day)
 
 
 def _state_duty_commission_from_cash_amount(amount: Decimal, settings: dict[str, Decimal]) -> Decimal:
@@ -90,8 +90,7 @@ def _state_duty_commission_from_cash_amount(amount: Decimal, settings: dict[str,
 
 
 def _workday_bounds(now: datetime) -> tuple[datetime, datetime]:
-    start = datetime(now.year, now.month, now.day)
-    return start, start + timedelta(days=1)
+    return business_day_bounds_utc(business_date_from_utc(now))
 
 
 def _reconciliation_to_dict(row: CashDayReconciliation | None) -> Optional[dict]:
@@ -131,7 +130,7 @@ async def get_cash_day_summary(db: AsyncSession, user: UserInfo, pavilion: int, 
     if not can_manage_pavilion_cash(user, pavilion):
         raise ServiceError("Нет доступа к кассе этого павильона", status_code=403)
 
-    day = business_date or datetime.utcnow().date()
+    day = business_date or business_today()
     program_total = await _cash_day_program_total(db, pavilion, day)
     reconciliation = (
         await db.execute(
@@ -169,7 +168,7 @@ async def get_state_duty_commission_summary(
     if not can_manage_pavilion_cash(user, 1):
         raise ServiceError("Нет доступа к кассе этого павильона", status_code=403)
 
-    day = business_date or datetime.utcnow().date()
+    day = business_date or business_today()
     start, end = _day_bounds(day)
     settings = await get_state_duty_settings(db)
     rows = (
@@ -257,7 +256,7 @@ async def reconcile_cash_day(
     if not can_manage_pavilion_cash(user, pavilion):
         raise ServiceError("Нет доступа к кассе этого павильона", status_code=403)
 
-    day = business_date or datetime.utcnow().date()
+    day = business_date or business_today()
     program_total = await _cash_day_program_total(db, pavilion, day)
     difference = actual_balance - program_total
     result = await db.execute(
@@ -282,7 +281,7 @@ async def reconcile_cash_day(
         row.actual_balance = actual_balance
         row.difference = difference
         row.reconciled_by_id = user.id
-        row.reconciled_at = datetime.utcnow()
+        row.reconciled_at = utc_now()
         row.note = note
     db.add(row)
     await db.flush()
@@ -310,7 +309,7 @@ async def current_shift_id(db: AsyncSession, pavilion: int) -> Optional[int]:
 
 async def ensure_workday_shift(db: AsyncSession, pavilion: int, user: UserInfo) -> CashShift:
     """Return today's active cash bucket for pavilion, creating it lazily when needed."""
-    now = datetime.utcnow()
+    now = utc_now()
     start, end = _workday_bounds(now)
     today_query = (
         select(CashShift)
@@ -400,7 +399,7 @@ async def close_shift(db: AsyncSession, user: UserInfo, shift_id: int, closing_b
         raise ServiceError("Смена уже закрыта", status_code=400)
     if not can_manage_pavilion_cash(user, shift.pavilion):
         raise ServiceError("Нет доступа к кассе этого павильона", status_code=403)
-    shift.closed_at = datetime.utcnow()
+    shift.closed_at = utc_now()
     shift.closed_by_id = user.id
     shift.closing_balance = closing_balance
     shift.status = ShiftStatus.CLOSED
@@ -432,7 +431,7 @@ async def _plate_payout_business_dates(db: AsyncSession, payouts: list[PlatePayo
         except (TypeError, ValueError):
             continue
         if created_at:
-            dates[order_id] = created_at.date()
+            dates[order_id] = business_date_from_utc(created_at)
 
     missing_order_ids = [order_id for order_id in order_ids if order_id not in dates]
     if missing_order_ids:
@@ -445,7 +444,7 @@ async def _plate_payout_business_dates(db: AsyncSession, payouts: list[PlatePayo
         ).all()
         for order_id, created_at in payment_rows:
             if created_at:
-                dates[int(order_id)] = created_at.date()
+                dates[int(order_id)] = business_date_from_utc(created_at)
 
     missing_order_ids = [order_id for order_id in order_ids if order_id not in dates]
     if missing_order_ids:
@@ -456,7 +455,7 @@ async def _plate_payout_business_dates(db: AsyncSession, payouts: list[PlatePayo
         ).all()
         for order_id, created_at in order_rows:
             if created_at:
-                dates[int(order_id)] = created_at.date()
+                dates[int(order_id)] = business_date_from_utc(created_at)
 
     return dates
 
@@ -480,7 +479,7 @@ async def transfer_plate_payouts_to_intermediate(
     user: UserInfo,
     business_date: Optional[date] = None,
 ) -> dict:
-    day = business_date or datetime.utcnow().date()
+    day = business_date or business_today()
     payouts = await list_open_plate_payouts(db, day)
     if not payouts:
         raise ServiceError("Нет денег за номера к переносу", status_code=400)
@@ -495,7 +494,7 @@ async def transfer_plate_payouts_to_intermediate(
         if payout.client_name and payout.client_name.strip()
     ]
     cash_row_name = ", ".join(payout_names) if payout_names else "Номера — выдача"
-    now = datetime.utcnow()
+    now = utc_now()
     batch_id = uuid4().hex
 
     db.add(
@@ -561,7 +560,7 @@ async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
     if total <= 0:
         raise ServiceError("Сумма к передаче нулевая", status_code=400)
 
-    now = datetime.utcnow()
+    now = utc_now()
     batch_id = uuid4().hex
     for payout in payouts:
         if not payout.transfer_batch:
@@ -571,7 +570,7 @@ async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
                 client_name=_fio_initials(payout.client_name),
                 amount=payout.amount,
                 source_type=PLATE_PAYOUT_TRANSFER,
-                source_date=now.date(),
+                source_date=local_now().date(),
                 source_batch=f"{payout.transfer_batch}:{payout.id}",
             )
         )
@@ -585,7 +584,7 @@ async def pay_plate_payouts(db: AsyncSession, user: UserInfo) -> dict:
                 quantity=int(row.quantity or 0),
                 amount=row.amount,
                 source_type=PLATE_PAYOUT_TRANSFER,
-                source_date=now.date(),
+                source_date=local_now().date(),
                 source_batch=f"manual:{row.id}",
             )
         )
