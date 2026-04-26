@@ -270,6 +270,11 @@ def test_plate_transfer_pays_only_issued_clients_from_intermediate_cash(client: 
     assert plate_rows_response.json()["total"] == 1500.0
     assert len(plate_rows_response.json()["rows"]) == 1
 
+    history_response = client.get("/cash/plate-transfers/history", headers=auth_headers)
+    assert history_response.status_code == 200, history_response.text
+    assert history_response.json()["total"] == 1500.0
+    assert history_response.json()["rows"][0]["client_name"] == "Петров Пётр Петрович"
+
     transfers_after_first_pay = client.get("/cash/plate-transfers", headers=auth_headers)
     assert transfers_after_first_pay.status_code == 200, transfers_after_first_pay.text
     assert transfers_after_first_pay.json()["total"] == 1500.0
@@ -359,6 +364,11 @@ def test_manual_intermediate_row_becomes_payable_after_inline_amount(client: Tes
     assert plate_rows_response.status_code == 200, plate_rows_response.text
     assert plate_rows_response.json()["total"] == 1500.0
 
+    history_response = client.get("/cash/plate-transfers/history", headers=auth_headers)
+    assert history_response.status_code == 200, history_response.text
+    assert history_response.json()["total"] == 1500.0
+    assert history_response.json()["rows"][0]["row_type"] == "manual"
+
 
 def test_deleting_auto_intermediate_row_does_not_return_to_document_cash(client: TestClient, auth_headers: dict[str, str]):
     client.post("/warehouse/plate-stock/add", json={"amount": 1}, headers=auth_headers)
@@ -381,6 +391,10 @@ def test_deleting_auto_intermediate_row_does_not_return_to_document_cash(client:
     payouts_after_delete = client.get("/cash/plate-payouts", headers=auth_headers)
     assert payouts_after_delete.status_code == 200, payouts_after_delete.text
     assert payouts_after_delete.json()["rows"] == []
+
+    history_after_delete = client.get("/cash/plate-transfers/history", headers=auth_headers)
+    assert history_after_delete.status_code == 200, history_after_delete.text
+    assert history_after_delete.json()["rows"] == []
 
     complete_response = client.patch(
         f"/orders/{order['id']}/status",

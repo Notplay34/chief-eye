@@ -678,6 +678,21 @@ def _manual_transfer_to_dict(row: IntermediatePlateTransfer) -> dict:
     }
 
 
+def _transfer_history_to_dict(row: PlatePayout | IntermediatePlateTransfer) -> dict:
+    row_type = "manual" if isinstance(row, IntermediatePlateTransfer) else "auto"
+    return {
+        "row_type": row_type,
+        "id": row.id,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+        "client_name": row.client_name or "",
+        "client_short_name": _fio_initials(row.client_name) or row.client_name,
+        "quantity": int(row.quantity or 0),
+        "amount": float(row.amount),
+        "paid_at": row.paid_at.isoformat() if row.paid_at else None,
+        "paid_by_id": row.paid_by_id,
+    }
+
+
 @router.get("/plate-payouts")
 async def list_plate_payouts(
     business_date: Optional[date] = Query(None),
@@ -752,6 +767,42 @@ async def list_plate_transfers(
         "ready_quantity": ready_quantity,
         "ready_count": len(ready_rows),
     }
+
+
+@router.get("/plate-transfers/history")
+async def list_plate_transfer_history(
+    limit: int = Query(100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    user: UserInfo = Depends(RequireCashAccess),
+):
+    """История денег, выданных из промежуточной кассы в кассу номеров."""
+    _ensure_pavilion_cash_access(user, 1)
+    payout_rows = (
+        await db.execute(
+            select(PlatePayout)
+            .where(
+                PlatePayout.transferred_at.is_not(None),
+                PlatePayout.paid_at.is_not(None),
+                or_(PlatePayout.transfer_batch.is_(None), ~PlatePayout.transfer_batch.like("deleted:%")),
+            )
+            .order_by(PlatePayout.paid_at.desc(), PlatePayout.id.desc())
+            .limit(limit)
+        )
+    ).scalars().all()
+    manual_rows = (
+        await db.execute(
+            select(IntermediatePlateTransfer)
+            .where(IntermediatePlateTransfer.paid_at.is_not(None))
+            .order_by(IntermediatePlateTransfer.paid_at.desc(), IntermediatePlateTransfer.id.desc())
+            .limit(limit)
+        )
+    ).scalars().all()
+    rows = [_transfer_history_to_dict(row) for row in payout_rows] + [_transfer_history_to_dict(row) for row in manual_rows]
+    rows.sort(key=lambda row: row.get("paid_at") or "", reverse=True)
+    rows = rows[:limit]
+    total = sum((Decimal(str(row["amount"])) for row in rows), Decimal("0"))
+    quantity = sum((int(row["quantity"] or 0) for row in rows), 0)
+    return {"rows": rows, "total": float(total), "quantity": quantity}
 
 
 @router.post("/plate-transfers/manual")
@@ -864,6 +915,7 @@ async def delete_plate_transfer_row(
             raise HTTPException(status_code=404, detail="Строка не найдена")
         payout.paid_at = datetime.utcnow()
         payout.paid_by_id = user.id
+        payout.transfer_batch = f"deleted:{payout.transfer_batch or payout.id}"
         db.add(payout)
         await write_audit_log(
             db,

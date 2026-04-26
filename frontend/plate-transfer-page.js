@@ -11,6 +11,8 @@
   var msgEl = document.getElementById('plateTransferMsg');
   var btnAddRow = document.getElementById('btnAddTransferRow');
   var readyListEl = document.getElementById('plateTransferReadyList');
+  var historyBodyEl = document.getElementById('plateTransferHistoryBody');
+  var historyMetaEl = document.getElementById('plateTransferHistoryMeta');
 
   function money(value) {
     return new Intl.NumberFormat('ru-RU', {
@@ -116,6 +118,50 @@
     });
   }
 
+  function dateText(value) {
+    if (!value) return '';
+    var date = new Date(value);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function renderHistory(data) {
+    if (!historyBodyEl) return;
+    var historyRows = (data && data.rows) || [];
+    var total = Number(data && data.total || 0);
+    var quantity = Number(data && data.quantity || 0);
+    if (historyMetaEl) {
+      historyMetaEl.textContent = historyRows.length + ' строк · ' + quantity + ' шт · ' + money(total);
+    }
+    historyBodyEl.innerHTML = '';
+    if (!historyRows.length) {
+      historyBodyEl.innerHTML = '<div class="plate-transfer-ready__empty">Выдач из промежуточной кассы ещё не было</div>';
+      return;
+    }
+    historyRows.forEach(function (row) {
+      var item = document.createElement('div');
+      item.className = 'plate-transfer-history__item';
+      item.innerHTML =
+        '<div><strong>' + escapeHtml(row.client_short_name || row.client_name || '—') + '</strong>' +
+        '<small>' + escapeHtml(dateText(row.paid_at)) + (row.quantity ? ' · ' + escapeHtml(row.quantity) + ' шт' : '') + '</small></div>' +
+        '<span>' + money(row.amount) + '</span>';
+      historyBodyEl.appendChild(item);
+    });
+  }
+
+  function loadHistory() {
+    if (!historyBodyEl) return;
+    fetchApi(api + '/cash/plate-transfers/history')
+      .then(function (r) {
+        if (!r.ok) return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
+        return r.json();
+      })
+      .then(renderHistory)
+      .catch(function (e) {
+        historyBodyEl.innerHTML = '<div class="plate-transfer-ready__empty">Ошибка истории: ' + escapeHtml(e.message || '') + '</div>';
+      });
+  }
+
   function render(data) {
     if (data && data.rows) rows = data.rows;
     var total = rows.reduce(function (sum, row) { return sum + numVal(row.amount); }, 0);
@@ -182,6 +228,7 @@
         return r.json();
       })
       .then(render)
+      .then(loadHistory)
       .catch(function (e) {
         setMsg('Ошибка загрузки: ' + (e.message || ''), true);
         bodyEl.innerHTML = '<tr><td colspan="4" class="plate-cash-msg err">Ошибка загрузки</td></tr>';
