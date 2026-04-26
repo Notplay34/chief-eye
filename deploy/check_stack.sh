@@ -14,6 +14,36 @@ fi
 
 source "$ENV_FILE"
 
+SMOKE_LOGIN="__smoke_check__"
+SMOKE_PASSWORD="$(openssl rand -base64 24 2>/dev/null | tr -d '\n' || date +%s_smoke_password)"
+
+cleanup_smoke_user() {
+  cd "$PROJECT_ROOT/backend" && "$PROJECT_ROOT/backend/.venv/bin/python" - <<'PY' >/dev/null 2>&1 || true
+import asyncio
+
+from sqlalchemy import select
+
+from app.core.database import async_session_maker, engine
+from app.models import Employee
+
+
+async def main() -> None:
+    async with async_session_maker() as session:
+        employee = (
+            await session.execute(select(Employee).where(Employee.login_normalized == "__smoke_check__"))
+        ).scalar_one_or_none()
+        if employee is not None:
+            employee.is_active = False
+            session.add(employee)
+            await session.commit()
+    await engine.dispose()
+
+
+asyncio.run(main())
+PY
+}
+trap cleanup_smoke_user EXIT
+
 echo "== health напрямую =="
 curl -fsS http://127.0.0.1:8000/health
 echo
@@ -30,54 +60,48 @@ echo "== health через nginx =="
 curl -fsS http://127.0.0.1/health
 echo
 
-echo "== auth token =="
-TOKEN=$(cd "$PROJECT_ROOT/backend" && "$PROJECT_ROOT/backend/.venv/bin/python" - <<'PY'
+echo "== prepare smoke login =="
+cd "$PROJECT_ROOT/backend" && "$PROJECT_ROOT/backend/.venv/bin/python" - <<PY
 import asyncio
-import sys
 
 from sqlalchemy import select
 
-from app.config import settings
 from app.core.database import async_session_maker, engine
-from app.core.identity import normalize_login
 from app.models import Employee
 from app.models.employee import EmployeeRole
-from app.services.auth_service import create_access_token
+from app.services.auth_service import hash_password
 
 
-async def main() -> int:
-    login = normalize_login(settings.superuser_login)
+async def main() -> None:
     async with async_session_maker() as session:
-        query = select(Employee).where(
-            Employee.is_active == True,
-            Employee.role == EmployeeRole.ROLE_ADMIN,
-        )
-        if login:
-            preferred = (
-                await session.execute(query.where(Employee.login_normalized == login).order_by(Employee.id))
-            ).scalars().first()
-            if preferred is not None:
-                employee = preferred
-            else:
-                employee = (await session.execute(query.order_by(Employee.id))).scalars().first()
-        else:
-            employee = (await session.execute(query.order_by(Employee.id))).scalars().first()
-
+        employee = (
+            await session.execute(select(Employee).where(Employee.login_normalized == "$SMOKE_LOGIN"))
+        ).scalar_one_or_none()
+        if employee is None:
+            employee = Employee(
+                name="Smoke Check",
+                role=EmployeeRole.ROLE_ADMIN,
+                login="$SMOKE_LOGIN",
+                is_active=True,
+            )
+        employee.role = EmployeeRole.ROLE_ADMIN
+        employee.password_hash = hash_password("$SMOKE_PASSWORD")
+        employee.is_active = True
+        session.add(employee)
+        await session.commit()
     await engine.dispose()
-    if employee is None:
-        print("Активный администратор не найден", file=sys.stderr)
-        return 1
-
-    print(create_access_token(employee.id, employee.role.value, employee.name, employee.login or ""))
-    return 0
 
 
-raise SystemExit(asyncio.run(main()))
+asyncio.run(main())
 PY
-)
+
+echo "== login =="
+TOKEN=$(curl -fsS -X POST http://127.0.0.1:8000/auth/login \
+  --data-urlencode "username=$SMOKE_LOGIN" \
+  --data-urlencode "password=$SMOKE_PASSWORD" | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
 
 if [ -z "$TOKEN" ]; then
-  echo "Не удалось получить сервисный smoke-токен"
+  echo "Не удалось получить токен через /auth/login"
   exit 1
 fi
 
