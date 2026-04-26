@@ -512,6 +512,81 @@ def test_system_cash_row_allows_safe_edits_only(client: TestClient, auth_headers
         assert blocked_response.status_code == 400, blocked_response.text
 
 
+def test_system_cash_row_edit_keeps_document_breakdown(client: TestClient, auth_headers: dict[str, str]):
+    create_response = client.post(
+        "/orders",
+        json={
+            **make_plate_order_payload(plate_quantity=1),
+            "need_plate": False,
+            "plate_amount": "0",
+            "documents": [
+                {"template": "zaiavlenie.docx", "label": "Заявление", "price": "550"},
+                {"template": "prokuratura.docx", "label": "Прокуратура", "price": "550"},
+            ],
+        },
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 200, create_response.text
+    order = create_response.json()
+    pay_response = client.post(f"/orders/{order['id']}/pay", headers=auth_headers)
+    assert pay_response.status_code == 200, pay_response.text
+    cash_row = next(
+        row for row in client.get("/cash/rows", headers=auth_headers).json()
+        if row["source_batch"] == str(order["id"])
+    )
+
+    patch_response = client.patch(
+        f"/cash/rows/{cash_row['id']}",
+        json={"application": "800"},
+        headers=auth_headers,
+    )
+    assert patch_response.status_code == 200, patch_response.text
+
+    detail_response = client.get(f"/orders/{order['id']}/detail", headers=auth_headers)
+    assert detail_response.status_code == 200, detail_response.text
+    documents = detail_response.json()["form_data"]["documents"]
+    assert [doc["template"] for doc in documents] == ["zaiavlenie.docx", "prokuratura.docx"]
+    assert [float(doc["price"]) for doc in documents] == [400.0, 400.0]
+
+
+def test_system_cash_row_zero_restore_keeps_payment_in_shift(client: TestClient, auth_headers: dict[str, str]):
+    create_response = client.post(
+        "/orders",
+        json={
+            **make_plate_order_payload(plate_quantity=1),
+            "need_plate": False,
+            "plate_amount": "0",
+        },
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 200, create_response.text
+    order = create_response.json()
+    pay_response = client.post(f"/orders/{order['id']}/pay", headers=auth_headers)
+    assert pay_response.status_code == 200, pay_response.text
+    cash_row = next(
+        row for row in client.get("/cash/rows", headers=auth_headers).json()
+        if row["source_batch"] == str(order["id"])
+    )
+
+    zero_response = client.patch(
+        f"/cash/rows/{cash_row['id']}",
+        json={"application": "0", "insurance": "0"},
+        headers=auth_headers,
+    )
+    assert zero_response.status_code == 200, zero_response.text
+    restore_response = client.patch(
+        f"/cash/rows/{cash_row['id']}",
+        json={"application": "800"},
+        headers=auth_headers,
+    )
+    assert restore_response.status_code == 200, restore_response.text
+    restored = restore_response.json()
+
+    current_response = client.get("/cash/shifts/current", params={"pavilion": 1}, headers=auth_headers)
+    assert current_response.status_code == 200, current_response.text
+    assert current_response.json()["total_in_shift"] == restored["state_duty"] + restored["application"]
+
+
 def test_deleting_paid_order_cash_row_removes_transferred_plate_cash_rows(client: TestClient, auth_headers: dict[str, str]):
     stock_response = client.post("/warehouse/plate-stock/add", json={"amount": 3}, headers=auth_headers)
     assert stock_response.status_code == 200, stock_response.text

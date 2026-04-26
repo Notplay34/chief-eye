@@ -100,6 +100,7 @@ def test_analytics_dashboard_supports_docs_and_plates_scopes(client: TestClient,
     docs_data = docs_response.json()
     docs = docs_data["overview"]
     assert as_float(docs["income_total"]) == 1700.0
+    assert as_float(docs["turnover_total"]) == 6200.0
     assert as_float(docs["plates_income"]) == 0.0
     assert as_float(docs["plate_extra_income"]) == 0.0
     assert as_float(docs["state_duty_total"]) == 500.0

@@ -1,6 +1,6 @@
 """API касс и смен: открытие/закрытие смены по павильонам; касса номеров (plate-rows)."""
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -38,6 +38,7 @@ from app.services.cash_service import (
     get_cash_day_summary as get_cash_day_summary_service,
     get_current_shift_summary as get_current_shift_summary_service,
     get_state_duty_commission_summary as get_state_duty_commission_summary_service,
+    ensure_workday_shift,
     _fio_initials,
     list_open_plate_payouts as list_open_plate_payouts_service,
     PLATE_PAYOUT_INTERMEDIATE,
@@ -333,9 +334,21 @@ def _set_document_bucket_total(form_data: dict, templates: set[str], target: Dec
     ]
     if not matching:
         return
-    matching[0]["price"] = str(target)
-    for doc in matching[1:]:
-        doc["price"] = "0"
+    target = Decimal(str(target or 0)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    current_total = sum((Decimal(str(doc.get("price") or 0)) for doc in matching), Decimal("0"))
+    if current_total <= 0:
+        matching[0]["price"] = str(target)
+        for doc in matching[1:]:
+            doc["price"] = "0.00"
+        return
+
+    distributed_total = Decimal("0")
+    for doc in matching[:-1]:
+        current = Decimal(str(doc.get("price") or 0))
+        value = (target * current / current_total).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        doc["price"] = str(value)
+        distributed_total += value
+    matching[-1]["price"] = str(target - distributed_total)
 
 
 def _sync_form_data_from_cash_row(order: Order, row: CashRow) -> None:
@@ -387,19 +400,17 @@ async def _sync_order_payment_for_cash_row_edit(db: AsyncSession, row: CashRow, 
         )
     ).scalar_one_or_none()
     if payment:
-        if cash_income > 0:
-            payment.amount = cash_income
-            db.add(payment)
-        else:
-            await db.delete(payment)
+        payment.amount = cash_income
+        db.add(payment)
     elif cash_income > 0:
+        shift = await ensure_workday_shift(db, 1, user)
         db.add(
             Payment(
                 order_id=order.id,
                 amount=cash_income,
                 type=PaymentType.INCOME_PAVILION1,
                 employee_id=user.id,
-                shift_id=None,
+                shift_id=shift.id,
             )
         )
 

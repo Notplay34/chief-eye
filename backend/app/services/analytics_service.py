@@ -178,6 +178,10 @@ def _build_overview(
 
     plate_extra_income = sum((_to_decimal(payment.amount) for payment in extra_payments), ZERO)
     if kind in ("all", "docs"):
+        insurance_cash_total = sum(
+            (_to_decimal(row.insurance) for row in cash_rows if _to_decimal(row.insurance) > 0),
+            ZERO,
+        )
         insurance_commission_income = sum(
             (
                 INSURANCE_COMMISSION_PER_ROW
@@ -186,6 +190,8 @@ def _build_overview(
             ),
             ZERO,
         )
+    else:
+        insurance_cash_total = ZERO
 
     docs_income_output = docs_income if kind in ("all", "docs") else ZERO
     plates_income_output = plates_income if kind in ("all", "plates") else ZERO
@@ -201,7 +207,8 @@ def _build_overview(
         + state_duty_commission_output
         + insurance_commission_income
     )
-    turnover_total = income_total + state_duty_output
+    insurance_pass_through = max(ZERO, insurance_cash_total - insurance_commission_income)
+    turnover_total = income_total + state_duty_output + insurance_pass_through
     orders_count = len(scope_orders)
     average_check = (turnover_total / orders_count) if orders_count else ZERO
 
