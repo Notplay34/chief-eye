@@ -98,7 +98,8 @@
     var clientFilled = isLegal
       ? (page.inputs.clientLegalName && page.inputs.clientLegalName.value.trim())
       : (page.inputs.clientFio && page.inputs.clientFio.value.trim());
-    var canPay = total > 0 && clientFilled && page.state.selectedDocuments.length > 0;
+    var trusteeFilled = !isLegal || (page.inputs.trusteeFio && page.inputs.trusteeFio.value.trim());
+    var canPay = total > 0 && clientFilled && trusteeFilled && page.state.selectedDocuments.length > 0;
     if (page.btnAcceptCash) page.btnAcceptCash.disabled = !canPay;
     if (page.btnPrint) page.btnPrint.disabled = !canPay;
   };
@@ -231,6 +232,18 @@
     var legal = page.el('clientLegal');
     if (individual) individual.style.display = isLegal ? 'none' : '';
     if (legal) legal.style.display = isLegal ? '' : 'none';
+    if (page.inputs.hasTrustee) {
+      if (isLegal) page.inputs.hasTrustee.checked = true;
+      page.inputs.hasTrustee.disabled = isLegal;
+    }
+    page.syncTrusteeSection();
+  };
+
+  page.syncTrusteeSection = function () {
+    var trusteeBody = page.el('trusteeBody');
+    if (!page.inputs.hasTrustee || !trusteeBody) return;
+    var enabled = page.inputs.hasTrustee.checked || (page.inputs.clientIsLegal && page.inputs.clientIsLegal.checked);
+    trusteeBody.classList.toggle('form-section__body--closed', !enabled);
   };
 
   page.syncPlateToDocuments = function () {
@@ -281,9 +294,10 @@
       });
     }
     if (page.inputs.hasTrustee && trusteeBody) {
-      trusteeBody.classList.toggle('form-section__body--closed', !page.inputs.hasTrustee.checked);
+      page.syncTrusteeSection();
       page.inputs.hasTrustee.addEventListener('change', function () {
-        trusteeBody.classList.toggle('form-section__body--closed', !page.inputs.hasTrustee.checked);
+        page.syncTrusteeSection();
+        page.syncFromMainForm();
       });
     }
   };

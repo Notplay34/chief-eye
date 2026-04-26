@@ -111,8 +111,21 @@ def _field_has_value(data: dict, field: str) -> bool:
     return True
 
 
+def _required_fields_for_payload(data: dict, template_name: str, required_map: dict[str, set[str]]) -> set[str]:
+    required = set(required_map.get(template_name, set()))
+    if data.get("client_is_legal"):
+        if "client_fio" in required:
+            required.remove("client_fio")
+            required.add("client_legal_name")
+        if "client_passport" in required:
+            required.remove("client_passport")
+            required.add("trustee_passport")
+        required.add("trustee_fio")
+    return required
+
+
 def _missing_fields(data: dict, template_name: str, required_map: dict[str, set[str]]) -> list[str]:
-    required = required_map.get(template_name, set())
+    required = _required_fields_for_payload(data, template_name, required_map)
     missing = [FIELD_LABELS.get(field, field) for field in required if not _field_has_value(data, field)]
     return sorted(missing)
 

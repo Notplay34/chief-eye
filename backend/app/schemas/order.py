@@ -330,6 +330,16 @@ class OrderCreate(BaseModel):
                 setattr(self, prefix, f"{series} {number}")
             elif series or number:
                 raise ValueError("Документ ТС должен содержать серию 4 символа и номер 6 символов")
+
+        if self.client_is_legal:
+            if self.client_fio:
+                raise ValueError("Для юрлица нельзя заполнять ФИО физлица")
+            if not self.client_legal_name:
+                raise ValueError("Для юрлица нужно указать название организации")
+            if not self.trustee_fio:
+                raise ValueError("Для юрлица нужно указать доверенное лицо")
+        elif self.client_legal_name or self.client_inn or self.client_ogrn:
+            raise ValueError("Для физлица нельзя заполнять данные юрлица")
         return self
 
 

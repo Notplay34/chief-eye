@@ -86,6 +86,48 @@ def test_create_order_accepts_split_documents_and_relaxed_vin(client: TestClient
     assert detail["form_data"]["vin"] == "ABCIOQ1"
 
 
+def test_create_order_enforces_client_type_and_legal_trustee(client: TestClient, auth_headers: dict[str, str]):
+    legal_payload = make_base_payload()
+    legal_payload.update(
+        {
+            "client_is_legal": True,
+            "client_fio": None,
+            "client_passport": None,
+            "client_legal_name": "ООО Ромашка",
+            "documents": [{"template": "zaiavlenie.docx", "label": "Заявление", "price": "1000"}],
+        }
+    )
+
+    legal_response = client.post("/orders", json=legal_payload, headers=auth_headers)
+    assert legal_response.status_code == 200, legal_response.text
+    detail = client.get(f"/orders/{legal_response.json()['id']}/detail", headers=auth_headers).json()
+    assert detail["form_data"]["client_is_legal"] is True
+    assert detail["form_data"]["client_fio"] is None
+    assert detail["form_data"]["client_legal_name"] == "ООО Ромашка"
+    assert detail["form_data"]["trustee_fio"] == "Сидоров Сидор Сидорович"
+
+    mixed_payload = {**legal_payload, "client_fio": "Иванов Иван Иванович"}
+    mixed_response = client.post("/orders", json=mixed_payload, headers=auth_headers)
+    assert mixed_response.status_code == 422, mixed_response.text
+    assert "юрлица нельзя заполнять фио физлица" in str(mixed_response.json()["detail"]).lower()
+
+    without_trustee_payload = {**legal_payload, "trustee_fio": None}
+    without_trustee_response = client.post("/orders", json=without_trustee_payload, headers=auth_headers)
+    assert without_trustee_response.status_code == 422, without_trustee_response.text
+    assert "доверенное лицо" in str(without_trustee_response.json()["detail"]).lower()
+
+    individual_with_legal_payload = make_base_payload()
+    individual_with_legal_payload.update(
+        {
+            "client_legal_name": "ООО Ромашка",
+            "documents": [{"template": "zaiavlenie.docx", "label": "Заявление", "price": "1000"}],
+        }
+    )
+    individual_with_legal_response = client.post("/orders", json=individual_with_legal_payload, headers=auth_headers)
+    assert individual_with_legal_response.status_code == 422, individual_with_legal_response.text
+    assert "физлица нельзя заполнять данные юрлица" in str(individual_with_legal_response.json()["detail"]).lower()
+
+
 def test_create_order_rejects_missing_required_fields_for_selected_templates(client: TestClient, auth_headers: dict[str, str]):
     payload = make_base_payload()
     payload["documents"] = [{"template": "DKP.docx", "label": "ДКП", "price": "550"}]
