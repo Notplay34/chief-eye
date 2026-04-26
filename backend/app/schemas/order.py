@@ -16,7 +16,7 @@ class DocumentItem(BaseModel):
 
 
 class OrderCreate(BaseModel):
-    """Данные формы оператора (раздел 13 PROJECT_CONTEXT)."""
+    """Данные формы оператора, описанной в docs/PROJECT.md."""
     client_fio: Optional[str] = None
     client_birth_date: Optional[str] = None
     client_birth_place: Optional[str] = None
