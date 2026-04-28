@@ -15,10 +15,12 @@ SELLABLE_TEMPLATES = frozenset(
         "mreo.docx",
         "prokuratura.docx",
         "number.docx",
+        "gosuslugi_signup",
     }
 )
 
 PLATE_DOCUMENT_TEMPLATES = frozenset({"zaiavlenie_na_nomera.docx"})
+PAYMENT_ONLY_TEMPLATES = frozenset({"gosuslugi_signup"})
 
 
 def is_sellable_template(template_name: str) -> bool:
@@ -26,7 +28,7 @@ def is_sellable_template(template_name: str) -> bool:
 
 
 def is_printable_template(template_name: str) -> bool:
-    return template_name in SELLABLE_TEMPLATES or template_name in PLATE_DOCUMENT_TEMPLATES
+    return template_name in (SELLABLE_TEMPLATES - PAYMENT_ONLY_TEMPLATES) or template_name in PLATE_DOCUMENT_TEMPLATES
 
 
 def template_exists(template_name: str) -> bool:
@@ -36,4 +38,4 @@ def template_exists(template_name: str) -> bool:
 
 
 def supported_sellable_templates() -> set[str]:
-    return {template for template in SELLABLE_TEMPLATES if template_exists(template)}
+    return PAYMENT_ONLY_TEMPLATES | {template for template in SELLABLE_TEMPLATES if template_exists(template)}

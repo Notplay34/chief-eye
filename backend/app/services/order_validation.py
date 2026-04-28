@@ -39,41 +39,41 @@ FIELD_LABELS = {
 TEMPLATE_REQUIRED_FIELDS = {
     "zaiavlenie.docx": {
         "client_fio", "client_passport", "client_address", "client_phone", "vin",
-        "brand_model", "year", "plate_number", "vehicle_type", "state_duty",
+        "brand_model", "year", "vehicle_type", "state_duty",
     },
     "DKP.docx": {
         "client_fio", "client_passport", "client_address",
         "seller_fio", "seller_passport", "seller_address",
-        "vin", "brand_model", "year", "plate_number",
+        "vin", "brand_model", "year",
         "summa_dkp", "dkp_date",
     },
     "akt_pp.docx": {
         "client_fio", "client_passport", "client_address",
         "seller_fio", "seller_passport", "seller_address",
-        "vin", "brand_model", "year", "plate_number",
+        "vin", "brand_model", "year",
         "dkp_date",
     },
     "dkp_dar.docx": {
         "client_fio", "client_passport", "client_address",
         "seller_fio", "seller_passport", "seller_address",
-        "vin", "brand_model", "year", "plate_number", "dkp_date",
+        "vin", "brand_model", "year", "dkp_date",
     },
     "dkp_pieces.docx": {
         "client_fio", "client_passport", "client_address",
         "seller_fio", "seller_passport", "seller_address",
-        "vin", "brand_model", "year", "plate_number", "dkp_date", "vehicle_type",
+        "vin", "brand_model", "year", "dkp_date", "vehicle_type",
     },
     "doverennost.docx": {
         "client_fio", "client_passport", "client_address",
         "trustee_fio", "trustee_passport",
-        "vin", "brand_model", "year", "plate_number",
+        "vin", "brand_model", "year",
     },
     "mreo.docx": {"client_fio", "client_passport", "client_address", "client_phone", "brand_model", "year"},
     "number.docx": {"client_fio", "client_passport", "client_address", "client_phone", "vin", "brand_model", "year"},
     "prokuratura.docx": {"client_fio", "client_passport", "client_address", "client_phone"},
     "zaiavlenie_na_nomera.docx": {
         "client_fio", "client_passport", "client_address", "client_phone", "vin",
-        "brand_model", "year", "plate_number",
+        "brand_model", "year",
     },
 }
 

@@ -46,7 +46,8 @@
       serviceDocuments.push({
         template: priceItem.template,
         label: priceItem.label || priceItem.template,
-        price: priceItem.price
+        price: priceItem.price,
+        printable: priceItem.printable !== false
       });
     });
     page.state.selectedDocuments = serviceDocuments;
@@ -162,7 +163,7 @@
       page.orderIdDisplay.style.fontWeight = '600';
       page.btnAcceptCash.textContent = 'Оплата принята';
       window.lastOrderId = order.id;
-      window.lastOrderDocuments = page.state.selectedDocuments.filter(function (item) { return !item.paymentOnly; }).map(function (item) { return item.template; });
+      window.lastOrderDocuments = page.state.selectedDocuments.filter(page.isPrintableDocument).map(function (item) { return item.template; });
       page.state.loadedFromHistory = false;
       if (typeof page.loadFormHistory === 'function') page.loadFormHistory();
     } catch (e) {
@@ -242,7 +243,7 @@
     page.state.loadedFromHistory = true;
     if (page.orderIdDisplay) page.orderIdDisplay.textContent = 'Данные из истории';
     page.state.selectedDocuments = (formData.documents || []).map(function (item) {
-      return { template: item.template || '', label: item.label || item.template || '', price: page.num(item.price) };
+      return { template: item.template || '', label: item.label || item.template || '', price: page.num(item.price), printable: item.printable !== false };
     });
     page.toggleClientType();
     var sellerBody = page.el('sellerBody');
@@ -293,7 +294,7 @@
     if (!resOrder.ok) await page.extractError(resOrder);
     var order = await resOrder.json();
     window.lastOrderId = order.id;
-    window.lastOrderDocuments = page.state.selectedDocuments.filter(function (item) { return !item.paymentOnly; }).map(function (item) { return item.template; });
+    window.lastOrderDocuments = page.state.selectedDocuments.filter(page.isPrintableDocument).map(function (item) { return item.template; });
     if (page.orderIdDisplay) {
       page.orderIdDisplay.textContent = 'Заказ: ' + (order.public_id || order.id);
       page.orderIdDisplay.style.fontWeight = '600';
@@ -321,9 +322,14 @@
       alert('Нет списка документов по последнему заказу.');
       return;
     }
+    var directoryHandle = null;
+    if (window.chooseDocumentDirectory) {
+      directoryHandle = await window.chooseDocumentDirectory(templates.length);
+      if (directoryHandle === false) return;
+    }
     templates.forEach(function (template) {
       var url = page.apiBaseUrl + '/orders/' + orderId + '/documents/' + encodeURIComponent(template);
-      window.fetchDocumentWithAuth(url, template).catch(function (err) {
+      window.fetchDocumentWithAuth(url, template, { directoryHandle: directoryHandle }).catch(function (err) {
         page.showError(err.message || 'Не удалось открыть документ');
       });
     });

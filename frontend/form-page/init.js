@@ -61,7 +61,10 @@
       var number = page.inputs[prefix + 'Number'];
       var issuedDate = page.inputs[prefix + 'IssuedDate'];
       if (series) series.addEventListener('input', function () { series.value = series.value.replace(/\s+/g, '').toUpperCase().slice(0, 4); });
-      if (number) number.addEventListener('input', function () { number.value = number.value.replace(/\s+/g, '').toUpperCase().slice(0, 6); });
+      if (number) number.addEventListener('input', function () {
+        var normalized = number.value.replace(/\s+/g, '').toUpperCase();
+        number.value = prefix === 'pts' ? normalized : normalized.slice(0, 6);
+      });
       if (issuedDate) issuedDate.addEventListener('input', function () { issuedDate.value = page.formatDateDigits(issuedDate.value); });
     });
     if (page.inputs.dkpDate) {

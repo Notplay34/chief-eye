@@ -18,7 +18,7 @@ from app.services.errors import ServiceError
 from app.services.order_status import can_transition
 from app.services.order_validation import validate_create_order_data
 from app.services.settings_service import calculate_state_duty_for_order
-from app.services.template_registry import is_sellable_template, supported_sellable_templates
+from app.services.template_registry import is_printable_template, is_sellable_template, supported_sellable_templates
 from app.services.warehouse_service import (
     finalize_stock_for_completed_order,
     plate_quantity_from_order,
@@ -131,6 +131,7 @@ async def _load_canonical_documents(db: AsyncSession, documents: list) -> list[d
                 "template": price_row.template,
                 "label": price_row.label or get_label_by_template(price_row.template),
                 "price": str(price_row.price),
+                "printable": is_printable_template(price_row.template),
             }
         )
     return canonical_documents

@@ -62,7 +62,43 @@
       return res;
     });
   };
-  window.downloadBlobFile = function (blob, filename) {
+  window.chooseDocumentDirectory = async function (fileCount) {
+    if (!window.showDirectoryPicker || !window.isSecureContext) return null;
+    if (fileCount <= 0) return null;
+    try {
+      return await window.showDirectoryPicker({ mode: 'readwrite' });
+    } catch (error) {
+      if (error && error.name === 'AbortError') return false;
+      throw error;
+    }
+  };
+  window.downloadBlobFile = async function (blob, filename, options) {
+    options = options || {};
+    if (options.directoryHandle) {
+      var fileHandle = await options.directoryHandle.getFileHandle(filename || 'document.docx', { create: true });
+      var writable = await fileHandle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
+    }
+    if (window.showSaveFilePicker && window.isSecureContext) {
+      try {
+        var saveHandle = await window.showSaveFilePicker({
+          suggestedName: filename || 'document.docx',
+          types: [{
+            description: 'Документ Word',
+            accept: { 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'] }
+          }]
+        });
+        var saveWritable = await saveHandle.createWritable();
+        await saveWritable.write(blob);
+        await saveWritable.close();
+        return;
+      } catch (error) {
+        if (!error || error.name !== 'AbortError') throw error;
+        return;
+      }
+    }
     var objectUrl = URL.createObjectURL(blob);
     var link = document.createElement('a');
     link.href = objectUrl;
@@ -76,7 +112,7 @@
       if (link.parentNode) link.parentNode.removeChild(link);
     }, 2000);
   };
-  window.fetchDocumentWithAuth = function (url, fallbackFilename) {
+  window.fetchDocumentWithAuth = function (url, fallbackFilename, options) {
     var headers = {};
     var t = window.getToken();
     if (t) headers.Authorization = 'Bearer ' + t;
@@ -101,7 +137,7 @@
       var asciiMatch = disposition.match(/filename=\"?([^"]+)\"?/i);
       var filename = (utfMatch && decodeURIComponent(utfMatch[1])) || (asciiMatch && asciiMatch[1]) || fallbackFilename || 'document.docx';
       return res.blob().then(function (blob) {
-        window.downloadBlobFile(blob, filename);
+        return window.downloadBlobFile(blob, filename, options);
       });
     });
   };

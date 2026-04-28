@@ -13,6 +13,7 @@ PRICE_LIST = [
     {"template": "dkp_dar.docx", "label": "ДКП дарение", "price": Decimal("550")},
     {"template": "mreo.docx", "label": "МРЭО (постановка/снятие)", "price": Decimal("550")},
     {"template": "prokuratura.docx", "label": "Прокуратура", "price": Decimal("550")},
+    {"template": "gosuslugi_signup", "label": "Запись на госуслугах", "price": Decimal("550")},
     {"template": "number.docx", "label": "Изготовление номера", "price": Decimal("1500")},
 ]
 

@@ -286,14 +286,22 @@ class OrderCreate(BaseModel):
             raise ValueError("Серия документа ТС должна содержать 4 символа")
         return normalized
 
-    @field_validator("srts_number", "pts_number")
+    @field_validator("srts_number")
     @classmethod
-    def _validate_vehicle_doc_number(cls, value: Optional[str]) -> Optional[str]:
+    def _validate_srts_doc_number(cls, value: Optional[str]) -> Optional[str]:
         if value is None:
             return None
         normalized = re.sub(r"\s+", "", value.upper())
         if len(normalized) != 6:
-            raise ValueError("Номер документа ТС должен содержать 6 символов")
+            raise ValueError("Номер СРТС должен содержать 6 символов")
+        return normalized
+
+    @field_validator("pts_number")
+    @classmethod
+    def _validate_pts_doc_number(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        normalized = re.sub(r"\s+", "", value.upper())
         return normalized
 
     @field_validator("dkp_date")
@@ -329,7 +337,10 @@ class OrderCreate(BaseModel):
             if series and number:
                 setattr(self, prefix, f"{series} {number}")
             elif series or number:
-                raise ValueError("Документ ТС должен содержать серию 4 символа и номер 6 символов")
+                if prefix == "pts" and number:
+                    setattr(self, prefix, number)
+                    continue
+                raise ValueError("Документ ТС должен содержать серию 4 символа и номер")
 
         if self.client_is_legal:
             if self.client_fio:

@@ -86,6 +86,50 @@ def test_create_order_accepts_split_documents_and_relaxed_vin(client: TestClient
     assert detail["form_data"]["vin"] == "ABCIOQ1"
 
 
+def test_create_order_accepts_electronic_pts_number(client: TestClient, auth_headers: dict[str, str]):
+    payload = make_base_payload()
+    payload.update(
+        {
+            "pts": None,
+            "pts_series": None,
+            "pts_number": "164301012345678",
+            "documents": [{"template": "zaiavlenie.docx", "label": "Заявление", "price": "1000"}],
+        }
+    )
+
+    response = client.post("/orders", json=payload, headers=auth_headers)
+
+    assert response.status_code == 200, response.text
+    detail = client.get(f"/orders/{response.json()['id']}/detail", headers=auth_headers).json()
+    assert detail["form_data"]["pts"] == "164301012345678"
+    assert detail["form_data"]["pts_number"] == "164301012345678"
+
+
+def test_print_allows_missing_plate_number(client: TestClient, auth_headers: dict[str, str]):
+    payload = make_base_payload()
+    payload.update(
+        {
+            "plate_number": None,
+            "engine": None,
+            "documents": [{"template": "zaiavlenie.docx", "label": "Заявление", "price": "1000"}],
+        }
+    )
+
+    response = client.post("/orders", json=payload, headers=auth_headers)
+    assert response.status_code == 200, response.text
+    document = client.get(f"/orders/{response.json()['id']}/documents/zaiavlenie.docx", headers=auth_headers)
+    assert document.status_code == 200, document.text
+
+
+def test_price_list_contains_gosuslugi_payment_only_service(client: TestClient, auth_headers: dict[str, str]):
+    response = client.get("/price-list", headers=auth_headers)
+    assert response.status_code == 200, response.text
+    rows = {item["template"]: item for item in response.json()}
+    assert rows["gosuslugi_signup"]["label"] == "Запись на госуслугах"
+    assert rows["gosuslugi_signup"]["price"] == 550.0
+    assert rows["gosuslugi_signup"]["printable"] is False
+
+
 def test_create_order_enforces_client_type_and_legal_trustee(client: TestClient, auth_headers: dict[str, str]):
     legal_payload = make_base_payload()
     legal_payload.update(

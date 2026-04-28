@@ -115,7 +115,9 @@
     var series = inputs[prefix + 'Series'];
     var number = inputs[prefix + 'Number'];
     var s = series ? String(series.value || '').replace(/\s+/g, '').toUpperCase().slice(0, 4) : '';
-    var n = number ? String(number.value || '').replace(/\s+/g, '').toUpperCase().slice(0, 6) : '';
+    var rawNumber = number ? String(number.value || '').replace(/\s+/g, '').toUpperCase() : '';
+    var n = prefix === 'pts' ? rawNumber : rawNumber.slice(0, 6);
+    if (prefix === 'pts' && !s && n) return n;
     return s && n ? (s + ' ' + n) : null;
   };
 
@@ -131,8 +133,12 @@
     var normalized = String(value || '').replace(/\s+/g, '').toUpperCase();
     return {
       series: normalized.slice(0, 4),
-      number: normalized.slice(4, 10)
+      number: normalized.slice(4)
     };
+  };
+
+  page.isPrintableDocument = function (documentItem) {
+    return documentItem && !documentItem.paymentOnly && documentItem.printable !== false;
   };
 
   page.isPlateZaiavlenie = function (documentItem) {

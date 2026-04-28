@@ -1,6 +1,7 @@
 """Базовые сценарии аналитики."""
 
 from decimal import Decimal
+from datetime import date, timedelta
 
 from fastapi.testclient import TestClient
 
@@ -182,6 +183,13 @@ def test_plate_director_report_counts_made_stock_and_defects(client: TestClient,
 
 
 def test_plate_director_report_replaces_overlapping_close_rows(client: TestClient, auth_headers: dict[str, str]):
+    today = date.today()
+    start_date = today.replace(day=1)
+    next_month = start_date.replace(year=start_date.year + 1, month=1) if start_date.month == 12 else start_date.replace(month=start_date.month + 1)
+    end_date = next_month - timedelta(days=1)
+    month_start = start_date.isoformat()
+    current_day = today.isoformat()
+    month_end = end_date.isoformat()
     cash_in_response = client.post(
         "/cash/plate-rows",
         json={"client_name": "Приход по номерам", "quantity": 0, "amount": "3000"},
@@ -190,14 +198,14 @@ def test_plate_director_report_replaces_overlapping_close_rows(client: TestClien
     assert cash_in_response.status_code == 200, cash_in_response.text
 
     first_close = client.post(
-        "/analytics/plate-report/close?date_from=2026-04-01&date_to=2026-04-26",
+        f"/analytics/plate-report/close?date_from={month_start}&date_to={current_day}",
         headers=auth_headers,
     )
     assert first_close.status_code == 200, first_close.text
     assert as_float(first_close.json()["close_amount"]) == -3000.0
 
     second_close = client.post(
-        "/analytics/plate-report/close?date_from=2026-04-01&date_to=2026-04-30",
+        f"/analytics/plate-report/close?date_from={month_start}&date_to={month_end}",
         headers=auth_headers,
     )
     assert second_close.status_code == 200, second_close.text
@@ -206,7 +214,7 @@ def test_plate_director_report_replaces_overlapping_close_rows(client: TestClien
     assert as_float(data["report"]["plate_cash_balance"]) == 0.0
 
     repeat_close = client.post(
-        "/analytics/plate-report/close?date_from=2026-04-01&date_to=2026-04-30",
+        f"/analytics/plate-report/close?date_from={month_start}&date_to={month_end}",
         headers=auth_headers,
     )
     assert repeat_close.status_code == 200, repeat_close.text

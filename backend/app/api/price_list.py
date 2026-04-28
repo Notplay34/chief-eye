@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.auth import RequireAdmin, RequireFormAccess, UserInfo
 from app.core.database import get_db
 from app.models import DocumentPrice
-from app.services.template_registry import supported_sellable_templates
+from app.services.template_registry import is_printable_template, supported_sellable_templates
 
 router = APIRouter(prefix="/price-list", tags=["price-list"])
 
@@ -21,6 +21,7 @@ def _row_to_dict(row: DocumentPrice) -> dict:
         "label": row.label,
         "price": float(row.price) if row.price is not None else 0,
         "sort_order": row.sort_order,
+        "printable": is_printable_template(row.template),
     }
 
 
