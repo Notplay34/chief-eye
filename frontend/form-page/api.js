@@ -127,7 +127,7 @@
       pts_issued_date: (inputs.ptsIssuedDate && inputs.ptsIssuedDate.value.trim()) || null,
       dkp_date: (inputs.hasSeller && inputs.hasSeller.checked && inputs.dkpDate && inputs.dkpDate.value.trim()) ? inputs.dkpDate.value.trim() : null,
       dkp_number: (inputs.hasSeller && inputs.hasSeller.checked && inputs.dkpNumber && inputs.dkpNumber.value.trim()) ? inputs.dkpNumber.value.trim() : null,
-      dkp_summary: (!inputs.hasSeller || !inputs.hasSeller.checked) && inputs.dkpSummary && inputs.dkpSummary.value.trim() ? inputs.dkpSummary.value.trim() : null,
+      dkp_summary: inputs.dkpSummary && inputs.dkpSummary.value.trim() ? inputs.dkpSummary.value.trim() : null,
       service_type: page.state.selectedDocuments[0] ? page.state.selectedDocuments[0].template : null,
       need_plate: needPlate,
       plate_quantity: plateQuantity,

@@ -304,15 +304,20 @@ def _signer_full_fio(form_data: dict, template_name: Optional[str]) -> str:
 
 
 def _dkp_statement_value(form_data: dict) -> str:
+    summary = str(form_data.get("dkp_summary") or "").strip()
+    if summary:
+        return summary if summary.upper().startswith("ДКП") else f"ДКП, {summary}"
     parts = ["ДКП"]
     if form_data.get("dkp_date"):
         parts.append(str(form_data["dkp_date"]))
-    if form_data.get("summa_dkp"):
+    try:
+        summa_dkp = Decimal(str(form_data.get("summa_dkp") or 0))
+    except (InvalidOperation, ValueError):
+        summa_dkp = Decimal("0")
+    if summa_dkp != 0:
         parts.append(str(form_data["summa_dkp"]))
     if form_data.get("dkp_number"):
         parts.append("№ " + str(form_data["dkp_number"]))
-    if len(parts) == 1 and form_data.get("dkp_summary"):
-        parts.append(str(form_data["dkp_summary"]))
     return ", ".join(parts)
 
 

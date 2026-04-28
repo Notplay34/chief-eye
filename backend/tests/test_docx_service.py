@@ -207,6 +207,28 @@ def test_zaiavlenie_dkp_field_starts_with_dkp_label():
     assert "ДКП, 23.04.2026, 850000" in text
 
 
+def test_zaiavlenie_uses_manual_dkp_summary_when_no_seller_amount():
+    form_data = _base_form_data()
+    form_data["dkp_date"] = None
+    form_data["dkp_number"] = None
+    form_data["summa_dkp"] = "0"
+    form_data["dkp_summary"] = "ЭПТС 164301012345678"
+
+    text = _docx_text(render_docx("zaiavlenie.docx", form_data))
+
+    assert "ДКП, ЭПТС 164301012345678" in text
+    assert "ДКП, 0" not in text
+
+
+def test_zaiavlenie_manual_dkp_summary_overrides_auto_parts():
+    form_data = _base_form_data()
+    form_data["dkp_summary"] = "ДКП от 24.04.2026 на 850000"
+
+    text = _docx_text(render_docx("zaiavlenie.docx", form_data))
+
+    assert "ДКП от 24.04.2026 на 850000" in text
+
+
 def test_download_filename_uses_russian_label_and_initials():
     assert document_download_filename("DKP.docx", _base_form_data()) == "ДКП - Иванов И.И..docx"
 
