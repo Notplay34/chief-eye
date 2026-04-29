@@ -23,16 +23,8 @@
     }).format(num) + ' ₽';
   }
 
-  function todayIso() {
-    var now = new Date();
-    var year = now.getFullYear();
-    var month = String(now.getMonth() + 1).padStart(2, '0');
-    var day = String(now.getDate()).padStart(2, '0');
-    return year + '-' + month + '-' + day;
-  }
-
   function payoutUrl(path) {
-    return API + path + '?business_date=' + encodeURIComponent(todayIso());
+    return API + path;
   }
 
   function setMsg(text, isErr) {

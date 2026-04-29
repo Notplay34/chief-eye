@@ -235,6 +235,11 @@ def test_plate_payout_transfer_uses_cash_receipt_day(client: TestClient, auth_he
     assert today_response.json()["total"] == 0.0
     assert today_response.json()["rows"] == []
 
+    default_response = client.get("/cash/plate-payouts", headers=auth_headers)
+    assert default_response.status_code == 200, default_response.text
+    assert default_response.json()["total"] == 3000.0
+    assert default_response.json()["quantity"] == 2
+
     old_day_response = client.get("/cash/plate-payouts", params={"business_date": old_day.isoformat()}, headers=auth_headers)
     assert old_day_response.status_code == 200, old_day_response.text
     assert old_day_response.json()["total"] == 3000.0
@@ -255,6 +260,41 @@ def test_plate_payout_transfer_uses_cash_receipt_day(client: TestClient, auth_he
     assert old_day_transfer.status_code == 200, old_day_transfer.text
     assert old_day_transfer.json()["total"] == 3000.0
     assert old_day_transfer.json()["business_date"] == old_day.isoformat()
+
+
+def test_state_duty_withdrawal_carries_unwithdrawn_previous_day(client: TestClient, auth_headers: dict[str, str], db_session):
+    old_day = date.today() - timedelta(days=1)
+    old_datetime = datetime.combine(old_day, datetime.min.time())
+    order = create_paid_plate_order(client, auth_headers, plate_quantity=1)
+
+    async def move_cash_receipt_to_previous_day():
+        cash_row = (
+            await db_session.execute(
+                select(CashRow).where(
+                    CashRow.source_type == ORDER_PAYMENT_CASH_ROW,
+                    CashRow.source_batch == str(order["id"]),
+                )
+            )
+        ).scalar_one()
+        cash_row.created_at = old_datetime
+        await db_session.commit()
+
+    run_async(move_cash_receipt_to_previous_day())
+
+    today_response = client.get("/cash/state-duty-commissions", params={"business_date": date.today().isoformat()}, headers=auth_headers)
+    assert today_response.status_code == 200, today_response.text
+    assert today_response.json()["withdrawal_total"] == 0.0
+
+    default_response = client.get("/cash/state-duty-commissions", headers=auth_headers)
+    assert default_response.status_code == 200, default_response.text
+    assert default_response.json()["state_duty_total"] == 650.0
+    assert default_response.json()["withdrawal_total"] == 650.0
+    assert default_response.json()["can_withdraw"] is True
+
+    withdraw_response = client.post("/cash/state-duty-commissions/withdraw", json={}, headers=auth_headers)
+    assert withdraw_response.status_code == 200, withdraw_response.text
+    assert withdraw_response.json()["withdrawn_total"] == 650.0
+    assert withdraw_response.json()["withdrawal_total"] == 0.0
 
 
 def test_plate_transfer_pays_only_issued_clients_from_intermediate_cash(client: TestClient, auth_headers: dict[str, str]):

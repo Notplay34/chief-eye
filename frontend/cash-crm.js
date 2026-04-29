@@ -330,10 +330,6 @@
     if (next) next.disabled = !hasNextPage;
   }
 
-  function cashDayKey() {
-    return activeDate || todayKey();
-  }
-
   function renderStateDutyCommission(summary) {
     var totalEl = document.getElementById('stateDutyCommissionTotal');
     var btn = document.getElementById('btnWithdrawStateDutyCommission');
@@ -356,7 +352,7 @@
   }
 
   function loadCashDay() {
-    fetchApi(API + '/cash/state-duty-commissions?business_date=' + encodeURIComponent(cashDayKey()))
+    fetchApi(API + '/cash/state-duty-commissions')
       .then(function (r) {
         if (!r.ok) {
           return r.json().then(function (j) { throw new Error(j.detail || r.statusText); });
@@ -396,7 +392,7 @@
     fetchApi(API + '/cash/state-duty-commissions/withdraw', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ business_date: cashDayKey() })
+      body: JSON.stringify({})
     })
       .then(function (r) {
         return r.json().then(function (json) {

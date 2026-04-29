@@ -175,30 +175,33 @@ async def get_state_duty_commission_summary(
         raise ServiceError("Нет доступа к кассе этого павильона", status_code=403)
 
     day = business_date or business_today()
-    start, end = _day_bounds(day)
+    if business_date is None:
+        start = None
+        _, end = _day_bounds(day)
+    else:
+        start, end = _day_bounds(day)
     settings = await get_state_duty_settings(db)
+    rows_query = select(CashRow).where(
+        CashRow.created_at < end,
+        CashRow.state_duty > 0,
+    )
+    if start is not None:
+        rows_query = rows_query.where(CashRow.created_at >= start)
     rows = (
-        await db.execute(
-            select(CashRow).where(
-                CashRow.created_at >= start,
-                CashRow.created_at < end,
-                CashRow.state_duty > 0,
-            )
-        )
+        await db.execute(rows_query)
     ).scalars().all()
     commission_total = sum(
         (_state_duty_commission_from_cash_amount(row.state_duty, settings) for row in rows),
         Decimal("0"),
     )
     state_duty_total = sum((Decimal(str(row.state_duty or 0)) for row in rows), Decimal("0"))
-    withdrawals = (
-        await db.execute(
-            select(CashRow).where(
-                CashRow.source_type == STATE_DUTY_COMMISSION_WITHDRAWAL,
-                CashRow.source_date == day,
-            ).order_by(CashRow.created_at.desc())
-        )
-    ).scalars().all()
+    withdrawals_query = select(CashRow).where(
+        CashRow.source_type == STATE_DUTY_COMMISSION_WITHDRAWAL,
+        CashRow.created_at < end,
+    )
+    if business_date is not None:
+        withdrawals_query = withdrawals_query.where(CashRow.source_date == day)
+    withdrawals = (await db.execute(withdrawals_query.order_by(CashRow.created_at.desc()))).scalars().all()
     withdrawn_total = sum(
         (
             max(Decimal("0"), -Decimal(str(row.state_duty or row.total or 0)))
@@ -228,17 +231,19 @@ async def withdraw_state_duty_commissions(
     business_date: Optional[date] = None,
 ) -> dict:
     day = business_date or business_today()
-    start, end = _day_bounds(day)
-    await db.execute(
-        select(CashRow.id)
-        .where(
-            CashRow.created_at >= start,
-            CashRow.created_at < end,
-            CashRow.state_duty > 0,
-        )
-        .with_for_update()
+    if business_date is None:
+        start = None
+        _, end = _day_bounds(day)
+    else:
+        start, end = _day_bounds(day)
+    lock_query = select(CashRow.id).where(
+        CashRow.created_at < end,
+        CashRow.state_duty > 0,
     )
-    summary = await get_state_duty_commission_summary(db, user, day)
+    if start is not None:
+        lock_query = lock_query.where(CashRow.created_at >= start)
+    await db.execute(lock_query.with_for_update())
+    summary = await get_state_duty_commission_summary(db, user, business_date)
     day = date.fromisoformat(summary["business_date"])
     total = Decimal(str(summary["withdrawal_total"] if "withdrawal_total" in summary else summary.get("state_duty_total", 0)))
     if total <= 0:
@@ -247,7 +252,7 @@ async def withdraw_state_duty_commissions(
         raise ServiceError("За выбранный день нет госпошлин к списанию", status_code=400)
 
     row = CashRow(
-        client_name=f"Госпошлины {day.strftime('%d.%m.%Y')}",
+        client_name=f"Госпошлины {'до ' if business_date is None else ''}{day.strftime('%d.%m.%Y')}",
         application=Decimal("0"),
         state_duty=-total,
         dkp=Decimal("0"),
@@ -267,7 +272,7 @@ async def withdraw_state_duty_commissions(
         entity_id=row.id,
         payload={"business_date": day.isoformat(), "amount": float(total)},
     )
-    return await get_state_duty_commission_summary(db, user, day)
+    return await get_state_duty_commission_summary(db, user, business_date)
 
 
 async def reconcile_cash_day(
@@ -526,7 +531,7 @@ async def transfer_plate_payouts_to_intermediate(
     business_date: Optional[date] = None,
 ) -> dict:
     day = business_date or business_today()
-    payouts = await list_open_plate_payouts(db, day)
+    payouts = await list_open_plate_payouts(db, business_date)
     if not payouts:
         raise ServiceError("Нет денег за номера к переносу", status_code=400)
 

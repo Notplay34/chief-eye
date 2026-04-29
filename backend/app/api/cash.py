@@ -853,7 +853,7 @@ async def list_plate_payouts(
     """Деньги за номера, ещё лежащие в кассе документов."""
     _ensure_pavilion_cash_access(user, 1)
     day = business_date or business_today()
-    rows = await list_open_plate_payouts_service(db, day)
+    rows = await list_open_plate_payouts_service(db, business_date)
     total = sum((row.amount for row in rows), Decimal("0"))
     quantity = sum((int(row.quantity or 1) for row in rows), 0)
     return {
