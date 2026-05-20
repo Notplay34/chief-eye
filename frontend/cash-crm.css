@@ -1391,15 +1391,49 @@
 }
 
 .cash-crm__total-card {
-  gap: 14px;
+  grid-template-columns: minmax(220px, 0.85fr) minmax(250px, 0.9fr) minmax(330px, 1.2fr);
+  gap: 12px;
 }
 
 .cash-crm__total-summary,
 .cash-duty-commission,
 .cash-payout-card {
-  min-height: 178px;
-  padding: 18px;
+  min-height: 136px;
+  padding: 14px 16px;
   background: var(--color-surface);
+}
+
+.cash-crm__total-summary {
+  gap: 8px;
+  justify-content: center;
+}
+
+.cash-crm__total-value {
+  max-width: 100%;
+  margin-top: 4px;
+  font-size: clamp(1.55rem, 2.4vw, 2.15rem);
+}
+
+.cash-crm__total-note {
+  max-width: none;
+  font-size: 0.8rem;
+}
+
+.cash-duty-commission {
+  gap: 8px;
+}
+
+.cash-duty-commission__value,
+.cash-payout__chip strong {
+  font-size: clamp(1.15rem, 2vw, 1.45rem);
+}
+
+.cash-payout__chip {
+  align-items: flex-start;
+}
+
+.cash-payout__chip span {
+  max-width: 16rem;
 }
 
 .cash-payout__panel {
