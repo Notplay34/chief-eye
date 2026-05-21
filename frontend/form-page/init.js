@@ -31,6 +31,21 @@
   };
 
   page.bindInputMasks = function () {
+    Array.prototype.slice.call(document.querySelectorAll('.field__input--date')).forEach(function (input) {
+      input.addEventListener('keydown', function (event) {
+        if (event.ctrlKey || event.metaKey || event.altKey) return;
+        if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].indexOf(event.key) !== -1) return;
+        if (!/^[0-9.]$/.test(event.key)) event.preventDefault();
+      });
+      input.addEventListener('input', function () {
+        input.value = page.normalizeRuDateInput(input.value);
+        page.validateDateInput(input);
+      });
+      input.addEventListener('blur', function () {
+        input.value = page.normalizeRuDateInput(input.value);
+        page.validateDateInput(input, true);
+      });
+    });
     ['client', 'seller', 'trustee'].forEach(function (prefix) {
       var series = page.inputs[prefix + 'PassportSeries'];
       var number = page.inputs[prefix + 'PassportNumber'];

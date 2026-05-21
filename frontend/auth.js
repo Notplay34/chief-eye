@@ -67,12 +67,6 @@
     Array.prototype.slice.call(scope.querySelectorAll('input[type="date"]')).forEach(function (input) {
       if (input.dataset.datePickerLocked === '1') return;
       input.dataset.datePickerLocked = '1';
-      input.addEventListener('keydown', function (event) {
-        if (event.key === 'Tab' || event.key === 'Escape') return;
-        event.preventDefault();
-      });
-      input.addEventListener('paste', function (event) { event.preventDefault(); });
-      input.addEventListener('drop', function (event) { event.preventDefault(); });
       input.addEventListener('click', function () {
         if (input.showPicker) {
           try { input.showPicker(); } catch (_) {}

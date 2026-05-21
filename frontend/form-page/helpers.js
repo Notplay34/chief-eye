@@ -74,6 +74,57 @@
     return digits;
   };
 
+  page.isDateInput = function (input) {
+    return !!(input && input.classList && input.classList.contains('field__input--date'));
+  };
+
+  page.normalizeRuDateInput = function (value) {
+    return page.formatDateDigits(value);
+  };
+
+  page.isValidRuDate = function (value) {
+    var raw = String(value || '').trim();
+    var match = raw.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    if (!match) return false;
+    var day = parseInt(match[1], 10);
+    var month = parseInt(match[2], 10);
+    var year = parseInt(match[3], 10);
+    if (year < 1900 || year > 2199) return false;
+    var parsed = new Date(year, month - 1, day);
+    return parsed.getFullYear() === year &&
+      parsed.getMonth() === month - 1 &&
+      parsed.getDate() === day;
+  };
+
+  page.validateDateInput = function (input, report) {
+    if (!page.isDateInput(input)) return true;
+    if (!page.dateInputApplies(input)) {
+      input.setCustomValidity('');
+      return true;
+    }
+    var value = String(input.value || '').trim();
+    var valid = !value || page.isValidRuDate(value);
+    input.setCustomValidity(valid ? '' : 'Введите дату в формате ДД.ММ.ГГГГ');
+    if (!valid && report && input.reportValidity) input.reportValidity();
+    return valid;
+  };
+
+  page.dateInputApplies = function (input) {
+    if (!input) return false;
+    if (page.inputs.clientIsLegal && page.inputs.clientIsLegal.checked && input.closest('#clientIndividual')) return false;
+    if (page.inputs.hasSeller && !page.inputs.hasSeller.checked && input.closest('#sellerBody')) return false;
+    if (page.inputs.hasTrustee && !page.inputs.hasTrustee.checked && input.closest('#trusteeBody')) return false;
+    return true;
+  };
+
+  page.hasInvalidDates = function (report) {
+    var invalid = false;
+    Array.prototype.slice.call(document.querySelectorAll('.field__input--date')).forEach(function (input) {
+      if (!page.validateDateInput(input, report && !invalid)) invalid = true;
+    });
+    return invalid;
+  };
+
   page.ruToIsoDate = function (value) {
     var raw = String(value || '').trim();
     if (!raw) return '';
@@ -92,11 +143,14 @@
 
   page.dateValue = function (input) {
     if (!input || !input.value) return null;
-    return page.isoToRuDate(input.value) || null;
+    var value = page.isDateInput(input) ? page.normalizeRuDateInput(input.value) : page.isoToRuDate(input.value);
+    return page.isValidRuDate(value) ? value : null;
   };
 
   page.dateDisplay = function (input) {
-    return input && input.value ? page.isoToRuDate(input.value) : '';
+    if (!input || !input.value) return '';
+    var value = page.isDateInput(input) ? page.normalizeRuDateInput(input.value) : page.isoToRuDate(input.value);
+    return page.isValidRuDate(value) ? value : '';
   };
 
   page.todayRu = function () {
@@ -179,6 +233,10 @@
   page.setVal = function (input, value) {
     if (!input) return;
     if (input.type === 'checkbox') input.checked = !!value;
+    else if (page.isDateInput(input)) {
+      input.value = page.normalizeRuDateInput(page.isoToRuDate(value) || value);
+      page.validateDateInput(input);
+    }
     else if (input.type === 'date') input.value = page.ruToIsoDate(value);
     else input.value = value != null ? String(value) : '';
   };

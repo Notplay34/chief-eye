@@ -88,7 +88,7 @@
       ? (page.inputs.clientLegalName && page.inputs.clientLegalName.value.trim())
       : (page.inputs.clientFio && page.inputs.clientFio.value.trim());
     var trusteeFilled = !isLegal || (page.inputs.trusteeFio && page.inputs.trusteeFio.value.trim());
-    var canPay = total > 0 && clientFilled && trusteeFilled && page.state.selectedDocuments.length > 0;
+    var canPay = total > 0 && clientFilled && trusteeFilled && page.state.selectedDocuments.length > 0 && !page.hasInvalidDates();
     if (page.btnAcceptCash) page.btnAcceptCash.disabled = !canPay;
     if (page.btnPrint) page.btnPrint.disabled = !canPay;
   };
@@ -277,7 +277,7 @@
             page.inputs.dkpSummary.value = '';
           }
         } else if (page.inputs.dkpDate) {
-          page.inputs.dkpDate.value = page.todayIso();
+          page.inputs.dkpDate.value = page.todayRu();
         }
         page.syncFromMainForm();
       });

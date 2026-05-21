@@ -144,6 +144,7 @@
   page.acceptCash = async function () {
     var total = page.getTotal();
     if (total <= 0) return;
+    if (page.hasInvalidDates(true)) return;
     page.btnAcceptCash.disabled = true;
     page.btnAcceptCash.textContent = 'Отправка…';
     try {
