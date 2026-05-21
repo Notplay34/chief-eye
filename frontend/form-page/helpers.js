@@ -74,12 +74,41 @@
     return digits;
   };
 
+  page.ruToIsoDate = function (value) {
+    var raw = String(value || '').trim();
+    if (!raw) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    var match = raw.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    return match ? (match[3] + '-' + match[2] + '-' + match[1]) : '';
+  };
+
+  page.isoToRuDate = function (value) {
+    var raw = String(value || '').trim();
+    if (!raw) return '';
+    if (/^\d{2}\.\d{2}\.\d{4}$/.test(raw)) return raw;
+    var match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return match ? (match[3] + '.' + match[2] + '.' + match[1]) : '';
+  };
+
+  page.dateValue = function (input) {
+    if (!input || !input.value) return null;
+    return page.isoToRuDate(input.value) || null;
+  };
+
+  page.dateDisplay = function (input) {
+    return input && input.value ? page.isoToRuDate(input.value) : '';
+  };
+
   page.todayRu = function () {
     var now = new Date();
     var dd = String(now.getDate()).padStart(2, '0');
     var mm = String(now.getMonth() + 1).padStart(2, '0');
     var yyyy = String(now.getFullYear());
     return dd + '.' + mm + '.' + yyyy;
+  };
+
+  page.todayIso = function () {
+    return page.ruToIsoDate(page.todayRu());
   };
 
   page.formatPhone = function (value) {
@@ -150,6 +179,7 @@
   page.setVal = function (input, value) {
     if (!input) return;
     if (input.type === 'checkbox') input.checked = !!value;
+    else if (input.type === 'date') input.value = page.ruToIsoDate(value);
     else input.value = value != null ? String(value) : '';
   };
 })();

@@ -35,13 +35,9 @@
       var series = page.inputs[prefix + 'PassportSeries'];
       var number = page.inputs[prefix + 'PassportNumber'];
       var code = page.inputs[prefix + 'PassportDivisionCode'];
-      var issuedDate = page.inputs[prefix + 'PassportIssuedDate'];
-      var birthDate = page.inputs[prefix + 'BirthDate'];
       if (series) series.addEventListener('input', function () { page.limitDigits(series, 4); });
       if (number) number.addEventListener('input', function () { page.limitDigits(number, 6); });
       if (code) code.addEventListener('input', function () { code.value = page.formatDivisionCode(code.value); });
-      if (issuedDate) issuedDate.addEventListener('input', function () { issuedDate.value = page.formatDateDigits(issuedDate.value); });
-      if (birthDate) birthDate.addEventListener('input', function () { birthDate.value = page.formatDateDigits(birthDate.value); });
     });
     if (page.inputs.clientPhone) {
       page.inputs.clientPhone.addEventListener('focus', function () {
@@ -59,17 +55,12 @@
     ['srts', 'pts'].forEach(function (prefix) {
       var series = page.inputs[prefix + 'Series'];
       var number = page.inputs[prefix + 'Number'];
-      var issuedDate = page.inputs[prefix + 'IssuedDate'];
       if (series) series.addEventListener('input', function () { series.value = series.value.replace(/\s+/g, '').toUpperCase().slice(0, 4); });
       if (number) number.addEventListener('input', function () {
         var normalized = number.value.replace(/\s+/g, '').toUpperCase();
         number.value = prefix === 'pts' ? normalized : normalized.slice(0, 6);
       });
-      if (issuedDate) issuedDate.addEventListener('input', function () { issuedDate.value = page.formatDateDigits(issuedDate.value); });
     });
-    if (page.inputs.dkpDate) {
-      page.inputs.dkpDate.addEventListener('input', function () { page.inputs.dkpDate.value = page.formatDateDigits(page.inputs.dkpDate.value); });
-    }
   };
 
   page.setupPlateCheckbox = function () {

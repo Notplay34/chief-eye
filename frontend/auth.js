@@ -62,6 +62,46 @@
       return res;
     });
   };
+  window.enhanceDatePickers = function (root) {
+    var scope = root && root.querySelectorAll ? root : document;
+    Array.prototype.slice.call(scope.querySelectorAll('input[type="date"]')).forEach(function (input) {
+      if (input.dataset.datePickerLocked === '1') return;
+      input.dataset.datePickerLocked = '1';
+      input.addEventListener('keydown', function (event) {
+        if (event.key === 'Tab' || event.key === 'Escape') return;
+        event.preventDefault();
+      });
+      input.addEventListener('paste', function (event) { event.preventDefault(); });
+      input.addEventListener('drop', function (event) { event.preventDefault(); });
+      input.addEventListener('click', function () {
+        if (input.showPicker) {
+          try { input.showPicker(); } catch (_) {}
+        }
+      });
+      input.addEventListener('focus', function () {
+        if (input.showPicker) {
+          try { input.showPicker(); } catch (_) {}
+        }
+      });
+    });
+  };
+  function initDatePickerEnhancements() {
+    window.enhanceDatePickers(document);
+    if (!window.MutationObserver) return;
+    var observer = new MutationObserver(function (mutations) {
+      mutations.forEach(function (mutation) {
+        Array.prototype.slice.call(mutation.addedNodes || []).forEach(function (node) {
+          if (node.nodeType === 1) window.enhanceDatePickers(node);
+        });
+      });
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDatePickerEnhancements);
+  } else {
+    initDatePickerEnhancements();
+  }
   window.chooseDocumentDirectory = async function (fileCount) {
     if (!window.showDirectoryPicker || !window.isSecureContext) return null;
     if (fileCount <= 0) return null;

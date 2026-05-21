@@ -102,7 +102,7 @@
     var passport = isLegal ? '—' : (page.composePassport('client') || '—');
     var address = (inputs.clientAddress && inputs.clientAddress.value.trim()) || '—';
     var phone = (inputs.clientPhone && inputs.clientPhone.value.trim()) || '—';
-    var birth = (inputs.clientBirthDate && inputs.clientBirthDate.value.trim()) || '';
+    var birth = page.dateDisplay(inputs.clientBirthDate);
     var birthPlace = (inputs.clientBirthPlace && inputs.clientBirthPlace.value.trim()) || '';
     var seller = '—';
     if (inputs.hasSeller && inputs.hasSeller.checked && inputs.sellerFio && inputs.sellerFio.value.trim()) {
@@ -123,7 +123,7 @@
       ? [inputs.vin && inputs.vin.value.trim(), inputs.brandModel && inputs.brandModel.value.trim()].filter(Boolean).join(' · ')
       : '—';
     var dkpParts = [];
-    if (inputs.dkpDate && inputs.dkpDate.value.trim()) dkpParts.push(inputs.dkpDate.value.trim());
+    if (page.dateDisplay(inputs.dkpDate)) dkpParts.push(page.dateDisplay(inputs.dkpDate));
     if (inputs.summaDkp && page.num(inputs.summaDkp.value) > 0) dkpParts.push(page.formatMoney(page.num(inputs.summaDkp.value)));
     if (inputs.dkpNumber && inputs.dkpNumber.value.trim()) dkpParts.push('№ ' + inputs.dkpNumber.value.trim());
     var dkpStr = dkpParts.length ? dkpParts.join(', ') : '—';
@@ -263,7 +263,7 @@
         sellerBody.classList.toggle('form-section__body--closed', !enabled);
         if (!enabled) {
           var dkpParts = [];
-          if (page.inputs.dkpDate && page.inputs.dkpDate.value.trim()) dkpParts.push(page.inputs.dkpDate.value.trim());
+          if (page.dateDisplay(page.inputs.dkpDate)) dkpParts.push(page.dateDisplay(page.inputs.dkpDate));
           if (page.inputs.summaDkp && page.num(page.inputs.summaDkp.value) > 0) dkpParts.push(page.formatMoney(page.num(page.inputs.summaDkp.value)));
           if (page.inputs.dkpNumber && page.inputs.dkpNumber.value.trim()) dkpParts.push('№ ' + page.inputs.dkpNumber.value.trim());
           var previousAutoDkp = dkpParts.join(', ');
@@ -277,7 +277,7 @@
             page.inputs.dkpSummary.value = '';
           }
         } else if (page.inputs.dkpDate) {
-          page.inputs.dkpDate.value = page.todayRu();
+          page.inputs.dkpDate.value = page.todayIso();
         }
         page.syncFromMainForm();
       });
