@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app.models import CashRow, Order, Payment, PlateCashRow, PlateStock
-from app.services.cash_service import ORDER_PAYMENT_CASH_ROW
+from app.services.cash_service import ORDER_PAYMENT_CASH_ROW, PLATE_PAYOUT_INTERMEDIATE
 
 
 def make_plate_order_payload(*, plate_quantity: int = 1) -> dict:
@@ -736,6 +736,29 @@ def test_paying_plate_payouts_moves_money_between_cash_tables(client: TestClient
     open_payouts_after_delete_response = client.get("/cash/plate-payouts", headers=auth_headers)
     assert open_payouts_after_delete_response.status_code == 200, open_payouts_after_delete_response.text
     assert open_payouts_after_delete_response.json()["total"] == 1500.0
+
+
+def test_paying_many_plate_payouts_uses_short_cash_row_name(client: TestClient, auth_headers: dict[str, str]):
+    for _ in range(40):
+        create_paid_plate_order(client, auth_headers)
+
+    pay_payouts_response = client.post("/cash/plate-payouts/pay", headers=auth_headers)
+    assert pay_payouts_response.status_code == 200, pay_payouts_response.text
+    assert pay_payouts_response.json()["count"] == 40
+    assert pay_payouts_response.json()["total"] == 60000.0
+
+    cash_rows_response = client.get("/cash/rows", headers=auth_headers)
+    assert cash_rows_response.status_code == 200, cash_rows_response.text
+    payout_rows = [
+        row
+        for row in cash_rows_response.json()
+        if row["source_type"] == PLATE_PAYOUT_INTERMEDIATE
+    ]
+    assert len(payout_rows) == 1
+    assert payout_rows[0]["client_name"].startswith("Номера — перенос: 40 строк")
+    assert len(payout_rows[0]["client_name"]) <= 255
+    assert payout_rows[0]["plates"] == -60000.0
+    assert payout_rows[0]["total"] == -60000.0
 
 
 def test_plate_cash_total_uses_filtered_history_not_current_page(

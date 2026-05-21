@@ -32,6 +32,7 @@ PLATE_PAYOUT_INTERMEDIATE = "PLATE_PAYOUT_INTERMEDIATE"
 PLATE_PAYOUT_TRANSFER = "PLATE_PAYOUT_TRANSFER"
 ORDER_PAYMENT_CASH_ROW = "ORDER_PAYMENT_CASH_ROW"
 ORDER_PLATE_EXTRA_CASH_ROW = "ORDER_PLATE_EXTRA_CASH_ROW"
+CASH_ROW_CLIENT_NAME_MAX_LENGTH = 255
 
 
 def _fio_initials(value: str | None) -> str:
@@ -46,6 +47,41 @@ def _fio_initials(value: str | None) -> str:
         parts = parts[:-1]
     initials = "".join(f"{part[0]}." for part in parts[1:] if part)
     return f"{parts[0]} {initials}{suffix}".strip()
+
+
+def _plate_payout_cash_row_name(payouts: list[PlatePayout]) -> str:
+    names = [
+        _fio_initials(payout.client_name)
+        for payout in payouts
+        if payout.client_name and payout.client_name.strip()
+    ]
+    if not names:
+        return "Номера — выдача"
+
+    full_name = ", ".join(names)
+    if len(full_name) <= CASH_ROW_CLIENT_NAME_MAX_LENGTH:
+        return full_name
+
+    prefix = f"Номера — перенос: {len(payouts)} строк"
+    visible_names: list[str] = []
+    for name in names:
+        candidate_names = visible_names + [name]
+        remaining = len(names) - len(candidate_names)
+        suffix = ": " + ", ".join(candidate_names)
+        if remaining > 0:
+            suffix += f" и ещё {remaining}"
+        if len(prefix + suffix) > CASH_ROW_CLIENT_NAME_MAX_LENGTH:
+            break
+        visible_names.append(name)
+
+    if not visible_names:
+        return prefix[:CASH_ROW_CLIENT_NAME_MAX_LENGTH]
+
+    remaining = len(names) - len(visible_names)
+    suffix = ": " + ", ".join(visible_names)
+    if remaining > 0:
+        suffix += f" и ещё {remaining}"
+    return (prefix + suffix)[:CASH_ROW_CLIENT_NAME_MAX_LENGTH]
 
 
 def shift_to_dict(shift: CashShift) -> dict:
@@ -539,12 +575,7 @@ async def transfer_plate_payouts_to_intermediate(
     if total <= 0:
         raise ServiceError("Сумма к выдаче нулевая", status_code=400)
 
-    payout_names = [
-        _fio_initials(payout.client_name)
-        for payout in payouts
-        if payout.client_name and payout.client_name.strip()
-    ]
-    cash_row_name = ", ".join(payout_names) if payout_names else "Номера — выдача"
+    cash_row_name = _plate_payout_cash_row_name(payouts)
     now = utc_now()
     batch_id = uuid4().hex
 
