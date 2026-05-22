@@ -3,13 +3,6 @@
   var fetchApi = window.fetchWithAuth || fetch;
   if (!window.getToken || !window.getToken()) return;
 
-  var statusLabels = {
-    PAID: 'Оплачен',
-    PLATE_IN_PROGRESS: 'В работе',
-    PLATE_READY: 'Готов',
-    PROBLEM: 'Проблема',
-    COMPLETED: 'Завершён'
-  };
   var canIssue = ['PAID', 'PLATE_IN_PROGRESS', 'PLATE_READY'];
   var canDelete = ['PAID', 'PLATE_IN_PROGRESS', 'PLATE_READY'];
   var msgEl = document.getElementById('pageMsg');
@@ -23,6 +16,17 @@
 
   function fmt(value) {
     return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 0 }).format(value) + ' ₽';
+  }
+
+  function formatDate(value) {
+    if (!value) return '—';
+    var parsed = new Date(value);
+    if (isNaN(parsed.getTime())) return '—';
+    return parsed.toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   }
 
   function escapeHtml(value) {
@@ -62,10 +66,10 @@
           var clientLabel = order.client ? escapeHtml(order.client) : '—';
           var brandModelLabel = order.brand_model ? escapeHtml(order.brand_model) : '—';
           var statusValue = escapeHtml(order.status || '');
-          var statusLabel = escapeHtml(statusLabels[order.status] || order.status || '');
           var publicId = escapeHtml(order.public_id || order.id);
           var docTemplate = escapeHtml(order.plate_document || 'number.docx');
           var plateAmount = order.plate_amount != null ? order.plate_amount : order.total_amount;
+          var createdLabel = escapeHtml(formatDate(order.created_at));
           var issueBtn = canIssue.indexOf(order.status) >= 0
             ? '<button type="button" class="btn btn-sm btn--primary" data-order="' + order.id + '" data-status="COMPLETED" data-client="' + clientEscaped + '" data-amount="' + (plateAmount || 0) + '">Выдано клиенту</button>'
             : '';
@@ -85,7 +89,7 @@
             '<td data-label="Марка, модель">' + brandModelLabel + '</td>' +
             '<td data-label="Сумма">' + fmt(order.plate_amount != null ? order.plate_amount : order.total_amount) + '</td>' +
             '<td data-label="Заявление">' + docLink + '</td>' +
-            '<td data-label="Статус"><span class="status status-' + statusValue + '">' + statusLabel + '</span></td>' +
+            '<td data-label="Дата заявки"><span class="status status-' + statusValue + '">' + createdLabel + '</span></td>' +
             '<td data-label="Действия" class="plate-table__actions"><div class="btn-group btn-group--row-actions">' + issueBtn + separator + deleteBtn + payBtn + '</div></td>';
           tbody.appendChild(row);
         });

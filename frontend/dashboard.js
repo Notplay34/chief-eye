@@ -252,9 +252,14 @@
     return d.innerHTML;
   }
 
-  var STATUS_LABELS = { PAID: 'Оплачен', PLATE_IN_PROGRESS: 'В работе', PLATE_READY: 'Готов', PROBLEM: 'Проблема', COMPLETED: 'Завершён' };
   var CAN_ISSUE = ['PAID', 'PLATE_IN_PROGRESS', 'PLATE_READY'];
   var CAN_DELETE = ['PAID', 'PLATE_IN_PROGRESS', 'PLATE_READY'];
+  function formatPlateRequestDate(value) {
+    if (!value) return '—';
+    var parsed = new Date(value);
+    if (isNaN(parsed.getTime())) return '—';
+    return parsed.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
 
   function loadPlateList() {
     var container = document.getElementById('plateListContainer');
@@ -282,12 +287,13 @@
           var statusEsc = escapeHtml(o.status || '');
           var statusClass = String(o.status || '').replace(/[^A-Z0-9_-]/gi, '');
           var plateAmt = o.plate_amount != null ? o.plate_amount : o.total_amount;
+          var createdLabel = escapeHtml(formatPlateRequestDate(o.created_at));
           var issueBtn = CAN_ISSUE.indexOf(o.status) >= 0 ? '<button type="button" class="btn btn-sm btn--primary" data-order="' + orderId + '" data-status="COMPLETED" data-client="' + clientEsc + '" data-amount="' + escapeHtml(plateAmt || 0) + '">Выдано клиенту</button>' : '';
           var sep = (issueBtn && CAN_DELETE.indexOf(o.status) >= 0) ? ' ' : '';
           var deleteBtn = CAN_DELETE.indexOf(o.status) >= 0 ? '<button type="button" class="btn btn-sm btn--danger-like" data-order="' + orderId + '" data-status="PROBLEM" data-delete="1">Удалить</button>' : '';
           var payBtn = (o.debt || 0) > 0 ? '<button type="button" class="btn btn-sm btn--secondary" data-order="' + orderId + '" data-public-id="' + publicIdEsc + '" data-pay="1">Доплата</button>' : '';
           var docLink = '<a href="#" class="doc-link" data-order-id="' + orderId + '" data-doc="zaiavlenie_na_nomera.docx">📄</a>';
-          return '<tr><td>' + publicIdEsc + '</td><td>' + clientEsc + '</td><td>' + escapeHtml(formatMoney(o.plate_amount != null ? o.plate_amount : o.total_amount)) + '</td><td>' + docLink + '</td><td><span class="status status-' + statusClass + '">' + escapeHtml(STATUS_LABELS[o.status] || statusEsc) + '</span></td><td><div class="btn-group">' + issueBtn + sep + deleteBtn + payBtn + '</div></td></tr>';
+          return '<tr><td>' + publicIdEsc + '</td><td>' + clientEsc + '</td><td>' + escapeHtml(formatMoney(o.plate_amount != null ? o.plate_amount : o.total_amount)) + '</td><td>' + docLink + '</td><td><span class="status status-' + statusClass + '">' + createdLabel + '</span></td><td><div class="btn-group">' + issueBtn + sep + deleteBtn + payBtn + '</div></td></tr>';
         }).join('');
         bindPlateActions();
       })
