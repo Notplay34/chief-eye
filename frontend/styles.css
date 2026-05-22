@@ -1756,6 +1756,69 @@ body {
   background: var(--color-primary);
   color: #fff;
 }
+
+.plate-table .plate-date-pill {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 24px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: 999px;
+  font-size: var(--text-caption);
+  font-weight: 700;
+}
+
+.plate-table .plate-comment {
+  display: block;
+  max-width: 220px;
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.plate-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: 800 1.2rem/1 var(--font-sans);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.plate-action-btn:hover {
+  transform: translateY(-1px);
+}
+
+.plate-action-btn--done {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.plate-action-btn--done:hover {
+  background: var(--color-primary-strong);
+  border-color: var(--color-primary-strong);
+}
+
+.plate-action-btn--remove:hover {
+  background: var(--color-danger-bg);
+  border-color: rgba(185, 28, 28, 0.28);
+  color: var(--color-danger);
+}
+
+.plate-action-btn--pay:hover {
+  background: var(--color-accent-blue-soft);
+  border-color: rgba(37, 99, 235, 0.28);
+  color: var(--color-accent-blue);
+}
 .plate-page__msg {
   margin: 0 0 var(--space-4);
   padding: var(--space-3) var(--space-4);
@@ -2748,7 +2811,7 @@ body {
 }
 
 .plate-table__actions {
-  min-width: 230px;
+  min-width: 112px;
   text-align: right;
 }
 

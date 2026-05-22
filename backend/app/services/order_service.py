@@ -437,6 +437,13 @@ async def build_plate_list(db: AsyncSession, limit: int = 100) -> list[dict]:
     for order, total_paid in rows:
         form_data = order.form_data or {}
         client = form_data.get("client_fio") or form_data.get("client_legal_name") or "—"
+        comment = (
+            form_data.get("plate_comment")
+            or form_data.get("comment")
+            or form_data.get("note")
+            or form_data.get("client_comment")
+            or ""
+        )
         base_plate_amount = plate_amount_from_order(order)
         plate_extra_paid = Decimal(str(extra_by_order.get(order.id, 0)))
         plate_total = base_plate_amount + plate_extra_paid
@@ -453,6 +460,7 @@ async def build_plate_list(db: AsyncSession, limit: int = 100) -> list[dict]:
                 "income_pavilion2": float(order.income_pavilion2),
                 "client": client,
                 "brand_model": form_data.get("brand_model") or "",
+                "comment": comment,
                 "total_paid": total_paid_float,
                 "debt": float(plate_debt),
                 "created_at": order.created_at.isoformat() if order.created_at else "",

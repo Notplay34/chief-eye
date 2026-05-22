@@ -288,12 +288,12 @@
           var statusClass = String(o.status || '').replace(/[^A-Z0-9_-]/gi, '');
           var plateAmt = o.plate_amount != null ? o.plate_amount : o.total_amount;
           var createdLabel = escapeHtml(formatPlateRequestDate(o.created_at));
-          var issueBtn = CAN_ISSUE.indexOf(o.status) >= 0 ? '<button type="button" class="btn btn-sm btn--primary" data-order="' + orderId + '" data-status="COMPLETED" data-client="' + clientEsc + '" data-amount="' + escapeHtml(plateAmt || 0) + '">Выдано клиенту</button>' : '';
-          var sep = (issueBtn && CAN_DELETE.indexOf(o.status) >= 0) ? ' ' : '';
-          var deleteBtn = CAN_DELETE.indexOf(o.status) >= 0 ? '<button type="button" class="btn btn-sm btn--danger-like" data-order="' + orderId + '" data-status="PROBLEM" data-delete="1">Удалить</button>' : '';
-          var payBtn = (o.debt || 0) > 0 ? '<button type="button" class="btn btn-sm btn--secondary" data-order="' + orderId + '" data-public-id="' + publicIdEsc + '" data-pay="1">Доплата</button>' : '';
+          var commentLabel = o.comment ? escapeHtml(o.comment) : '—';
+          var issueBtn = CAN_ISSUE.indexOf(o.status) >= 0 ? '<button type="button" class="plate-action-btn plate-action-btn--done" title="Выдано клиенту" aria-label="Выдано клиенту" data-order="' + orderId + '" data-status="COMPLETED" data-client="' + clientEsc + '" data-amount="' + escapeHtml(plateAmt || 0) + '">✓</button>' : '';
+          var deleteBtn = CAN_DELETE.indexOf(o.status) >= 0 ? '<button type="button" class="plate-action-btn plate-action-btn--remove" title="Удалить из списка" aria-label="Удалить из списка" data-order="' + orderId + '" data-status="PROBLEM" data-delete="1">−</button>' : '';
+          var payBtn = (o.debt || 0) > 0 ? '<button type="button" class="plate-action-btn plate-action-btn--pay" title="Доплата" aria-label="Доплата" data-order="' + orderId + '" data-public-id="' + publicIdEsc + '" data-pay="1">₽</button>' : '';
           var docLink = '<a href="#" class="doc-link" data-order-id="' + orderId + '" data-doc="zaiavlenie_na_nomera.docx">📄</a>';
-          return '<tr><td>' + publicIdEsc + '</td><td>' + clientEsc + '</td><td>' + escapeHtml(formatMoney(o.plate_amount != null ? o.plate_amount : o.total_amount)) + '</td><td>' + docLink + '</td><td><span class="status status-' + statusClass + '">' + createdLabel + '</span></td><td><div class="btn-group">' + issueBtn + sep + deleteBtn + payBtn + '</div></td></tr>';
+          return '<tr><td>' + publicIdEsc + '</td><td>' + clientEsc + '</td><td>' + escapeHtml(formatMoney(o.plate_amount != null ? o.plate_amount : o.total_amount)) + '</td><td>' + docLink + '</td><td><span class="plate-date-pill status-' + statusClass + '">' + createdLabel + '</span></td><td><span class="plate-comment">' + commentLabel + '</span></td><td class="plate-table__actions"><div class="btn-group btn-group--row-actions">' + issueBtn + deleteBtn + payBtn + '</div></td></tr>';
         }).join('');
         bindPlateActions();
       })

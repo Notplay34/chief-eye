@@ -70,17 +70,15 @@
           var docTemplate = escapeHtml(order.plate_document || 'number.docx');
           var plateAmount = order.plate_amount != null ? order.plate_amount : order.total_amount;
           var createdLabel = escapeHtml(formatDate(order.created_at));
+          var commentLabel = order.comment ? escapeHtml(order.comment) : '—';
           var issueBtn = canIssue.indexOf(order.status) >= 0
-            ? '<button type="button" class="btn btn-sm btn--primary" data-order="' + order.id + '" data-status="COMPLETED" data-client="' + clientEscaped + '" data-amount="' + (plateAmount || 0) + '">Выдано клиенту</button>'
-            : '';
-          var separator = (issueBtn && (canDelete.indexOf(order.status) >= 0 || (order.debt || 0) > 0))
-            ? '<span class="btn-group__sep"></span>'
+            ? '<button type="button" class="plate-action-btn plate-action-btn--done" title="Выдано клиенту" aria-label="Выдано клиенту" data-order="' + order.id + '" data-status="COMPLETED" data-client="' + clientEscaped + '" data-amount="' + (plateAmount || 0) + '">✓</button>'
             : '';
           var deleteBtn = canDelete.indexOf(order.status) >= 0
-            ? '<button type="button" class="btn btn-sm btn--danger-like" data-order="' + order.id + '" data-status="PROBLEM" data-delete="1">Удалить</button>'
+            ? '<button type="button" class="plate-action-btn plate-action-btn--remove" title="Удалить из списка" aria-label="Удалить из списка" data-order="' + order.id + '" data-status="PROBLEM" data-delete="1">−</button>'
             : '';
           var payBtn = (order.debt || 0) > 0
-            ? '<button type="button" class="btn btn-sm btn--secondary" data-order="' + order.id + '" data-public-id="' + publicId + '" data-pay="1">Доплата</button>'
+            ? '<button type="button" class="plate-action-btn plate-action-btn--pay" title="Доплата" aria-label="Доплата" data-order="' + order.id + '" data-public-id="' + publicId + '" data-pay="1">₽</button>'
             : '';
           var docLink = '<a href="#" class="doc-link" title="Заявление на номера" data-order-id="' + order.id + '" data-doc="' + docTemplate + '" aria-label="Заявление на номера">&#128196;</a>';
           row.innerHTML =
@@ -89,8 +87,9 @@
             '<td data-label="Марка, модель">' + brandModelLabel + '</td>' +
             '<td data-label="Сумма">' + fmt(order.plate_amount != null ? order.plate_amount : order.total_amount) + '</td>' +
             '<td data-label="Заявление">' + docLink + '</td>' +
-            '<td data-label="Дата заявки"><span class="status status-' + statusValue + '">' + createdLabel + '</span></td>' +
-            '<td data-label="Действия" class="plate-table__actions"><div class="btn-group btn-group--row-actions">' + issueBtn + separator + deleteBtn + payBtn + '</div></td>';
+            '<td data-label="Дата заявки"><span class="plate-date-pill status-' + statusValue + '">' + createdLabel + '</span></td>' +
+            '<td data-label="Комментарий"><span class="plate-comment">' + commentLabel + '</span></td>' +
+            '<td data-label="Действия" class="plate-table__actions"><div class="btn-group btn-group--row-actions">' + issueBtn + deleteBtn + payBtn + '</div></td>';
           tbody.appendChild(row);
         });
       })
