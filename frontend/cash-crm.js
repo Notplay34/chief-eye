@@ -345,7 +345,7 @@
         msgEl.textContent = 'Госпошлин к списанию пока нет.';
         msgEl.className = 'cash-duty-commission__msg';
       } else {
-        msgEl.textContent = 'Комиссия для аналитики: ' + formatNumOnly(summary.commission_total || 0) + ' ₽';
+        msgEl.textContent = '';
         msgEl.className = 'cash-duty-commission__msg';
       }
     }
