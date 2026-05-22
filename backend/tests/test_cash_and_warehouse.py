@@ -738,6 +738,22 @@ def test_paying_plate_payouts_moves_money_between_cash_tables(client: TestClient
     assert open_payouts_after_delete_response.json()["total"] == 1500.0
 
 
+def test_plate_comment_can_be_edited_from_plate_list(client: TestClient, auth_headers: dict[str, str]):
+    order = create_paid_plate_order(client, auth_headers)
+
+    update_response = client.patch(
+        f"/orders/{order['id']}/plate-comment",
+        json={"comment": "Заявление у оператора 22.05"},
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 200, update_response.text
+    assert update_response.json()["comment"] == "Заявление у оператора 22.05"
+
+    list_response = client.get("/orders/plate-list", headers=auth_headers)
+    assert list_response.status_code == 200, list_response.text
+    assert list_response.json()[0]["comment"] == "Заявление у оператора 22.05"
+
+
 def test_paying_many_plate_payouts_uses_short_cash_row_name(client: TestClient, auth_headers: dict[str, str]):
     for _ in range(40):
         create_paid_plate_order(client, auth_headers)

@@ -38,6 +38,35 @@
       .replace(/'/g, '&#39;');
   }
 
+  function saveComment(input) {
+    var id = parseInt(input.getAttribute('data-order-comment'), 10);
+    if (!id) return Promise.resolve();
+    var value = input.value || '';
+    if (input.dataset.lastSaved === value) return Promise.resolve();
+    input.classList.add('plate-comment-input--saving');
+    return fetchApi(api + '/orders/' + id + '/plate-comment', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comment: value })
+    })
+      .then(function (r) {
+        if (!r.ok) return r.json().then(function (j) { throw new Error(j.detail || 'Ошибка сохранения комментария'); });
+        return r.json();
+      })
+      .then(function (data) {
+        input.dataset.lastSaved = data.comment || '';
+        input.value = data.comment || '';
+        input.classList.remove('plate-comment-input--error');
+      })
+      .catch(function (e) {
+        input.classList.add('plate-comment-input--error');
+        showMessage(e.message || 'Ошибка сохранения комментария', true);
+      })
+      .finally(function () {
+        input.classList.remove('plate-comment-input--saving');
+      });
+  }
+
   function loadOrders() {
     fetchApi(api + '/orders/plate-list')
       .then(function (r) {
@@ -70,7 +99,7 @@
           var docTemplate = escapeHtml(order.plate_document || 'number.docx');
           var plateAmount = order.plate_amount != null ? order.plate_amount : order.total_amount;
           var createdLabel = escapeHtml(formatDate(order.created_at));
-          var commentLabel = order.comment ? escapeHtml(order.comment) : '—';
+          var commentValue = escapeHtml(order.comment || '');
           var issueBtn = canIssue.indexOf(order.status) >= 0
             ? '<button type="button" class="plate-action-btn plate-action-btn--done" title="Выдано клиенту" aria-label="Выдано клиенту" data-order="' + order.id + '" data-status="COMPLETED" data-client="' + clientEscaped + '" data-amount="' + (plateAmount || 0) + '">✓</button>'
             : '';
@@ -88,7 +117,7 @@
             '<td data-label="Сумма">' + fmt(order.plate_amount != null ? order.plate_amount : order.total_amount) + '</td>' +
             '<td data-label="Заявление">' + docLink + '</td>' +
             '<td data-label="Дата заявки"><span class="plate-date-pill status-' + statusValue + '">' + createdLabel + '</span></td>' +
-            '<td data-label="Комментарий"><span class="plate-comment">' + commentLabel + '</span></td>' +
+            '<td data-label="Комментарий"><input type="text" class="plate-comment-input" data-order-comment="' + order.id + '" value="' + commentValue + '" data-last-saved="' + commentValue + '" placeholder="Комментарий / дата"></td>' +
             '<td data-label="Действия" class="plate-table__actions"><div class="btn-group btn-group--row-actions">' + issueBtn + deleteBtn + payBtn + '</div></td>';
           tbody.appendChild(row);
         });
@@ -102,6 +131,16 @@
   }
 
   function bindActions() {
+    document.querySelectorAll('[data-order-comment]').forEach(function (input) {
+      input.addEventListener('blur', function () { saveComment(input); });
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          saveComment(input).then(function () { input.blur(); });
+        }
+      });
+    });
+
     document.querySelectorAll('[data-status]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var id = parseInt(btn.getAttribute('data-order'), 10);

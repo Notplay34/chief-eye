@@ -31,6 +31,7 @@ from app.services.order_service import (
     get_order_or_error,
     get_order_payments_summary,
     record_plate_extra_payment,
+    update_plate_comment,
     update_order_status as update_order_status_service,
 )
 
@@ -224,6 +225,10 @@ class PayExtraBody(BaseModel):
     amount: float
 
 
+class PlateCommentBody(BaseModel):
+    comment: str = ""
+
+
 @router.get("/{order_id}/payments")
 async def get_order_payments(
     order_id: int,
@@ -257,6 +262,22 @@ async def pay_extra(
         _raise_service_error(exc)
     logger.info("Доплата за номера id=%s сумма=%s, строка кассы добавлена", order.id, body.amount)
     return result
+
+
+@router.patch("/{order_id}/plate-comment")
+async def patch_plate_comment(
+    order_id: int,
+    body: PlateCommentBody,
+    db: AsyncSession = Depends(get_db),
+    _user: UserInfo = Depends(RequirePlateAccess),
+):
+    """Комментарий оператора номеров по заявке."""
+    try:
+        order = await get_order_or_error(db, order_id)
+        ensure_can_access_plate_workflow(_user, order)
+        return await update_plate_comment(db, order, body.comment, _user)
+    except ServiceError as exc:
+        _raise_service_error(exc)
 
 
 @router.patch("/{order_id}/status")

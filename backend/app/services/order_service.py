@@ -498,6 +498,27 @@ async def build_plate_order_detail(db: AsyncSession, order: Order) -> dict:
     }
 
 
+async def update_plate_comment(db: AsyncSession, order: Order, comment: str, user: UserInfo) -> dict:
+    form_data = dict(order.form_data or {})
+    value = str(comment or "").strip()[:255]
+    form_data["plate_comment"] = value
+    order.form_data = form_data
+    db.add(order)
+    await db.flush()
+    await write_audit_log(
+        db,
+        user=user,
+        event_type="plate_comment_updated",
+        entity_type="order",
+        entity_id=order.id,
+        payload={
+            "public_id": order.public_id,
+            "plate_comment": value,
+        },
+    )
+    return {"order_id": order.id, "comment": value}
+
+
 async def _sync_plate_payout_for_paid_order(db: AsyncSession, order: Order, user: UserInfo) -> None:
     if not order.need_plate or order.status == OrderStatus.AWAITING_PAYMENT:
         return

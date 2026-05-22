@@ -260,6 +260,34 @@
     if (isNaN(parsed.getTime())) return '—';
     return parsed.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
+  function savePlateComment(input) {
+    var id = parseInt(input.getAttribute('data-order-comment'), 10);
+    if (!id) return Promise.resolve();
+    var value = input.value || '';
+    if (input.dataset.lastSaved === value) return Promise.resolve();
+    input.classList.add('plate-comment-input--saving');
+    return fetchApi(API + '/orders/' + id + '/plate-comment', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comment: value })
+    })
+      .then(function (r) {
+        if (!r.ok) return r.json().then(function (j) { throw new Error(j.detail || 'Ошибка сохранения комментария'); });
+        return r.json();
+      })
+      .then(function (data) {
+        input.dataset.lastSaved = data.comment || '';
+        input.value = data.comment || '';
+        input.classList.remove('plate-comment-input--error');
+      })
+      .catch(function (e) {
+        input.classList.add('plate-comment-input--error');
+        alert(e.message || 'Ошибка сохранения комментария');
+      })
+      .finally(function () {
+        input.classList.remove('plate-comment-input--saving');
+      });
+  }
 
   function loadPlateList() {
     var container = document.getElementById('plateListContainer');
@@ -288,12 +316,12 @@
           var statusClass = String(o.status || '').replace(/[^A-Z0-9_-]/gi, '');
           var plateAmt = o.plate_amount != null ? o.plate_amount : o.total_amount;
           var createdLabel = escapeHtml(formatPlateRequestDate(o.created_at));
-          var commentLabel = o.comment ? escapeHtml(o.comment) : '—';
+          var commentValue = escapeHtml(o.comment || '');
           var issueBtn = CAN_ISSUE.indexOf(o.status) >= 0 ? '<button type="button" class="plate-action-btn plate-action-btn--done" title="Выдано клиенту" aria-label="Выдано клиенту" data-order="' + orderId + '" data-status="COMPLETED" data-client="' + clientEsc + '" data-amount="' + escapeHtml(plateAmt || 0) + '">✓</button>' : '';
           var deleteBtn = CAN_DELETE.indexOf(o.status) >= 0 ? '<button type="button" class="plate-action-btn plate-action-btn--remove" title="Удалить из списка" aria-label="Удалить из списка" data-order="' + orderId + '" data-status="PROBLEM" data-delete="1">−</button>' : '';
           var payBtn = (o.debt || 0) > 0 ? '<button type="button" class="plate-action-btn plate-action-btn--pay" title="Доплата" aria-label="Доплата" data-order="' + orderId + '" data-public-id="' + publicIdEsc + '" data-pay="1">₽</button>' : '';
           var docLink = '<a href="#" class="doc-link" data-order-id="' + orderId + '" data-doc="zaiavlenie_na_nomera.docx">📄</a>';
-          return '<tr><td>' + publicIdEsc + '</td><td>' + clientEsc + '</td><td>' + escapeHtml(formatMoney(o.plate_amount != null ? o.plate_amount : o.total_amount)) + '</td><td>' + docLink + '</td><td><span class="plate-date-pill status-' + statusClass + '">' + createdLabel + '</span></td><td><span class="plate-comment">' + commentLabel + '</span></td><td class="plate-table__actions"><div class="btn-group btn-group--row-actions">' + issueBtn + deleteBtn + payBtn + '</div></td></tr>';
+          return '<tr><td>' + publicIdEsc + '</td><td>' + clientEsc + '</td><td>' + escapeHtml(formatMoney(o.plate_amount != null ? o.plate_amount : o.total_amount)) + '</td><td>' + docLink + '</td><td><span class="plate-date-pill status-' + statusClass + '">' + createdLabel + '</span></td><td><input type="text" class="plate-comment-input" data-order-comment="' + orderId + '" value="' + commentValue + '" data-last-saved="' + commentValue + '" placeholder="Комментарий / дата"></td><td class="plate-table__actions"><div class="btn-group btn-group--row-actions">' + issueBtn + deleteBtn + payBtn + '</div></td></tr>';
         }).join('');
         bindPlateActions();
       })
@@ -305,6 +333,15 @@
   function bindPlateActions() {
     var body = document.getElementById('plateOrderBody');
     if (!body) return;
+    body.querySelectorAll('[data-order-comment]').forEach(function (input) {
+      input.addEventListener('blur', function () { savePlateComment(input); });
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          savePlateComment(input).then(function () { input.blur(); });
+        }
+      });
+    });
     body.querySelectorAll('[data-status]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var id = parseInt(btn.getAttribute('data-order'), 10);
