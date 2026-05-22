@@ -2853,6 +2853,10 @@ body {
   overflow: hidden;
 }
 
+.history-menu__popover[hidden] {
+  display: none;
+}
+
 .history-menu__popover .form-history-list {
   flex: 1 1 auto;
   min-height: 0;
