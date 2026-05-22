@@ -53,7 +53,7 @@
   function statusLabel(row) {
     if (row.row_type === 'manual') return '<small>ручная строка</small>';
     if (row.ready_to_pay) return '<small>к выдаче</small>';
-    return '<small>в промежуточной, ждёт выдачи номера</small>';
+    return '';
   }
 
   function patchManualRow(rowId, payload) {
