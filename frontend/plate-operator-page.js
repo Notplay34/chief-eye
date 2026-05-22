@@ -89,7 +89,7 @@
 
         empty.style.display = 'none';
         table.style.display = 'table';
-        orders.forEach(function (order, index) {
+        orders.forEach(function (order) {
           var row = document.createElement('tr');
           var clientEscaped = escapeHtml(order.client || '');
           var clientLabel = order.client ? escapeHtml(order.client) : '—';
@@ -111,7 +111,6 @@
             : '';
           var docLink = '<a href="#" class="doc-link" title="Заявление на номера" data-order-id="' + order.id + '" data-doc="' + docTemplate + '" aria-label="Заявление на номера">&#128196;</a>';
           row.innerHTML =
-            '<td data-label="№">' + (index + 1) + '</td>' +
             '<td data-label="Клиент">' + clientLabel + '</td>' +
             '<td data-label="Марка, модель">' + brandModelLabel + '</td>' +
             '<td data-label="Сумма">' + fmt(order.plate_amount != null ? order.plate_amount : order.total_amount) + '</td>' +
