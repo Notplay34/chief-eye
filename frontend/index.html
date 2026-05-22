@@ -31,8 +31,13 @@
             </button>
             <div class="history-menu__popover" id="historyPopover" hidden>
               <div class="history-menu__header">
-                <strong>Последние заполнения</strong>
+                <strong>История заполнений</strong>
                 <span class="history-menu__meta" id="historyRange">0–0</span>
+              </div>
+              <div class="history-menu__filters" aria-label="Фильтр истории по дате">
+                <label class="history-menu__filter-label" for="historyDateFilter">Дата</label>
+                <input type="date" id="historyDateFilter" class="history-menu__date">
+                <button type="button" class="history-menu__clear" id="historyDateClear">Все</button>
               </div>
               <ul class="form-history-list form-history-list--popover" id="formHistoryList">
                 <li class="form-history-list__loading" id="formHistoryLoading">Загрузка…</li>
@@ -456,14 +461,14 @@
     </footer>
   </div>
 
-  <script src="auth.js?v=310-plate-comments"></script>
-  <script src="header-common.js?v=310-plate-comments"></script>
-  <script src="dashboard.js?v=310-plate-comments"></script>
-  <script src="form-page/context.js?v=310-plate-comments"></script>
-  <script src="form-page/helpers.js?v=310-plate-comments"></script>
-  <script src="form-page/render.js?v=310-plate-comments"></script>
-  <script src="form-page/api.js?v=310-plate-comments"></script>
-  <script src="form-page/init.js?v=310-plate-comments"></script>
-  <script src="app.js?v=310-plate-comments"></script>
+  <script src="auth.js?v=311-history-filter"></script>
+  <script src="header-common.js?v=311-history-filter"></script>
+  <script src="dashboard.js?v=311-history-filter"></script>
+  <script src="form-page/context.js?v=311-history-filter"></script>
+  <script src="form-page/helpers.js?v=311-history-filter"></script>
+  <script src="form-page/render.js?v=311-history-filter"></script>
+  <script src="form-page/api.js?v=311-history-filter"></script>
+  <script src="form-page/init.js?v=311-history-filter"></script>
+  <script src="app.js?v=311-history-filter"></script>
 </body>
 </html>

@@ -127,6 +127,21 @@
         page.renderHistoryPage();
       });
     }
+    if (page.historyDateFilter) {
+      page.historyDateFilter.addEventListener('click', function (e) { e.stopPropagation(); });
+      page.historyDateFilter.addEventListener('change', function () {
+        page.state.historyPage = 0;
+        page.loadFormHistory();
+      });
+    }
+    if (page.historyDateClear) {
+      page.historyDateClear.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (page.historyDateFilter) page.historyDateFilter.value = '';
+        page.state.historyPage = 0;
+        page.loadFormHistory();
+      });
+    }
     document.addEventListener('click', function (e) {
       if (!page.historyPopover || page.historyPopover.hidden) return;
       if (e.target.closest('#historyMenu')) return;

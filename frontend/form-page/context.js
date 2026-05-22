@@ -85,6 +85,8 @@
     historyTrigger: el('historyTrigger'),
     historyPopover: el('historyPopover'),
     historyRange: el('historyRange'),
+    historyDateFilter: el('historyDateFilter'),
+    historyDateClear: el('historyDateClear'),
     historyPrev: el('historyPrev'),
     historyNext: el('historyNext'),
     formHistoryList: el('formHistoryList'),

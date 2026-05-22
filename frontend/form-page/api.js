@@ -260,7 +260,11 @@
     if (!listEl) return;
     if (loadingEl) loadingEl.textContent = 'Загрузка…';
     try {
-      var response = await page.fetchApi(page.apiBaseUrl + '/form-history?limit=50');
+      var params = new URLSearchParams({ limit: '5000' });
+      if (page.historyDateFilter && page.historyDateFilter.value) {
+        params.set('business_date', page.historyDateFilter.value);
+      }
+      var response = await page.fetchApi(page.apiBaseUrl + '/form-history?' + params.toString());
       if (!response.ok) throw new Error(response.statusText);
       var items = await response.json();
       if (!Array.isArray(items)) items = [];

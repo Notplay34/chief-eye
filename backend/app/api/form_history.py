@@ -1,4 +1,6 @@
 """История заполнения формы: список записей для подстановки в форму."""
+from datetime import date, datetime, time
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,12 +14,18 @@ router = APIRouter(prefix="/form-history", tags=["form-history"])
 
 @router.get("")
 async def list_form_history(
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(1000, ge=1, le=5000),
+    offset: int = Query(0, ge=0, le=100000),
+    business_date: date | None = Query(None),
     db: AsyncSession = Depends(get_db),
     _user: UserInfo = Depends(RequireFormAccess),
 ):
     """Список записей истории (последние сверху). Для подстановки в форму по клику."""
-    q = select(FormHistory).order_by(FormHistory.id.desc()).limit(limit)
+    q = select(FormHistory).order_by(FormHistory.id.desc()).offset(offset).limit(limit)
+    if business_date is not None:
+        start = datetime.combine(business_date, time.min)
+        end = datetime.combine(business_date, time.max)
+        q = q.where(FormHistory.created_at >= start, FormHistory.created_at <= end)
     rows = (await db.execute(q)).scalars().all()
     return [
         {
