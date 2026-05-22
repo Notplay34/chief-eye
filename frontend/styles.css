@@ -2075,6 +2075,14 @@ body {
 .cash-table .col-num { width: 82px; min-width: 82px; max-width: 100px; text-align: right; }
 .plate-cash-table .col-quantity { width: 64px; min-width: 64px; max-width: 72px; text-align: center; }
 .plate-transfer-table .col-quantity { width: 72px; min-width: 72px; text-align: center; }
+.plate-transfer-table__day td {
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
 .plate-cash-table .col-amount input,
 .cash-table .col-num input { text-align: right; min-width: 0; width: 100%; }
 .plate-cash-table .col-quantity input { text-align: center; min-width: 0; width: 100%; }

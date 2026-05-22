@@ -905,6 +905,13 @@ async def list_plate_transfers(
         )
     ).scalars().all()
     rows = [_payout_transfer_to_dict(row, status) for row, status in payout_rows] + [_manual_transfer_to_dict(row) for row in manual_rows]
+    rows.sort(
+        key=lambda row: (
+            row.get("transferred_at") or row.get("created_at") or "",
+            int(row.get("id") or 0),
+        ),
+        reverse=True,
+    )
     total = sum((Decimal(str(row["amount"])) for row in rows), Decimal("0"))
     quantity = sum((int(row["quantity"] or 0) for row in rows), 0)
     ready_rows = [row for row in rows if row.get("ready_to_pay")]

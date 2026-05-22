@@ -129,6 +129,25 @@
     return date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   }
 
+  function transferDateValue(row) {
+    return row && (row.transferred_at || row.created_at || '');
+  }
+
+  function transferDayKey(row) {
+    return String(transferDateValue(row) || '').slice(0, 10) || 'unknown';
+  }
+
+  function transferDayLabel(row) {
+    return dayLabelFromKey(transferDayKey(row));
+  }
+
+  function compareTransferRows(a, b) {
+    var left = transferDateValue(a);
+    var right = transferDateValue(b);
+    if (left !== right) return left < right ? 1 : -1;
+    return Number(b.id || 0) - Number(a.id || 0);
+  }
+
   function dayLabelFromKey(key) {
     if (!key || key === 'unknown') return key || '';
     var parts = key.split('-');
@@ -249,7 +268,17 @@
       return;
     }
 
-    rows.forEach(function (row) {
+    var displayRows = rows.slice().sort(compareTransferRows);
+    var lastDay = null;
+    displayRows.forEach(function (row) {
+      var day = transferDayKey(row);
+      if (day !== lastDay) {
+        var dayTr = document.createElement('tr');
+        dayTr.className = 'plate-transfer-table__day';
+        dayTr.innerHTML = '<td colspan="4">' + escapeHtml(transferDayLabel(row)) + '</td>';
+        bodyEl.appendChild(dayTr);
+        lastDay = day;
+      }
       var tr = document.createElement('tr');
       if (row.ready_to_pay) tr.className = 'plate-transfer-table__ready';
       var tdName = document.createElement('td');
