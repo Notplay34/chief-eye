@@ -2848,7 +2848,38 @@ body {
 .history-menu__popover {
   width: min(420px, calc(100vw - 48px));
   max-height: min(460px, calc(100vh - 160px));
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.history-menu__popover .form-history-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  padding-right: 2px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.history-menu__popover .form-history-list__item {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  margin-bottom: 8px;
+}
+
+.history-menu__popover .form-history-list__title,
+.history-menu__popover .form-history-list__time {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-menu__popover .form-history-list__item:last-child {
+  margin-bottom: 0;
 }
 
 .btn--danger-like {
@@ -4414,6 +4445,7 @@ body {
     inset: 76px 12px auto;
     width: auto;
     max-height: calc(100svh - 96px);
+    overflow: hidden;
   }
 
   .form-grid,
