@@ -1577,3 +1577,253 @@
     grid-template-columns: minmax(160px, 1.35fr) repeat(5, minmax(82px, 0.74fr)) minmax(104px, 0.9fr) 44px;
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Cash shift workbench                                                        */
+/* -------------------------------------------------------------------------- */
+.cash-crm {
+  width: min(100%, 1540px);
+  max-width: 1540px;
+}
+
+.cash-crm__header-card {
+  gap: 14px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+
+.cash-crm__header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cash-crm__subtitle {
+  max-width: 760px;
+}
+
+.cash-crm__table-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cash-crm__table-wrap {
+  flex: 1 1 auto;
+}
+
+.cash-crm__table-card .list-pager {
+  flex: 0 0 auto;
+}
+
+.cash-crm__total-card {
+  min-width: 0;
+}
+
+.cash-crm__total-summary,
+.cash-duty-commission,
+.cash-payout-card {
+  min-height: 0;
+  border-radius: 14px;
+}
+
+.cash-crm__total-summary::after {
+  display: none;
+}
+
+.cash-duty-commission {
+  display: flex;
+  flex-direction: column;
+}
+
+.cash-duty-commission__btn,
+.cash-payout__btn {
+  min-height: 38px;
+  padding: 0 12px;
+  font-size: 0.86rem;
+}
+
+.cash-payout__panel {
+  min-height: 0;
+}
+
+.cash-payout__table {
+  font-size: 0.76rem;
+}
+
+@media (min-width: 901px) {
+  .cash-crm {
+    padding: 0 18px 18px;
+  }
+
+  .cash-crm__main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 318px;
+    gap: 14px;
+    align-items: start;
+  }
+
+  .cash-crm__table-card {
+    min-height: calc(100vh - 218px);
+  }
+
+  .cash-crm__table-wrap {
+    height: calc(100vh - 286px);
+    min-height: 500px;
+    max-height: 760px;
+    overflow: auto;
+  }
+
+  .cash-crm__grid {
+    min-width: 980px;
+  }
+
+  .cash-crm__grid-header,
+  .cash-crm__grid-body {
+    grid-template-columns: minmax(210px, 1.85fr) repeat(5, minmax(92px, 0.78fr)) minmax(112px, 0.9fr) 44px;
+  }
+
+  .cash-crm__grid-body {
+    grid-auto-rows: 48px;
+  }
+
+  .cash-crm__grid-header .cash-crm__grid-cell {
+    padding: 10px 9px;
+  }
+
+  .cash-crm__grid-row .cash-crm__grid-cell {
+    padding: 0 9px;
+  }
+
+  .cash-crm__input {
+    min-height: 32px;
+    padding: 5px 8px;
+  }
+
+  .cash-crm__input--num {
+    padding-left: 3px;
+    padding-right: 3px;
+  }
+
+  .cash-crm__total-card {
+    order: 0;
+    position: sticky;
+    top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-self: start;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .cash-crm__total-summary,
+  .cash-duty-commission,
+  .cash-payout-card {
+    width: 100%;
+    padding: 13px 14px;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .cash-crm__total-summary {
+    gap: 6px;
+  }
+
+  .cash-crm__total-label,
+  .cash-duty-commission__label,
+  .cash-payout__chip span {
+    font-size: 0.66rem;
+    letter-spacing: 0.06em;
+  }
+
+  .cash-crm__total-value {
+    margin-top: 0;
+    font-size: clamp(1.85rem, 2vw, 2.25rem);
+    line-height: 1.05;
+  }
+
+  .cash-crm__total-note {
+    font-size: 0.76rem;
+    line-height: 1.35;
+  }
+
+  .cash-duty-commission__value,
+  .cash-payout__chip strong {
+    font-size: 1.28rem;
+    line-height: 1.1;
+  }
+
+  .cash-duty-commission__msg,
+  .cash-payout__msg {
+    min-height: 16px;
+    margin: 0;
+    font-size: 0.72rem;
+    line-height: 1.3;
+  }
+
+  .cash-payout-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: calc(100vh - 450px);
+    min-height: 230px;
+  }
+
+  .cash-payout__chip {
+    flex: 0 0 auto;
+    align-items: baseline;
+  }
+
+  .cash-payout__panel {
+    flex: 1 1 auto;
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .cash-payout__panel-body {
+    flex: 1 1 auto;
+    min-height: 92px;
+    max-height: 210px;
+    overflow-y: auto;
+  }
+
+  .cash-payout__table td {
+    padding: 5px 0;
+  }
+
+  .cash-payout__date {
+    width: 66px;
+    font-size: 0.72rem;
+  }
+
+  .cash-payout__amount {
+    width: 76px;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1260px) {
+  .cash-crm__main {
+    grid-template-columns: minmax(0, 1fr) 292px;
+  }
+
+  .cash-crm__header-actions {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 900px) {
+  .cash-crm__header-actions {
+    align-items: stretch;
+  }
+
+  .cash-crm__total-card {
+    order: -1;
+  }
+}
