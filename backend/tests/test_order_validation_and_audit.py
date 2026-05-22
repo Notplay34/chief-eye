@@ -263,3 +263,8 @@ def test_plate_operator_is_forced_to_plate_only_contour(client: TestClient, auth
     assert plate_detail.status_code == 200, plate_detail.text
     payload = plate_detail.json()
     assert set(payload.keys()) == {"id", "public_id", "status", "client", "brand_model", "plate_amount", "debt", "plate_document", "created_at"}
+    assert payload["plate_document"] == "number.docx"
+
+    plate_document = client.get(f"/orders/{order_id}/documents/number.docx", headers=plate_headers)
+    assert plate_document.status_code == 200, plate_document.text
+    assert plate_document.headers["content-type"] == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"

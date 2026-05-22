@@ -19,7 +19,7 @@ SELLABLE_TEMPLATES = frozenset(
     }
 )
 
-PLATE_DOCUMENT_TEMPLATES = frozenset({"zaiavlenie_na_nomera.docx"})
+PLATE_DOCUMENT_TEMPLATES = frozenset({"number.docx", "zaiavlenie_na_nomera.docx"})
 PAYMENT_ONLY_TEMPLATES = frozenset({"gosuslugi_signup"})
 
 
