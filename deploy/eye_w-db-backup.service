@@ -1,0 +1,12 @@
+[Unit]
+Description=Eye-W PostgreSQL all-databases backup
+Wants=postgresql.service
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+Environment=BACKUP_ROOT=/var/backups/eye_w/all_databases
+Environment=RETENTION_DAYS=30
+ExecStart=/usr/local/sbin/eye_w_backup_all_databases.sh
