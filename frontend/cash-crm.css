@@ -1827,3 +1827,173 @@
     order: -1;
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Cash table fit                                                              */
+/* -------------------------------------------------------------------------- */
+@media (min-width: 901px) {
+  .cash-crm {
+    width: 100%;
+    max-width: none;
+  }
+
+  .cash-crm__main {
+    grid-template-columns: minmax(0, 1fr) 274px;
+    align-items: start;
+  }
+
+  .cash-crm__table-card {
+    min-height: 0;
+  }
+
+  .cash-crm__table-wrap {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .cash-crm__grid {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .cash-crm__grid-header,
+  .cash-crm__grid-body {
+    grid-template-columns:
+      minmax(132px, 1.22fr)
+      repeat(5, minmax(76px, 0.76fr))
+      minmax(98px, 0.9fr)
+      34px;
+  }
+
+  .cash-crm__grid-body {
+    grid-auto-rows: 46px;
+  }
+
+  .cash-crm__grid-header .cash-crm__grid-cell {
+    min-width: 0;
+    padding: 9px 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+
+  .cash-crm__grid-row .cash-crm__grid-cell {
+    min-width: 0;
+    padding: 0 6px;
+    overflow: hidden;
+  }
+
+  .cash-crm__grid-cell--name,
+  .cash-crm__grid-cell--del,
+  .cash-crm__grid-header .cash-crm__grid-cell--name,
+  .cash-crm__grid-header .cash-crm__grid-cell--del {
+    position: static;
+    box-shadow: none;
+  }
+
+  .cash-crm__grid-cell--num {
+    justify-content: stretch;
+  }
+
+  .cash-crm__grid-cell--del {
+    padding: 0 2px;
+  }
+
+  .cash-crm__input {
+    min-width: 0;
+    min-height: 31px;
+    padding: 4px 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8rem;
+  }
+
+  .cash-crm__input--num {
+    padding-left: 2px;
+    padding-right: 2px;
+    font-size: 0.78rem;
+  }
+
+  .cash-crm__row-total {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 2px;
+    overflow: hidden;
+    font-size: 0.86rem;
+  }
+
+  .cash-crm__input--total {
+    width: 5.4em;
+  }
+
+  .cash-crm__btn-del {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+  }
+
+  .cash-crm__total-card {
+    top: 10px;
+  }
+
+  .cash-crm__total-summary,
+  .cash-duty-commission,
+  .cash-payout-card {
+    padding: 12px;
+  }
+
+  .cash-payout-card {
+    min-height: 0;
+    max-height: none;
+  }
+
+  .cash-payout__panel-body {
+    max-height: 170px;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1180px) {
+  .cash-crm {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .cash-crm__main {
+    grid-template-columns: minmax(0, 1fr) 246px;
+    gap: 10px;
+  }
+
+  .cash-crm__grid-header,
+  .cash-crm__grid-body {
+    grid-template-columns:
+      minmax(112px, 1fr)
+      repeat(5, minmax(68px, 0.68fr))
+      minmax(88px, 0.82fr)
+      30px;
+  }
+
+  .cash-crm__grid-header .cash-crm__grid-cell {
+    padding-left: 4px;
+    padding-right: 4px;
+    font-size: 0.61rem;
+  }
+
+  .cash-crm__grid-row .cash-crm__grid-cell {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .cash-crm__input {
+    padding-left: 4px;
+    padding-right: 4px;
+    font-size: 0.76rem;
+  }
+
+  .cash-crm__input--num {
+    font-size: 0.74rem;
+  }
+}
