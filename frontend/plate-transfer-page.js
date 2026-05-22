@@ -272,7 +272,7 @@
       tr.appendChild(tdQuantity);
 
       var tdAmount = document.createElement('td');
-      tdAmount.className = 'col-amount col-amount--positive';
+      tdAmount.className = 'col-amount ' + (numVal(row.amount) < 0 ? 'col-amount--negative' : numVal(row.amount) > 0 ? 'col-amount--positive' : 'col-amount--zero');
       if (row.row_type === 'manual') {
         tdAmount.appendChild(makeManualInput(row, 'amount', true));
       } else {

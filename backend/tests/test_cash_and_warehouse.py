@@ -399,6 +399,36 @@ def test_intermediate_cash_supports_manual_rows_and_delete(client: TestClient, a
     assert after_delete.json()["rows"] == []
 
 
+def test_intermediate_cash_supports_negative_manual_rows(client: TestClient, auth_headers: dict[str, str]):
+    create_response = client.post(
+        "/cash/plate-transfers/manual",
+        json={"client_name": "Забрал в долг", "quantity": 0, "amount": "-1000"},
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 200, create_response.text
+    row = create_response.json()
+    assert row["amount"] == -1000.0
+    assert row["ready_to_pay"] is False
+
+    list_response = client.get("/cash/plate-transfers", headers=auth_headers)
+    assert list_response.status_code == 200, list_response.text
+    assert list_response.json()["total"] == -1000.0
+    assert list_response.json()["ready_total"] == 0.0
+    assert list_response.json()["ready_count"] == 0
+
+    pay_response = client.post("/cash/plate-transfers/pay", headers=auth_headers)
+    assert pay_response.status_code == 400, pay_response.text
+
+    update_response = client.patch(
+        f"/cash/plate-transfers/manual/{row['id']}",
+        json={"amount": "-500"},
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 200, update_response.text
+    assert update_response.json()["amount"] == -500.0
+    assert update_response.json()["ready_to_pay"] is False
+
+
 def test_manual_intermediate_row_becomes_payable_after_inline_amount(client: TestClient, auth_headers: dict[str, str]):
     create_response = client.post(
         "/cash/plate-transfers/manual",

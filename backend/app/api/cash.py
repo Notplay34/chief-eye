@@ -649,13 +649,13 @@ class PlateCashRowUpdate(BaseModel):
 class ManualPlateTransferCreate(BaseModel):
     client_name: str = ""
     quantity: int = Field(default=0, ge=0, le=100)
-    amount: Decimal = Field(default=Decimal("0"), ge=0)
+    amount: Decimal = Decimal("0")
 
 
 class ManualPlateTransferUpdate(BaseModel):
     client_name: Optional[str] = None
     quantity: Optional[int] = Field(default=None, ge=0, le=100)
-    amount: Optional[Decimal] = Field(default=None, ge=0)
+    amount: Optional[Decimal] = None
 
 
 def _plate_row_to_dict(row: PlateCashRow) -> dict:
