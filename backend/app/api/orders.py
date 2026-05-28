@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -85,11 +85,12 @@ async def pay_order(
 
 @router.get("/plate-list")
 async def list_orders_for_plate(
+    limit: int = Query(500, ge=1, le=2000),
     db: AsyncSession = Depends(get_db),
     _user: UserInfo = Depends(RequirePlateAccess),
 ):
     """Список заказов с номерами для павильона 2: клиент, сумма (только номера), оплачено, долг."""
-    return await build_plate_list(db)
+    return await build_plate_list(db, limit=limit)
 
 
 @router.get("/plate/{order_id}", response_model=PlateOrderResponse)

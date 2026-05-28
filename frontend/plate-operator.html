@@ -26,6 +26,14 @@
     </header>
     <p class="plate-page__msg" id="pageMsg" style="display:none;"></p>
 
+    <div class="plate-toolbar">
+      <label class="plate-search" for="plateSearch">
+        <span>Поиск</span>
+        <input type="search" id="plateSearch" placeholder="ФИО, авто, дата, комментарий">
+      </label>
+      <span class="plate-search__meta" id="plateSearchMeta"></span>
+    </div>
+
     <div id="orderList">
       <p class="empty-msg" id="emptyMsg">Загрузка…</p>
       <table class="plate-table" id="orderTable" style="display:none">

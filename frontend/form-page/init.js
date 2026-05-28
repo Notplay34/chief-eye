@@ -88,6 +88,124 @@
     }
   };
 
+  page.clearClientBlock = function () {
+    page.clearInputs([
+      'clientFio',
+      'clientBirthDate',
+      'clientBirthPlace',
+      'clientPassportSeries',
+      'clientPassportNumber',
+      'clientPassportIssuedBy',
+      'clientPassportIssuedDate',
+      'clientPassportDivisionCode',
+      'clientAddress',
+      'clientPhone',
+      'clientIsLegal',
+      'clientLegalName',
+      'clientInn',
+      'clientOgrn'
+    ], { clientPhone: page.formatPhone('') });
+    page.toggleClientType();
+    page.syncFromMainForm();
+  };
+
+  page.clearSellerBlock = function () {
+    page.clearInputs([
+      'hasSeller',
+      'sellerFio',
+      'sellerBirthDate',
+      'sellerPassportSeries',
+      'sellerPassportNumber',
+      'sellerPassportIssuedBy',
+      'sellerPassportIssuedDate',
+      'sellerPassportDivisionCode',
+      'sellerAddress',
+      'dkpDate',
+      'summaDkp',
+      'dkpNumber'
+    ], { summaDkp: '0' });
+    var sellerBody = page.el('sellerBody');
+    if (sellerBody) sellerBody.classList.add('form-section__body--closed');
+    if (page.inputs.dkpSummary && page.inputs.dkpSummary.dataset.autoDkp === '1') {
+      page.inputs.dkpSummary.value = '';
+      page.inputs.dkpSummary.dataset.autoDkp = '';
+    }
+    page.syncFromMainForm();
+  };
+
+  page.clearVehicleBlock = function () {
+    page.clearInputs([
+      'vin',
+      'brandModel',
+      'vehicleType',
+      'year',
+      'engine',
+      'chassis',
+      'power',
+      'mass',
+      'body',
+      'color',
+      'plateNumber',
+      'srtsSeries',
+      'srtsNumber',
+      'srtsIssuedDate',
+      'srtsIssuedBy',
+      'ptsSeries',
+      'ptsNumber',
+      'ptsIssuedDate',
+      'ptsIssuedBy',
+      'dkpSummary'
+    ]);
+    if (page.inputs.dkpSummary) page.inputs.dkpSummary.dataset.autoDkp = '';
+    page.syncFromMainForm();
+  };
+
+  page.swapClientSeller = function () {
+    var inputs = page.inputs;
+    var pairs = [
+      ['clientFio', 'sellerFio'],
+      ['clientBirthDate', 'sellerBirthDate'],
+      ['clientPassportSeries', 'sellerPassportSeries'],
+      ['clientPassportNumber', 'sellerPassportNumber'],
+      ['clientPassportIssuedBy', 'sellerPassportIssuedBy'],
+      ['clientPassportIssuedDate', 'sellerPassportIssuedDate'],
+      ['clientPassportDivisionCode', 'sellerPassportDivisionCode'],
+      ['clientAddress', 'sellerAddress']
+    ];
+    var values = {};
+    pairs.forEach(function (pair) {
+      values[pair[0]] = inputs[pair[0]] ? inputs[pair[0]].value : '';
+      values[pair[1]] = inputs[pair[1]] ? inputs[pair[1]].value : '';
+    });
+    if (inputs.clientIsLegal) inputs.clientIsLegal.checked = false;
+    if (inputs.hasSeller) inputs.hasSeller.checked = true;
+    pairs.forEach(function (pair) {
+      page.setVal(inputs[pair[0]], values[pair[1]]);
+      page.setVal(inputs[pair[1]], values[pair[0]]);
+    });
+    page.clearInputs(['clientLegalName', 'clientInn', 'clientOgrn']);
+    page.toggleClientType();
+    var sellerBody = page.el('sellerBody');
+    if (sellerBody) sellerBody.classList.remove('form-section__body--closed');
+    page.syncFromMainForm();
+  };
+
+  page.bindBlockClearButtons = function () {
+    [
+      { button: page.clearClientBlockBtn, action: page.clearClientBlock },
+      { button: page.clearSellerBlockBtn, action: page.clearSellerBlock },
+      { button: page.clearVehicleBlockBtn, action: page.clearVehicleBlock },
+      { button: page.swapClientSellerBtn, action: page.swapClientSeller }
+    ].forEach(function (item) {
+      if (!item.button) return;
+      item.button.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        item.action();
+      });
+    });
+  };
+
   page.openHistoryPopover = function () {
     if (!page.historyPopover || !page.historyTrigger) return;
     page.historyPopover.hidden = false;
@@ -142,6 +260,23 @@
         page.loadFormHistory();
       });
     }
+    if (page.historySearch) {
+      page.historySearch.addEventListener('click', function (e) { e.stopPropagation(); });
+      page.historySearch.addEventListener('input', function () {
+        page.state.historySearch = this.value || '';
+        page.state.historyPage = 0;
+        page.renderHistoryPage();
+      });
+      page.historySearch.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          e.stopPropagation();
+          this.value = '';
+          page.state.historySearch = '';
+          page.state.historyPage = 0;
+          page.renderHistoryPage();
+        }
+      });
+    }
     document.addEventListener('click', function (e) {
       if (!page.historyPopover || page.historyPopover.hidden) return;
       if (e.target.closest('#historyMenu')) return;
@@ -154,6 +289,7 @@
     page.bindInputMasks();
     page.bindInputs();
     page.setupPlateCheckbox();
+    page.bindBlockClearButtons();
     page.setupTogglableSections();
     page.bindHistoryMenu();
     page.syncPlateToDocuments();

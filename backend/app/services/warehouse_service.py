@@ -6,7 +6,15 @@ from typing import Optional
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Order, OrderStatus, PlateDefect, PlateReservation, PlateStock, PlateStockMovement
+from app.models import (
+    IntermediatePlateTransfer,
+    Order,
+    OrderStatus,
+    PlateDefect,
+    PlateReservation,
+    PlateStock,
+    PlateStockMovement,
+)
 from app.core.time_utils import business_month_bounds_utc, business_today
 from app.services.errors import ServiceError
 
@@ -84,8 +92,15 @@ def plate_amount_from_order(order: Order) -> float:
 
 
 async def reserved_quantity(db: AsyncSession) -> int:
-    result = await db.execute(select(func.coalesce(func.sum(PlateReservation.quantity), 0)))
-    return int(result.scalar_one() or 0)
+    reservation_result = await db.execute(select(func.coalesce(func.sum(PlateReservation.quantity), 0)))
+    manual_result = await db.execute(
+        select(func.coalesce(func.sum(IntermediatePlateTransfer.quantity), 0)).where(
+            IntermediatePlateTransfer.paid_at.is_(None),
+            IntermediatePlateTransfer.quantity > 0,
+            IntermediatePlateTransfer.amount > 0,
+        )
+    )
+    return int(reservation_result.scalar_one() or 0) + int(manual_result.scalar_one() or 0)
 
 
 async def reserve_stock_for_order(db: AsyncSession, order: Order, quantity: int) -> None:
@@ -144,6 +159,23 @@ async def build_plate_stock_summary(db: AsyncSession) -> dict:
         {"total_amount": float(plate_amount_from_order(order)), "quantity": plate_quantity_from_order(order)}
         for order in sorted(orders, key=plate_amount_from_order, reverse=True)
     ]
+    manual_rows = (
+        await db.execute(
+            select(IntermediatePlateTransfer).where(
+                IntermediatePlateTransfer.paid_at.is_(None),
+                IntermediatePlateTransfer.quantity > 0,
+                IntermediatePlateTransfer.amount > 0,
+            )
+        )
+    ).scalars().all()
+    reserved += sum(int(row.quantity or 0) for row in manual_rows)
+    reserved_breakdown.extend(
+        {
+            "total_amount": float(row.amount or 0),
+            "quantity": int(row.quantity or 0),
+        }
+        for row in sorted(manual_rows, key=lambda item: (item.created_at, item.id), reverse=True)
+    )
 
     month_start, _month_end = business_month_bounds_utc(business_today())
     defects_query = select(func.coalesce(func.sum(PlateDefect.quantity), 0)).where(

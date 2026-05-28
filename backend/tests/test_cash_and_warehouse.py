@@ -474,6 +474,41 @@ def test_manual_intermediate_row_becomes_payable_after_inline_amount(client: Tes
     assert history_response.json()["days"][0]["rows"][0]["row_type"] == "manual"
 
 
+def test_manual_intermediate_rows_reserve_plate_stock(client: TestClient, auth_headers: dict[str, str]):
+    add_stock_response = client.post("/warehouse/plate-stock/add", json={"amount": 5}, headers=auth_headers)
+    assert add_stock_response.status_code == 200, add_stock_response.text
+
+    create_response = client.post(
+        "/cash/plate-transfers/manual",
+        json={"client_name": "Старая бумажная заявка", "quantity": 2, "amount": "3000"},
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 200, create_response.text
+    row = create_response.json()
+
+    stock_response = client.get("/warehouse/plate-stock", headers=auth_headers)
+    assert stock_response.status_code == 200, stock_response.text
+    stock = stock_response.json()
+    assert stock["quantity"] == 5
+    assert stock["reserved"] == 2
+    assert stock["available"] == 3
+    assert {"total_amount": 3000.0, "quantity": 2} in stock["reserved_breakdown"]
+
+    update_response = client.patch(
+        f"/cash/plate-transfers/manual/{row['id']}",
+        json={"quantity": 1},
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 200, update_response.text
+    assert client.get("/warehouse/plate-stock", headers=auth_headers).json()["reserved"] == 1
+
+    delete_response = client.delete(f"/cash/plate-transfers/{row['row_key']}", headers=auth_headers)
+    assert delete_response.status_code == 204, delete_response.text
+    stock_after_delete = client.get("/warehouse/plate-stock", headers=auth_headers).json()
+    assert stock_after_delete["reserved"] == 0
+    assert stock_after_delete["available"] == 5
+
+
 def test_deleting_auto_intermediate_row_does_not_return_to_document_cash(client: TestClient, auth_headers: dict[str, str]):
     client.post("/warehouse/plate-stock/add", json={"amount": 1}, headers=auth_headers)
     order = create_paid_plate_order(client, auth_headers)
@@ -520,6 +555,10 @@ def test_deleting_paid_order_cash_row_rolls_back_related_cash_and_analytics(clie
     assert payouts_response.status_code == 200, payouts_response.text
     assert payouts_response.json()["total"] == 1500.0
 
+    history_before_delete = client.get("/form-history", headers=auth_headers)
+    assert history_before_delete.status_code == 200, history_before_delete.text
+    assert any(row["order_id"] == order["id"] for row in history_before_delete.json())
+
     analytics_response = client.get("/analytics/dashboard?period=month", headers=auth_headers)
     assert analytics_response.status_code == 200, analytics_response.text
     assert analytics_response.json()["overview"]["orders_count"] == 1
@@ -535,6 +574,10 @@ def test_deleting_paid_order_cash_row_rolls_back_related_cash_and_analytics(clie
     payments_response = client.get(f"/orders/{order['id']}/payments", headers=auth_headers)
     assert payments_response.status_code == 200, payments_response.text
     assert payments_response.json()["total_paid"] == 0
+
+    history_after_delete = client.get("/form-history", headers=auth_headers)
+    assert history_after_delete.status_code == 200, history_after_delete.text
+    assert any(row["order_id"] == order["id"] for row in history_after_delete.json())
 
     detail_response = client.get(f"/orders/{order['id']}/detail", headers=auth_headers)
     assert detail_response.status_code == 200, detail_response.text

@@ -16,7 +16,8 @@
       selectedDocuments: [],
       historyItems: [],
       historyPage: 0,
-      historyPageSize: 5
+      historyPageSize: 5,
+      historySearch: ''
     },
     el: el,
     inputs: {
@@ -87,8 +88,13 @@
     historyRange: el('historyRange'),
     historyDateFilter: el('historyDateFilter'),
     historyDateClear: el('historyDateClear'),
+    historySearch: el('historySearch'),
     historyPrev: el('historyPrev'),
     historyNext: el('historyNext'),
+    clearClientBlockBtn: el('clearClientBlock'),
+    clearSellerBlockBtn: el('clearSellerBlock'),
+    clearVehicleBlockBtn: el('clearVehicleBlock'),
+    swapClientSellerBtn: el('swapClientSeller'),
     formHistoryList: el('formHistoryList'),
     formHistoryLoading: el('formHistoryLoading'),
     summary: {

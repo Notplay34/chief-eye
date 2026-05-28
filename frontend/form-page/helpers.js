@@ -240,4 +240,16 @@
     else if (input.type === 'date') input.value = page.ruToIsoDate(value);
     else input.value = value != null ? String(value) : '';
   };
+
+  page.clearInputs = function (keys, defaults) {
+    defaults = defaults || {};
+    keys.forEach(function (key) {
+      var input = page.inputs[key];
+      if (!input) return;
+      if (Object.prototype.hasOwnProperty.call(defaults, key)) page.setVal(input, defaults[key]);
+      else if (input.type === 'checkbox') page.setVal(input, false);
+      else page.setVal(input, '');
+      input.setCustomValidity('');
+    });
+  };
 })();

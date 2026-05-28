@@ -184,7 +184,7 @@ BASELINE_SQL = [
     """
     CREATE TABLE IF NOT EXISTS form_history (
         id SERIAL PRIMARY KEY,
-        order_id INTEGER REFERENCES orders(id),
+        order_id INTEGER REFERENCES orders(id) ON DELETE SET NULL,
         form_data JSONB,
         created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
     );

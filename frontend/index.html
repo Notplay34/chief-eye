@@ -39,6 +39,8 @@
                 <input type="date" id="historyDateFilter" class="history-menu__date">
                 <button type="button" class="history-menu__clear" id="historyDateClear">Все</button>
               </div>
+              <label class="history-menu__search-label" for="historySearch">Поиск</label>
+              <input type="search" id="historySearch" class="history-menu__search" placeholder="ФИО, авто, VIN, телефон">
               <ul class="form-history-list form-history-list--popover" id="formHistoryList">
                 <li class="form-history-list__loading" id="formHistoryLoading">Загрузка…</li>
               </ul>
@@ -51,7 +53,10 @@
         </div>
 
         <fieldset class="form-section">
-          <legend class="form-section__title">Покупатель / клиент</legend>
+          <legend class="form-section__title form-section__title--with-action">
+            <span>Покупатель / клиент</span>
+            <button type="button" class="section-clear-btn" id="clearClientBlock">Очистить</button>
+          </legend>
           <div class="form-section__toggle" style="margin-bottom:0.75rem">
             <label class="toggle-label">
               <input type="checkbox" id="clientIsLegal" class="toggle-label__input" autocomplete="off">
@@ -133,6 +138,10 @@
               <span class="toggle-label__box"></span>
               <span class="toggle-label__text">Продавец (для ДКП)</span>
             </label>
+            <div class="form-section__actions">
+              <button type="button" class="section-clear-btn section-swap-btn" id="swapClientSeller">Поменять</button>
+              <button type="button" class="section-clear-btn" id="clearSellerBlock">Очистить</button>
+            </div>
           </div>
           <div class="form-section__body form-section__body--closed" id="sellerBody">
             <div class="form-grid">
@@ -246,7 +255,10 @@
         </fieldset>
 
         <fieldset class="form-section">
-          <legend class="form-section__title">Транспортное средство</legend>
+          <legend class="form-section__title form-section__title--with-action">
+            <span>Транспортное средство</span>
+            <button type="button" class="section-clear-btn" id="clearVehicleBlock">Очистить</button>
+          </legend>
           <div class="form-grid form-grid--wide">
             <div class="field">
               <label class="field__label" for="vin">VIN</label>

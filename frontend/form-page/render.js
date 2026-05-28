@@ -168,6 +168,24 @@
     page.updatePreview();
   };
 
+  page.normalizeHistorySearch = function (value) {
+    return String(value || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  };
+
+  page.getFilteredHistoryItems = function () {
+    var items = page.state.historyItems || [];
+    var query = page.normalizeHistorySearch(page.state.historySearch);
+    if (!query) return items;
+    return items.filter(function (item) {
+      var text = page.normalizeHistorySearch([
+        item.label,
+        item.created_label,
+        item.search_text
+      ].filter(Boolean).join(' '));
+      return text.indexOf(query) >= 0;
+    });
+  };
+
   page.renderHistoryPage = function () {
     var listEl = page.formHistoryList;
     var rangeEl = page.historyRange;
@@ -175,7 +193,7 @@
     var nextBtn = page.historyNext;
     if (!listEl) return;
 
-    var items = page.state.historyItems || [];
+    var items = page.getFilteredHistoryItems ? page.getFilteredHistoryItems() : (page.state.historyItems || []);
     var pageSize = page.state.historyPageSize || 5;
     var totalPages = Math.max(1, Math.ceil(items.length / pageSize));
     if (page.state.historyPage >= totalPages) page.state.historyPage = totalPages - 1;

@@ -6,6 +6,9 @@
   var canIssue = ['PAID', 'PLATE_IN_PROGRESS', 'PLATE_READY'];
   var canDelete = ['PAID', 'PLATE_IN_PROGRESS', 'PLATE_READY'];
   var msgEl = document.getElementById('pageMsg');
+  var ordersState = [];
+  var searchInput = document.getElementById('plateSearch');
+  var searchMeta = document.getElementById('plateSearchMeta');
 
   function showMessage(text, isError) {
     if (!msgEl) return;
@@ -38,6 +41,30 @@
       .replace(/'/g, '&#39;');
   }
 
+  function normalizeSearch(value) {
+    return String(value || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  function orderSearchText(order) {
+    return normalizeSearch([
+      order.client,
+      order.brand_model,
+      order.comment,
+      formatDate(order.created_at),
+      order.plate_amount,
+      order.total_amount,
+      order.public_id
+    ].filter(Boolean).join(' '));
+  }
+
+  function filteredOrders() {
+    var query = normalizeSearch(searchInput && searchInput.value);
+    if (!query) return ordersState;
+    return ordersState.filter(function (order) {
+      return orderSearchText(order).indexOf(query) >= 0;
+    });
+  }
+
   function saveComment(input) {
     var id = parseInt(input.getAttribute('data-order-comment'), 10);
     if (!id) return Promise.resolve();
@@ -67,61 +94,74 @@
       });
   }
 
+  function renderOrders() {
+    var tbody = document.getElementById('orderBody');
+    var table = document.getElementById('orderTable');
+    var empty = document.getElementById('emptyMsg');
+    var orders = filteredOrders();
+    var hasQuery = !!normalizeSearch(searchInput && searchInput.value);
+    tbody.innerHTML = '';
+
+    if (searchMeta) {
+      searchMeta.textContent = hasQuery
+        ? (orders.length + ' из ' + ordersState.length)
+        : (ordersState.length ? (ordersState.length + ' записей') : '');
+    }
+
+    if (!orders.length) {
+      empty.textContent = hasQuery ? 'Поиск ничего не нашел.' : 'Нет заказов с номерами.';
+      empty.style.display = 'block';
+      table.style.display = 'none';
+      return;
+    }
+
+    empty.style.display = 'none';
+    table.style.display = 'table';
+    orders.forEach(function (order) {
+      var row = document.createElement('tr');
+      var clientEscaped = escapeHtml(order.client || '');
+      var clientLabel = order.client ? escapeHtml(order.client) : '—';
+      var brandModelLabel = order.brand_model ? escapeHtml(order.brand_model) : '—';
+      var statusValue = escapeHtml(order.status || '');
+      var publicId = escapeHtml(order.public_id || order.id);
+      var docTemplate = escapeHtml(order.plate_document || 'number.docx');
+      var plateAmount = order.plate_amount != null ? order.plate_amount : order.total_amount;
+      var createdLabel = escapeHtml(formatDate(order.created_at));
+      var commentValue = escapeHtml(order.comment || '');
+      var issueBtn = canIssue.indexOf(order.status) >= 0
+        ? '<button type="button" class="plate-action-btn plate-action-btn--done" title="Выдано клиенту" aria-label="Выдано клиенту" data-order="' + order.id + '" data-status="COMPLETED" data-client="' + clientEscaped + '" data-amount="' + (plateAmount || 0) + '">✓</button>'
+        : '';
+      var deleteBtn = canDelete.indexOf(order.status) >= 0
+        ? '<button type="button" class="plate-action-btn plate-action-btn--remove" title="Удалить из списка" aria-label="Удалить из списка" data-order="' + order.id + '" data-status="PROBLEM" data-delete="1">−</button>'
+        : '';
+      var payBtn = (order.debt || 0) > 0
+        ? '<button type="button" class="plate-action-btn plate-action-btn--pay" title="Доплата" aria-label="Доплата" data-order="' + order.id + '" data-public-id="' + publicId + '" data-pay="1">₽</button>'
+        : '';
+      var docLink = '<a href="#" class="doc-link" title="Заявление на номера" data-order-id="' + order.id + '" data-doc="' + docTemplate + '" aria-label="Заявление на номера">&#128196;</a>';
+      row.innerHTML =
+        '<td data-label="Клиент">' + clientLabel + '</td>' +
+        '<td data-label="Марка, модель">' + brandModelLabel + '</td>' +
+        '<td data-label="Сумма">' + fmt(order.plate_amount != null ? order.plate_amount : order.total_amount) + '</td>' +
+        '<td data-label="Заявление">' + docLink + '</td>' +
+        '<td data-label="Дата заявки"><span class="plate-date-pill status-' + statusValue + '">' + createdLabel + '</span></td>' +
+        '<td data-label="Комментарий"><input type="text" class="plate-comment-input" data-order-comment="' + order.id + '" value="' + commentValue + '" data-last-saved="' + commentValue + '" placeholder="Комментарий / дата"></td>' +
+        '<td data-label="Действия" class="plate-table__actions"><div class="btn-group btn-group--row-actions">' + issueBtn + deleteBtn + payBtn + '</div></td>';
+      tbody.appendChild(row);
+    });
+    bindActions();
+  }
+
   function loadOrders() {
-    fetchApi(api + '/orders/plate-list')
+    fetchApi(api + '/orders/plate-list?limit=500')
       .then(function (r) {
         if (r.status === 401) return [];
         if (!r.ok) throw new Error('Ошибка загрузки');
         return r.json();
       })
       .then(function (orders) {
-        var tbody = document.getElementById('orderBody');
-        var table = document.getElementById('orderTable');
-        var empty = document.getElementById('emptyMsg');
-        tbody.innerHTML = '';
-
-        if (!orders || !orders.length) {
-          empty.textContent = 'Нет заказов с номерами.';
-          empty.style.display = 'block';
-          table.style.display = 'none';
-          return;
-        }
-
-        empty.style.display = 'none';
-        table.style.display = 'table';
-        orders.forEach(function (order) {
-          var row = document.createElement('tr');
-          var clientEscaped = escapeHtml(order.client || '');
-          var clientLabel = order.client ? escapeHtml(order.client) : '—';
-          var brandModelLabel = order.brand_model ? escapeHtml(order.brand_model) : '—';
-          var statusValue = escapeHtml(order.status || '');
-          var publicId = escapeHtml(order.public_id || order.id);
-          var docTemplate = escapeHtml(order.plate_document || 'number.docx');
-          var plateAmount = order.plate_amount != null ? order.plate_amount : order.total_amount;
-          var createdLabel = escapeHtml(formatDate(order.created_at));
-          var commentValue = escapeHtml(order.comment || '');
-          var issueBtn = canIssue.indexOf(order.status) >= 0
-            ? '<button type="button" class="plate-action-btn plate-action-btn--done" title="Выдано клиенту" aria-label="Выдано клиенту" data-order="' + order.id + '" data-status="COMPLETED" data-client="' + clientEscaped + '" data-amount="' + (plateAmount || 0) + '">✓</button>'
-            : '';
-          var deleteBtn = canDelete.indexOf(order.status) >= 0
-            ? '<button type="button" class="plate-action-btn plate-action-btn--remove" title="Удалить из списка" aria-label="Удалить из списка" data-order="' + order.id + '" data-status="PROBLEM" data-delete="1">−</button>'
-            : '';
-          var payBtn = (order.debt || 0) > 0
-            ? '<button type="button" class="plate-action-btn plate-action-btn--pay" title="Доплата" aria-label="Доплата" data-order="' + order.id + '" data-public-id="' + publicId + '" data-pay="1">₽</button>'
-            : '';
-          var docLink = '<a href="#" class="doc-link" title="Заявление на номера" data-order-id="' + order.id + '" data-doc="' + docTemplate + '" aria-label="Заявление на номера">&#128196;</a>';
-          row.innerHTML =
-            '<td data-label="Клиент">' + clientLabel + '</td>' +
-            '<td data-label="Марка, модель">' + brandModelLabel + '</td>' +
-            '<td data-label="Сумма">' + fmt(order.plate_amount != null ? order.plate_amount : order.total_amount) + '</td>' +
-            '<td data-label="Заявление">' + docLink + '</td>' +
-            '<td data-label="Дата заявки"><span class="plate-date-pill status-' + statusValue + '">' + createdLabel + '</span></td>' +
-            '<td data-label="Комментарий"><input type="text" class="plate-comment-input" data-order-comment="' + order.id + '" value="' + commentValue + '" data-last-saved="' + commentValue + '" placeholder="Комментарий / дата"></td>' +
-            '<td data-label="Действия" class="plate-table__actions"><div class="btn-group btn-group--row-actions">' + issueBtn + deleteBtn + payBtn + '</div></td>';
-          tbody.appendChild(row);
-        });
+        ordersState = Array.isArray(orders) ? orders : [];
+        renderOrders();
       })
-      .then(bindActions)
       .catch(function (e) {
         var empty = document.getElementById('emptyMsg');
         empty.textContent = 'Ошибка: ' + (e.message || 'загрузка');
@@ -212,6 +252,16 @@
   document.getElementById('modalCancel').addEventListener('click', function () {
     document.getElementById('modalPay').style.display = 'none';
   });
+
+  if (searchInput) {
+    searchInput.addEventListener('input', renderOrders);
+    searchInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        this.value = '';
+        renderOrders();
+      }
+    });
+  }
 
   loadOrders();
 })();

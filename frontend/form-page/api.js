@@ -273,6 +273,19 @@
         return {
           form_data: data,
           label: data.client_fio || data.client_legal_name || 'Без имени',
+          search_text: [
+            data.client_fio,
+            data.client_legal_name,
+            data.client_phone,
+            data.vin,
+            data.brand_model,
+            data.plate_number,
+            data.srts,
+            data.pts,
+            (data.documents || []).map(function (document) {
+              return [document.label, document.template].filter(Boolean).join(' ');
+            }).join(' ')
+          ].filter(Boolean).join(' '),
           created_label: item.created_at
             ? new Date(item.created_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
             : ''
