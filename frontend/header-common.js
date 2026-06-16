@@ -275,20 +275,16 @@
       });
     }
 
-    if (!me || !me.menu_items) {
-      if (window.loadMe) {
-        window.loadMe().then(function (m) {
-          me = m || buildMeFromUser();
-          proceed();
-        }).catch(function () {
-          me = buildMeFromUser();
-          proceed();
-        });
-      } else {
-        me = buildMeFromUser();
+    if (window.loadMe) {
+      window.loadMe().then(function (m) {
+        me = m || me || buildMeFromUser();
         proceed();
-      }
+      }).catch(function () {
+        me = me || buildMeFromUser();
+        proceed();
+      });
     } else {
+      if (!me || !me.menu_items) me = buildMeFromUser();
       proceed();
     }
   }

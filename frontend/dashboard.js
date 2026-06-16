@@ -7,16 +7,17 @@
   var fetchApi = window.fetchWithAuth || fetch;
 
   var me = window.getMe();
-  if (!me || !me.menu_items) {
+  if (window.loadMe) {
     window.loadMe().then(function (m) {
-      me = m || buildMeFromUser();
+      me = m || me || buildMeFromUser();
       initDashboard();
     }).catch(function () {
-      me = buildMeFromUser();
+      me = me || buildMeFromUser();
       initDashboard();
     });
     return;
   }
+  if (!me || !me.menu_items) me = buildMeFromUser();
   initDashboard();
 
   /** Если /auth/me не вернул данные — строим меню из getUser() по роли */
