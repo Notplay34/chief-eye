@@ -31,6 +31,9 @@
     if (role === 'ROLE_OPERATOR' || role === 'ROLE_MANAGER' || role === 'ROLE_ADMIN') {
       menu_items.push({ id: 'form_p1', label: 'Оформление заказов', href: 'index.html', group: 'Павильон 1' });
     }
+    if (role === 'ROLE_OPERATOR') {
+      menu_items.push({ id: 'plates', label: 'Изготовление номеров', href: 'plate-operator.html', group: 'Павильон 2' });
+    }
     if (role === 'ROLE_PLATE_OPERATOR' || role === 'ROLE_MANAGER' || role === 'ROLE_ADMIN') {
       menu_items.push({ id: 'plates', label: 'Изготовление номеров', href: 'plate-operator.html', group: 'Павильон 2' });
       menu_items.push({ id: 'plate_cash', label: 'Касса номеров', href: 'plate-cash.html', group: 'Павильон 2' });

@@ -19,8 +19,10 @@
     show('linkCash');
     show('linkPlateTransfer');
   }
-  if (['ROLE_PLATE_OPERATOR', 'ROLE_MANAGER', 'ROLE_ADMIN'].indexOf(user.role) >= 0) {
+  if (['ROLE_OPERATOR', 'ROLE_PLATE_OPERATOR', 'ROLE_MANAGER', 'ROLE_ADMIN'].indexOf(user.role) >= 0) {
     show('linkPlate');
+  }
+  if (['ROLE_PLATE_OPERATOR', 'ROLE_MANAGER', 'ROLE_ADMIN'].indexOf(user.role) >= 0) {
     show('linkPlateCash');
     show('linkWarehouse');
   }

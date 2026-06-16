@@ -40,7 +40,7 @@ def ensure_can_print_template(user: UserInfo, order: Order, template_name: str) 
     role = _role(user)
     if role in (EmployeeRole.ROLE_ADMIN, EmployeeRole.ROLE_MANAGER):
         return
-    if role == EmployeeRole.ROLE_OPERATOR and template_name not in PLATE_DOCUMENT_TEMPLATES:
+    if role == EmployeeRole.ROLE_OPERATOR:
         return
     if role == EmployeeRole.ROLE_PLATE_OPERATOR and template_name in PLATE_DOCUMENT_TEMPLATES:
         return

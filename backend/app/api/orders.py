@@ -87,7 +87,7 @@ async def pay_order(
 async def list_orders_for_plate(
     limit: int = Query(500, ge=1, le=2000),
     db: AsyncSession = Depends(get_db),
-    _user: UserInfo = Depends(RequirePlateAccess),
+    _user: UserInfo = Depends(RequireOrdersListAccess),
 ):
     """Список заказов с номерами для павильона 2: клиент, сумма (только номера), оплачено, долг."""
     return await build_plate_list(db, limit=limit)

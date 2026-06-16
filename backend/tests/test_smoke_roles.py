@@ -86,7 +86,8 @@ def test_role_smoke_matrix(client: TestClient, auth_headers: dict[str, str]):
     assert {"analytics_docs", "analytics_plates", "plate_report", "admin", "users"} <= admin_menu
     assert "analytics_docs" not in manager_menu
     assert {"form_p1", "plates", "plate_cash", "warehouse", "cash_p1", "plate_transfer"} <= manager_menu
-    assert {"form_p1", "cash_p1", "plate_transfer"} <= operator_menu
+    assert {"form_p1", "plates", "cash_p1", "plate_transfer"} <= operator_menu
+    assert {"plate_cash", "warehouse"}.isdisjoint(operator_menu)
     assert {"plates", "plate_cash", "warehouse"} <= plate_menu
     assert "form_p1" not in plate_menu
 
@@ -157,6 +158,54 @@ def test_role_smoke_matrix(client: TestClient, auth_headers: dict[str, str]):
         headers=operator,
     )
     assert operator_order.status_code == 200, operator_order.text
+    operator_plate_order = client.post(
+        "/orders",
+        json={
+            "client_fio": "Тест Номера",
+            "client_address": "г. Волгоград, ул. Тестовая, 1",
+            "client_passport": "1200 123456",
+            "client_phone": "+79990000000",
+            "brand_model": "Lada Vesta",
+            "vin": "XTA217230N0000001",
+            "year": "2020",
+            "state_duty": "0",
+            "need_plate": True,
+            "plate_quantity": 2,
+            "documents": [{"template": "zaiavlenie.docx", "label": "Заявление", "price": "550"}],
+            "extra_amount": "0",
+            "plate_amount": "3000",
+            "summa_dkp": "0",
+        },
+        headers=operator,
+    )
+    assert operator_plate_order.status_code == 200, operator_plate_order.text
+    operator_plate_order_id = operator_plate_order.json()["id"]
+    assert client.post(f"/orders/{operator_plate_order_id}/pay", headers=operator).status_code == 200
+
+    operator_plate_list = client.get("/orders/plate-list", headers=operator)
+    assert operator_plate_list.status_code == 200, operator_plate_list.text
+    assert operator_plate_order_id in {item["id"] for item in operator_plate_list.json()}
+    operator_plate_document = client.get(
+        f"/orders/{operator_plate_order_id}/documents/number.docx",
+        headers=operator,
+    )
+    assert operator_plate_document.status_code == 200, operator_plate_document.text
+    assert operator_plate_document.headers["content-type"] == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    assert client.patch(
+        f"/orders/{operator_plate_order_id}/status",
+        json={"status": "COMPLETED"},
+        headers=operator,
+    ).status_code == 403
+    assert client.patch(
+        f"/orders/{operator_plate_order_id}/plate-comment",
+        json={"comment": "закрыто"},
+        headers=operator,
+    ).status_code == 403
+    assert client.post(
+        f"/orders/{operator_plate_order_id}/pay-extra",
+        json={"amount": 1500},
+        headers=operator,
+    ).status_code == 403
     assert client.post(
         "/orders",
         json={

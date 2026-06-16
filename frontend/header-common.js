@@ -87,6 +87,9 @@
       menu_items.push({ id: 'cash_p1', label: 'Касса', href: 'cash-shifts.html' });
       menu_items.push({ id: 'plate_transfer', label: 'Деньги за номера', href: 'plate-transfer.html' });
     }
+    if (role === 'ROLE_OPERATOR') {
+      menu_items.push({ id: 'plates', label: 'Невыданные номера', href: 'plate-operator.html' });
+    }
     if (role === 'ROLE_PLATE_OPERATOR' || role === 'ROLE_MANAGER' || role === 'ROLE_ADMIN') {
       menu_items.push({ id: 'plates', label: 'Невыданные номера', href: 'plate-operator.html' });
       menu_items.push({ id: 'plate_cash', label: 'Касса номеров', href: 'plate-cash.html' });

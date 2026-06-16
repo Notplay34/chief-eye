@@ -34,7 +34,7 @@ PAVILIONS_BY_ROLE = {
 # Ресурс → роли, которым разрешён доступ
 RESOURCE_ROLES = {
     Resource.FORM_P1: [EmployeeRole.ROLE_OPERATOR, EmployeeRole.ROLE_MANAGER, EmployeeRole.ROLE_ADMIN],
-    Resource.PLATES_P2: [EmployeeRole.ROLE_PLATE_OPERATOR, EmployeeRole.ROLE_MANAGER, EmployeeRole.ROLE_ADMIN],
+    Resource.PLATES_P2: [EmployeeRole.ROLE_OPERATOR, EmployeeRole.ROLE_PLATE_OPERATOR, EmployeeRole.ROLE_MANAGER, EmployeeRole.ROLE_ADMIN],
     Resource.CASH_P1: [EmployeeRole.ROLE_OPERATOR, EmployeeRole.ROLE_MANAGER, EmployeeRole.ROLE_ADMIN],
     Resource.CASH_P2: [EmployeeRole.ROLE_PLATE_OPERATOR, EmployeeRole.ROLE_MANAGER, EmployeeRole.ROLE_ADMIN],
     Resource.WAREHOUSE: [EmployeeRole.ROLE_PLATE_OPERATOR, EmployeeRole.ROLE_MANAGER, EmployeeRole.ROLE_ADMIN],
