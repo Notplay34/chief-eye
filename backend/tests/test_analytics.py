@@ -16,6 +16,7 @@ def make_order_payload(*, need_plate: bool = False, plate_quantity: int = 1) -> 
     ]
     return {
         "client_fio": "Иван Иванов",
+        "client_phone": "+79991234567",
         "brand_model": "Lada Vesta",
         "state_duty": "500",
         "need_plate": need_plate,

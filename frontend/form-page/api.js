@@ -145,6 +145,11 @@
     var total = page.getTotal();
     if (total <= 0) return;
     if (page.hasInvalidDates(true)) return;
+    if (!page.composePhone()) {
+      if (page.inputs.clientPhone) page.inputs.clientPhone.focus();
+      page.showError('Перед оплатой укажите номер телефона клиента.');
+      return;
+    }
     page.btnAcceptCash.disabled = true;
     page.btnAcceptCash.textContent = 'Отправка…';
     try {

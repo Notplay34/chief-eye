@@ -14,6 +14,7 @@ from app.services.cash_service import ORDER_PAYMENT_CASH_ROW, PLATE_PAYOUT_INTER
 def make_plate_order_payload(*, plate_quantity: int = 1) -> dict:
     return {
         "client_fio": "Петров Пётр Петрович",
+        "client_phone": "+79991234567",
         "brand_model": "Kia Rio",
         "state_duty": "500",
         "need_plate": True,

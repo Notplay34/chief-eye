@@ -9,6 +9,7 @@ def make_order_payload(*, need_plate: bool = False, plate_quantity: int = 1) -> 
     ]
     return {
         "client_fio": "Иван Иванов",
+        "client_phone": "+79991234567",
         "brand_model": "Lada Vesta",
         "state_duty": "500",
         "need_plate": need_plate,
@@ -127,6 +128,18 @@ def test_payment_flow_creates_payments_and_cash_row(client: TestClient, auth_hea
     assert repeat_pay_response.status_code == 409, repeat_pay_response.text
     repeat_payments = client.get(f"/orders/{order['id']}/payments", headers=auth_headers).json()
     assert repeat_payments["total_paid"] == 2700.0
+
+
+def test_order_payment_requires_client_phone(client: TestClient, auth_headers: dict[str, str]):
+    payload = make_order_payload()
+    payload.pop("client_phone")
+
+    create_response = client.post("/orders", json=payload, headers=auth_headers)
+    assert create_response.status_code == 200, create_response.text
+
+    pay_response = client.post(f"/orders/{create_response.json()['id']}/pay", headers=auth_headers)
+    assert pay_response.status_code == 400, pay_response.text
+    assert "телефона" in pay_response.json()["detail"].lower()
 
 
 def test_order_author_is_taken_from_jwt_not_payload(client: TestClient, auth_headers: dict[str, str]):

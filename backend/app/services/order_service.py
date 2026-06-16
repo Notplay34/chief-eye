@@ -276,10 +276,13 @@ async def accept_order_payment(db: AsyncSession, order: Order, user: UserInfo) -
             status_code=400,
         )
 
+    form_data = order.form_data or {}
+    if not form_data.get("client_phone"):
+        raise ServiceError("Нельзя принять оплату без номера телефона клиента", status_code=400)
+
     shift_1 = None
     if order.state_duty_amount > 0 or order.income_pavilion1 > 0 or order.income_pavilion2 > 0:
         shift_1 = await ensure_workday_shift(db, 1, user)
-    form_data = order.form_data or {}
     state_duty_payment_amount = Decimal(str(form_data.get("state_duty_cash_amount") or order.state_duty_amount or 0))
     if state_duty_payment_amount > 0:
         db.add(
